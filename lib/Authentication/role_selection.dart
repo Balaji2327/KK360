@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'student_login.dart';
+import 'tutor_login.dart';
+import 'admin_login.dart';
 
-class RoleSelectionScreen extends StatelessWidget {
+class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
 
+  @override
+  State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
+}
+
+class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -18,10 +26,7 @@ class RoleSelectionScreen extends StatelessWidget {
             SizedBox(
               height: height * 0.6,
               width: width,
-              child: Image.asset(
-                'assets/images/logo.jpg', // your Maatram logo
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset('assets/images/logo.jpg', fit: BoxFit.cover),
             ),
 
             // 🔹 Bottom section (buttons)
@@ -41,6 +46,12 @@ class RoleSelectionScreen extends StatelessWidget {
                       GestureDetector(
                         onTap: () {
                           // TODO: Navigate to Tutor screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TutorLoginScreen(),
+                            ),
+                          );
                         },
                         child: Container(
                           width: width * 0.7,
@@ -53,7 +64,7 @@ class RoleSelectionScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
-                                'assets/images/tutor.png', // your icon
+                                'assets/images/tutor.png',
                                 height: height * 0.04,
                                 color: Colors.white,
                               ),
@@ -78,6 +89,12 @@ class RoleSelectionScreen extends StatelessWidget {
                       GestureDetector(
                         onTap: () {
                           // TODO: Navigate to Student screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StudentLoginScreen(),
+                            ),
+                          );
                         },
                         child: Container(
                           width: width * 0.7,
@@ -90,7 +107,7 @@ class RoleSelectionScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
-                                'assets/images/student.png', // your icon
+                                'assets/images/student.png',
                                 height: height * 0.04,
                                 color: Colors.white,
                               ),
@@ -115,6 +132,12 @@ class RoleSelectionScreen extends StatelessWidget {
                       GestureDetector(
                         onTap: () {
                           // TODO: Navigate to Admin screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AdminLoginScreen(),
+                            ),
+                          );
                         },
                         child: Container(
                           width: width * 0.7,
@@ -127,7 +150,7 @@ class RoleSelectionScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
-                                'assets/images/admin.png', // your icon
+                                'assets/images/admin.png',
                                 height: height * 0.04,
                                 color: Colors.white,
                               ),

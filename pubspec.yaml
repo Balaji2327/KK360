@@ -27,6 +27,8 @@ flutter:
     - assets/images/tutor.png
     - assets/images/student.png
     - assets/images/admin.png
+    - assets/images/login.png
+    - assets/images/google.png
 
   fonts:
     - family: Poppins

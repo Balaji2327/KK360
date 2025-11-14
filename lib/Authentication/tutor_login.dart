@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'forget_password.dart';
+import 'student_login.dart';
 
 class TutorLoginScreen extends StatefulWidget {
   const TutorLoginScreen({super.key});
@@ -26,7 +28,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
             children: [
               SizedBox(height: h * 0.14),
 
-              // 🔹 Top login image (Tutor image)
+              // 🔹 Top login image
               Image.asset("assets/images/login.png", height: h * 0.12),
 
               SizedBox(height: h * 0.02),
@@ -137,12 +139,41 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
 
               SizedBox(height: h * 0.015),
 
-              // 🔹 Forget password & OTP
+              // 🔹 Forget password & OTP (buttons)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text("Forget Password?", style: TextStyle(fontSize: 13)),
-                  Text("Log in with OTP?", style: TextStyle(fontSize: 13)),
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ForgetPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Forget Password?",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      // Navigator.push(context, MaterialPageRoute(builder: (context) => OTPLoginScreen()));
+                    },
+                    child: const Text(
+                      "Log in with OTP?",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
                 ],
               ),
 
@@ -178,15 +209,35 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
 
               SizedBox(height: h * 0.02),
 
-              const Text("Are you a Student?", style: TextStyle(fontSize: 13)),
-              const SizedBox(height: 3),
-              Text(
-                "Click here",
-                style: TextStyle(
-                  color: Colors.green.shade600,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+              // 🔹 Student login button
+              Column(
+                children: [
+                  const Text(
+                    "Are you a Student?",
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 3),
+
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentLoginScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      "Click here",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               SizedBox(height: h * 0.03),

@@ -29,6 +29,7 @@ flutter:
     - assets/images/admin.png
     - assets/images/login.png
     - assets/images/google.png
+    - assets/images/pass.png
 
   fonts:
     - family: Poppins

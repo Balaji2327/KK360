@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'forget_password.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -137,12 +138,41 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
               SizedBox(height: h * 0.015),
 
-              // 🔹 Forget password & OTP
+              // 🔹 Forget password & OTP as buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text("Forget Password?", style: TextStyle(fontSize: 13)),
-                  Text("Log in with OTP?", style: TextStyle(fontSize: 13)),
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ForgetPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Forget Password?",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      // Navigator.push(context, MaterialPageRoute(builder: (context) => OTPLoginScreen()));
+                    },
+                    child: const Text(
+                      "Log in with OTP?",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
                 ],
               ),
 
@@ -176,20 +206,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 ),
               ),
 
-              // SizedBox(height: h * 0.02),
-
-              // const Text("Are you a Tutor?", style: TextStyle(fontSize: 13)),
-              // const SizedBox(height: 3),
-              // Text(
-              //   "Click here",
-              //   style: TextStyle(
-              //     color: Colors.green.shade600,
-              //     fontSize: 14,
-              //     fontWeight: FontWeight.w600,
-              //   ),
-              // ),
-
-              // SizedBox(height: h * 0.03),
+              SizedBox(height: h * 0.03),
             ],
           ),
         ),

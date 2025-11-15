@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'forget_password.dart';
 import 'tutor_login.dart';
+import 'otp_screen.dart';
 
 class StudentLoginScreen extends StatefulWidget {
   const StudentLoginScreen({super.key});
@@ -159,7 +160,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => OTPLoginScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => OtpLoginScreen()));
                     },
                     child: const Text(
                       "Log in with OTP?",

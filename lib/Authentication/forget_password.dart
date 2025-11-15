@@ -106,13 +106,22 @@ class ForgetPasswordScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context);
                   },
-                  child: Text(
-                    "Back to Login",
-                    style: TextStyle(
-                      fontSize: width * 0.038,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Back to ",
+                        style: TextStyle(fontSize: width * 0.04),
+                      ),
+                      Text(
+                        "Login",
+                        style: TextStyle(
+                          fontSize: width * 0.045,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 

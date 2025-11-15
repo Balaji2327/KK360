@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'forget_password.dart';
+import 'otp_screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -162,7 +163,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => OTPLoginScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OtpLoginScreen(),
+                        ),
+                      );
                     },
                     child: const Text(
                       "Log in with OTP?",

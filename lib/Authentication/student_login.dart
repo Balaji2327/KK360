@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'forget_password.dart';
 import 'tutor_login.dart';
 import 'otp_screen.dart';
+import '../student/home_screen.dart';
 
 class StudentLoginScreen extends StatefulWidget {
   const StudentLoginScreen({super.key});
@@ -118,21 +119,31 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
               SizedBox(height: h * 0.01),
 
-              // Login Button
-              Container(
-                width: w,
-                height: h * 0.055,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: const Center(
-                  child: Text(
-                    "Log In",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+              // ⭐ Login Button (Navigation Added)
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StudentHomeScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: w,
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(35),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      "Log In",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -146,8 +157,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => ForgetPasswordScreen()));
-                      
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgetPasswordScreen(),
+                        ),
+                      );
                     },
                     child: const Text(
                       "Forget Password?",
@@ -158,9 +173,15 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                       ),
                     ),
                   ),
+
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => OtpLoginScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const OtpLoginScreen(),
+                        ),
+                      );
                     },
                     child: const Text(
                       "Log in with OTP?",
@@ -216,9 +237,14 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   const SizedBox(height: 3),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => TutorLoginScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TutorLoginScreen(),
+                        ),
+                      );
                     },
-                    child: Text(
+                    child: const Text(
                       "Click here",
                       style: TextStyle(
                         color: Colors.blue,

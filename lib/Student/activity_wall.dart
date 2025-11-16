@@ -1,0 +1,318 @@
+import 'package:flutter/material.dart';
+import 'home_screen.dart';
+import 'join_meet.dart';
+import 'course_screen.dart';
+import 'join_class.dart';
+import 'more_feature.dart';
+
+class ActivityWallScreen extends StatefulWidget {
+  const ActivityWallScreen({super.key});
+
+  @override
+  State<ActivityWallScreen> createState() => _ActivityWallScreenState();
+}
+
+class _ActivityWallScreenState extends State<ActivityWallScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    final w = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      // =================== BOTTOM NAVIGATION (Same as Home Screen) ===================
+      bottomNavigationBar: Container(
+        height: h * 0.1,
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.grey.shade300)),
+          color: Colors.white,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            navItem(Icons.home_outlined, "Home", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StudentHomeScreen(),
+                ),
+              );
+            }),
+            navItem(Icons.group_outlined, "Join meet", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const JoinMeetScreen()),
+              );
+            }),
+            addButton(w, h, () {
+              // Add button action (stay on same page)
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const JoinClassScreen(),
+                ),
+              );
+            }),
+            navItem(Icons.menu_book_outlined, "Classwork", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CoursesScreen()),
+              );
+            }),
+            navItem(Icons.more_horiz, "More", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MoreFeaturesScreen(),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+
+      // =================== BODY WITH SAME HEADER AS HOME ===================
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ================= TOP PURPLE HEADER =================
+          Container(
+            width: w,
+            height: h * 0.23,
+            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+            decoration: const BoxDecoration(
+              color: Color(0xFF4B3FA3),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: h * 0.07),
+
+                const Text(
+                  "Activity Wall",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 5),
+
+                const Text(
+                  "Updates from all tutors",
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+
+                SizedBox(height: 15),
+
+                Container(
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.search, color: Colors.grey),
+                      SizedBox(width: 10),
+                      Text(
+                        "Search for anything",
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ================= BODY SCROLL CONTENT =================
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                child: Column(
+                  children: [
+                    SizedBox(height: h * 0.02),
+
+                    // Example Activity Card (you can add more)
+                    activityCard(
+                      w,
+                      h,
+                      teacher: "Ms. S. Sowmiya",
+                      subject: "Mathematics Tutor",
+                      unit: "UNIT - I",
+                      date: "Nov 04 2025",
+                      description:
+                          "A Test named UNIT - I is created and set to\nbe expired on 2025-11-27 23:15:00",
+                      start: "2025-11-27 19:56:00",
+                      end: "2025-11-27 23:15:00",
+                      buttonText: "Take Test",
+                    ),
+
+                    SizedBox(height: h * 0.02),
+
+                    activityCard(
+                      w,
+                      h,
+                      teacher: "Mr. S. Dhanush",
+                      subject: "Physics Tutor",
+                      unit: "UNIT - II",
+                      date: "Nov 04 2025",
+                      description: "Your test has been evaluated successfully.",
+                      start: "Score: 8/10",
+                      end: "Rank: 8/45",
+                      buttonText: "View Result",
+                    ),
+
+                    SizedBox(height: h * 0.1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =================== Activity Card Widget ===================
+  Widget activityCard(
+    double w,
+    double h, {
+    required String teacher,
+    required String subject,
+    required String unit,
+    required String date,
+    required String description,
+    required String start,
+    required String end,
+    required String buttonText,
+  }) {
+    return Container(
+      width: w,
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundImage: const AssetImage('assets/images/person.png'),
+                backgroundColor: Colors.transparent,
+              ),
+              SizedBox(width: w * 0.03),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    teacher,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    subject,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                date,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+          SizedBox(height: h * 0.015),
+          Center(
+            child: Text(
+              unit,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          SizedBox(height: h * 0.012),
+          Text(
+            description,
+            style: const TextStyle(fontSize: 13, height: 1.4),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: h * 0.02),
+          Center(
+            child: Text(
+              "$start\n$end",
+              style: const TextStyle(fontSize: 12, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: h * 0.02),
+          Center(
+            child: Container(
+              height: h * 0.045,
+              width: w * 0.35,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4B3FA3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  buttonText,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =================== Bottom Nav Widgets ===================
+  Widget navItem(IconData icon, String text, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 23),
+          Text(text, style: const TextStyle(fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  Widget addButton(double w, double h, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: h * 0.06,
+        width: h * 0.06,
+        decoration: const BoxDecoration(
+          color: Color(0xFFCAF3D0),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.add, size: 28, color: Colors.black),
+      ),
+    );
+  }
+}

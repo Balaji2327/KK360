@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'join_meet.dart';
 import 'course_screen.dart';
+import 'join_class.dart';
+import 'more_feature.dart';
 
-class StudentHomeScreen extends StatelessWidget {
+class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
 
+  @override
+  State<StudentHomeScreen> createState() => _StudentHomeScreenState();
+}
+
+class _StudentHomeScreenState extends State<StudentHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -176,21 +183,38 @@ class StudentHomeScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            navItem(Icons.home_outlined, "Home", () {}),
+            navItem(Icons.home_outlined, "Home", () {
+              // Already on Home Screen
+            }),
             navItem(Icons.group_outlined, "Join meet", () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const JoinMeetScreen()),
               );
             }),
-            addButton(w, h, () {}),
+            addButton(w, h, () {
+              // Add button action
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const JoinClassScreen(),
+                ),
+              );
+            }),
             navItem(Icons.menu_book_outlined, "Classwork", () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const CoursesScreen()),
               );
             }),
-            navItem(Icons.more_horiz, "More", () {}),
+            navItem(Icons.more_horiz, "More", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MoreFeaturesScreen(),
+                ),
+              );
+            }),
           ],
         ),
       ),

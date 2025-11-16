@@ -33,6 +33,8 @@ flutter:
     - assets/images/otp.png
     - assets/images/person.png
     - assets/images/maths.png
+    - assets/images/female.png
+    - assets/images/megaphone.png
 
   fonts:
     - family: Poppins

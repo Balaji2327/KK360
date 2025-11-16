@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'forget_password.dart';
 import 'student_login.dart';
 import 'otp_screen.dart';
+import '../tutor/home_screen.dart';
 class TutorLoginScreen extends StatefulWidget {
   const TutorLoginScreen({super.key});
 
@@ -118,20 +119,30 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
               SizedBox(height: h * 0.01),
 
               // 🔹 Login Button
-              Container(
-                width: w,
-                height: h * 0.055,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: const Center(
-                  child: Text(
-                    "Log In",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+               GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TeacherStreamScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: w,
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(35),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      "Log In",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),

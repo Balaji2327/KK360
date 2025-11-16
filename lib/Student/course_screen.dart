@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'join_meet.dart';
 import 'home_screen.dart';
+import 'join_class.dart';
+import 'activity_wall.dart';
+import 'more_feature.dart';
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -43,7 +46,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
   @override
   void initState() {
     super.initState();
-    // Purple Status bar with white icons
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Color(0xFF4B3FA3),
@@ -59,12 +61,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF4F5F7),
-
       bottomNavigationBar: bottomNavBar(h, w),
 
       body: Column(
         children: [
-          SafeArea(child: headerLayout(h, w)), // **Keep SafeArea only**
+          SafeArea(child: headerLayout(h, w)),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -93,10 +94,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
   Widget headerLayout(double h, double w) {
     return Container(
       width: w,
-      height: h * 0.18, // SAME height as Home header
+      height: h * 0.18,
       padding: EdgeInsets.symmetric(horizontal: w * 0.06),
       decoration: const BoxDecoration(
-        color: Color(0xFF4B3FA3), // purple
+        color: Color(0xFF4B3FA3),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
@@ -107,7 +108,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
         children: [
           SizedBox(height: h * 0.02),
 
-          // Title + Tests Button (replaces "Hello")
+          // Title + Tests Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -115,54 +116,57 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 "Your Courses",
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22, // SAME font size as Home Title
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
-              // Tests Button
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: w * 0.045,
-                  vertical: h * 0.006,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.notifications,
-                      size: 16,
-                      color: Color.fromARGB(255, 240, 126, 60),
+              // -------------- TESTS BUTTON WITH NAVIGATION --------------
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ActivityWallScreen(),
                     ),
-                    SizedBox(width: 6),
-                    Text(
-                      "Tests",
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: w * 0.045,
+                    vertical: h * 0.006,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.notifications, size: 16, color: Colors.orange),
+                      SizedBox(width: 6),
+                      Text(
+                        "Tests",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
 
           SizedBox(height: h * 0.005),
-
-          // Email (same style and size as Home)
           const Text(
             "Visali K | sit23sc059@sairamtap.edu.in",
             style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
-
           SizedBox(height: h * 0.02),
 
-          // Course Dropdown (replaces Search Bar, SAME SIZE)
+          // Course Dropdown
           Container(
             height: h * 0.055,
             decoration: BoxDecoration(
@@ -208,20 +212,28 @@ class _CoursesScreenState extends State<CoursesScreen> {
           navItem(Icons.home_outlined, "Home", () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const StudentHomeScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const StudentHomeScreen()),
             );
           }),
           navItem(Icons.group_outlined, "Join meet", () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const JoinMeetScreen()),
+              MaterialPageRoute(builder: (_) => const JoinMeetScreen()),
             );
           }),
-          addButton(w, h, () {}),
+          addButton(w, h, () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const JoinClassScreen()),
+            );
+          }),
           navItem(Icons.menu_book_outlined, "Classwork", () {}),
-          navItem(Icons.more_horiz, "More", () {}),
+          navItem(Icons.more_horiz, "More", () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MoreFeaturesScreen()),
+            );
+          }),
         ],
       ),
     );

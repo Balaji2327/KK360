@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'course_screen.dart';
-import 'join_class.dart';
+import 'activity_wall.dart';
+import 'join_meet.dart';
 import 'more_feature.dart';
 
-class JoinMeetScreen extends StatefulWidget {
-  const JoinMeetScreen({super.key});
+class JoinClassScreen extends StatefulWidget {
+  const JoinClassScreen({super.key});
 
   @override
-  State<JoinMeetScreen> createState() => _JoinMeetScreenState();
+  State<JoinClassScreen> createState() => _JoinClassScreenState();
 }
 
-class _JoinMeetScreenState extends State<JoinMeetScreen> {
+class _JoinClassScreenState extends State<JoinClassScreen> {
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -45,7 +46,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Join Meet",
+                        "Join Class",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -84,7 +85,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
               child: const Text(
-                "Ask your tutor for the meet code, then\nenter it here.",
+                "Ask your tutor for the class code, then\nenter it here.",
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
             ),
@@ -103,7 +104,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
                 ),
                 child: const TextField(
                   decoration: InputDecoration(
-                    hintText: "Enter meet code",
+                    hintText: "Enter class code",
                     border: InputBorder.none,
                   ),
                 ),
@@ -116,7 +117,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
               child: const Text(
-                "To sign in with a meet code",
+                "To sign in with a class code",
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
@@ -127,7 +128,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
               child: const Text(
-                "• Use a meet code with 6–8 letters or numbers, and\n  spaces or symbols",
+                "• Use a class code with 6–8 letters or numbers, and\n  spaces or symbols",
                 style: TextStyle(fontSize: 13),
               ),
             ),
@@ -159,6 +160,10 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
 
             navItem(Icons.group_outlined, "Join meet", () {
               // TODO: Navigate to Join Meet
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const JoinMeetScreen()),
+              );
             }),
 
             addButton(w, h, () {
@@ -166,7 +171,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const JoinClassScreen(),
+                  builder: (context) => const ActivityWallScreen(),
                 ),
               );
             }),

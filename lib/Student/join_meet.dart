@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'course_screen.dart';
 
 class JoinMeetScreen extends StatelessWidget {
   const JoinMeetScreen({super.key});
@@ -159,6 +160,10 @@ class JoinMeetScreen extends StatelessWidget {
 
             navItem(Icons.menu_book_outlined, "Classwork", () {
               // TODO: Navigate to Classwork
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CoursesScreen()),
+              );
             }),
 
             navItem(Icons.more_horiz, "More", () {

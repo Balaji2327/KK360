@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'meeting_control.dart';
 
 class TeacherStreamScreen extends StatelessWidget {
   const TeacherStreamScreen({super.key});
@@ -42,7 +43,12 @@ class TeacherStreamScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             navItem(Icons.home_outlined, "Home", () {}),
-            navItem(Icons.group_outlined, "Join meet", () {}),
+            navItem(Icons.group_outlined, "Join meet", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MeetingControlScreen()),
+              );
+            }),
             navItem(Icons.menu_book_outlined, "Classwork", () {}),
             navItem(Icons.people_alt_outlined, "People", () {}),
           ],

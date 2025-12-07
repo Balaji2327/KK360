@@ -36,6 +36,7 @@ flutter:
     - assets/images/female.png
     - assets/images/megaphone.png
     - assets/images/meeting.png
+    - assets/images/work.png
 
   fonts:
     - family: Poppins

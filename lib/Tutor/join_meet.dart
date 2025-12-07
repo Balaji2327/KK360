@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'meeting_control.dart';
+import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
 
 class JoinMeetingScreen extends StatefulWidget {
   const JoinMeetingScreen({super.key});
@@ -19,32 +18,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
       backgroundColor: Colors.white,
 
       // ---------------- BOTTOM NAVIGATION BAR ----------------
-      bottomNavigationBar: Container(
-        height: h * 0.10,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            navItem(Icons.home_outlined, "Home", () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const TeacherStreamScreen()),
-              );
-            }),
-            navItem(Icons.group_outlined, "Join meet", () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const MeetingControlScreen()),
-              );
-            }),
-            navItem(Icons.menu_book_outlined, "Classwork", () {}),
-            navItem(Icons.people_alt_outlined, "People", () {}),
-          ],
-        ),
-      ),
+      bottomNavigationBar: const TutorBottomNav(currentIndex: 1),
 
       // ======================================================================
       // BODY

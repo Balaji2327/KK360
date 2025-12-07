@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'meeting_control.dart';
+import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
 
-class TeacherStreamScreen extends StatelessWidget {
+class TeacherStreamScreen extends StatefulWidget {
   const TeacherStreamScreen({super.key});
 
+  @override
+  State<TeacherStreamScreen> createState() => _TeacherStreamScreenState();
+}
+
+class _TeacherStreamScreenState extends State<TeacherStreamScreen> {
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -32,28 +37,8 @@ class TeacherStreamScreen extends StatelessWidget {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
 
-      // ================= BOTTOM NAVIGATION =================
-      bottomNavigationBar: Container(
-        height: h * 0.1,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            navItem(Icons.home_outlined, "Home", () {}),
-            navItem(Icons.group_outlined, "Join meet", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MeetingControlScreen()),
-              );
-            }),
-            navItem(Icons.menu_book_outlined, "Classwork", () {}),
-            navItem(Icons.people_alt_outlined, "People", () {}),
-          ],
-        ),
-      ),
+      // ================= REUSABLE BOTTOM NAVIGATION =================
+      bottomNavigationBar: const TutorBottomNav(currentIndex: 0),
 
       // ================= PAGE BODY =================
       body: Column(

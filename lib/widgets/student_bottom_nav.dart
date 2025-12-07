@@ -15,45 +15,53 @@ class StudentBottomNav extends StatefulWidget {
 }
 
 class _StudentBottomNavState extends State<StudentBottomNav> {
+  // Create a page route with a smooth slide transition
+  PageRouteBuilder _createRoute(Widget page, bool forward) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final offsetAnim = Tween<Offset>(
+          begin: Offset(forward ? 1.0 : -1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+        final fade = CurvedAnimation(parent: animation, curve: Curves.easeIn);
+        return SlideTransition(
+          position: offsetAnim,
+          child: FadeTransition(opacity: fade, child: child),
+        );
+      },
+    );
+  }
+
   void _navigate(BuildContext context, int index) {
     if (index == widget.currentIndex) return;
 
+    // determine forward/back direction for transition
+    final forward = index > widget.currentIndex;
+
+    Widget page;
     switch (index) {
       case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const StudentHomeScreen()),
-        );
+        page = const StudentHomeScreen();
         break;
-
       case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const JoinMeetScreen()),
-        );
+        page = const JoinMeetScreen();
         break;
-
       case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const JoinClassScreen()),
-        );
+        page = const JoinClassScreen();
         break;
-
       case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const CoursesScreen()),
-        );
+        page = const CoursesScreen();
         break;
-
       case 4:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MoreFeaturesScreen()),
-        );
+      default:
+        page = const MoreFeaturesScreen();
         break;
     }
+
+    Navigator.of(context).pushReplacement(_createRoute(page, forward));
   }
 
   @override
@@ -93,18 +101,34 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
             onTap: () => _navigate(context, 1),
           ),
 
-          // CENTER ADD BUTTON
-          GestureDetector(
-            onTap: () => _navigate(context, 2),
-            child: Container(
-              height: 55,
-              width: 55,
-              decoration: BoxDecoration(
-                color: const Color(0xffDFF7E8), // your light green
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Center(
-                child: Icon(Icons.add, size: 32, color: Colors.black),
+          // CENTER CIRCULAR ADD BUTTON (floating feel)
+          // We slightly translate it up to give an overlapping floating effect
+          Transform.translate(
+            offset: const Offset(0, -12),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                height: 64,
+                width: 64,
+                decoration: BoxDecoration(
+                  color: const Color(0xffDFF7E8), // light green
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _navigate(context, 2),
+                  splashColor: Colors.white24,
+                  child: const Center(
+                    child: Icon(Icons.add, size: 32, color: Colors.black),
+                  ),
+                ),
               ),
             ),
           ),
@@ -135,24 +159,33 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    // implicit animations for smooth active state changes
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 28,
-            color: isActive ? Color(0xFF4B3FA3) : Colors.black54,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: isActive ? Color(0xFF4B3FA3) : Colors.black54,
-              fontWeight: FontWeight.w500,
+          AnimatedScale(
+            scale: isActive ? 1.12 : 1.0,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            child: Icon(
+              icon,
+              size: 28,
+              color: isActive ? const Color(0xFF4B3FA3) : Colors.black54,
             ),
+          ),
+          const SizedBox(height: 4),
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 180),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11,
+              color: isActive ? const Color(0xFF4B3FA3) : Colors.black54,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            ),
+            child: Text(label),
           ),
         ],
       ),

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'join_meet.dart';
-import 'home_screen.dart';
-import 'join_class.dart';
 import 'activity_wall.dart';
-import 'more_feature.dart';
+import '../widgets/student_bottom_nav.dart';
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -61,7 +58,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF4F5F7),
-      bottomNavigationBar: bottomNavBar(h, w),
+
+      // ⭐ NEW COMMON NAVIGATION BAR
+      bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
 
       body: Column(
         children: [
@@ -90,7 +89,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
   }
 
-  // ---------------- HEADER WITH CURVED BOTTOM ----------------
+  // ---------------- HEADER ----------------
   Widget headerLayout(double h, double w) {
     return Container(
       width: w,
@@ -108,7 +107,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
         children: [
           SizedBox(height: h * 0.02),
 
-          // Title + Tests Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -121,7 +119,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 ),
               ),
 
-              // -------------- TESTS BUTTON WITH NAVIGATION --------------
               InkWell(
                 onTap: () {
                   Navigator.push(
@@ -166,7 +163,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
           ),
           SizedBox(height: h * 0.02),
 
-          // Course Dropdown
           Container(
             height: h * 0.055,
             decoration: BoxDecoration(
@@ -194,75 +190,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ---------------- BOTTOM NAVIGATION ----------------
-  Widget bottomNavBar(double h, double w) {
-    return Container(
-      height: h * 0.1,
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.grey.shade300)),
-        color: Colors.white,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          navItem(Icons.home_outlined, "Home", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const StudentHomeScreen()),
-            );
-          }),
-          navItem(Icons.group_outlined, "Join meet", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const JoinMeetScreen()),
-            );
-          }),
-          addButton(w, h, () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const JoinClassScreen()),
-            );
-          }),
-          navItem(Icons.menu_book_outlined, "Classwork", () {}),
-          navItem(Icons.more_horiz, "More", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MoreFeaturesScreen()),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23),
-          Text(text, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  Widget addButton(double w, double h, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: h * 0.06,
-        width: h * 0.06,
-        decoration: const BoxDecoration(
-          color: Color(0xFFCAF3D0),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.add, size: 28, color: Colors.black),
       ),
     );
   }

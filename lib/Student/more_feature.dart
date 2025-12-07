@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'join_meet.dart';
-import 'course_screen.dart';
-import 'join_class.dart';
+import '../widgets/student_bottom_nav.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
   const MoreFeaturesScreen({super.key});
@@ -20,44 +17,8 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffF4F5F7),
 
-      // ---------------- BOTTOM NAV ----------------
-      bottomNavigationBar: Container(
-        height: h * 0.1,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            navItem(Icons.home_outlined, "Home", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const StudentHomeScreen()),
-              );
-            }),
-            navItem(Icons.group_outlined, "Join meet", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const JoinMeetScreen()),
-              );
-            }),
-            addButton(w, h, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const JoinClassScreen()),
-              );
-            }),
-            navItem(Icons.menu_book_outlined, "Classwork", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CoursesScreen()),
-              );
-            }),
-            navItem(Icons.more_horiz, "More", () {}),
-          ],
-        ),
-      ),
+      // ⭐ COMMON NAVIGATION BAR
+      bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
 
       // ---------------- BODY ----------------
       body: SingleChildScrollView(
@@ -93,7 +54,7 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                         ),
                       ),
 
-                      // Join button
+                      // Logout button
                       Container(
                         height: h * 0.04,
                         width: w * 0.25,
@@ -120,7 +81,7 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
 
             SizedBox(height: h * 0.03),
 
-            // ---------------- PROFILE SECTION (White area) ----------------
+            // ---------------- PROFILE ----------------
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
               child: Row(
@@ -224,35 +185,6 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
           ),
           const Icon(Icons.chevron_right),
         ],
-      ),
-    );
-  }
-
-  // ---------------- Bottom Nav Widgets ----------------
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23),
-          Text(text, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  Widget addButton(double w, double h, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: h * 0.06,
-        width: h * 0.06,
-        decoration: const BoxDecoration(
-          color: Color(0xFFCAF3D0),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.add, size: 28, color: Colors.black),
       ),
     );
   }

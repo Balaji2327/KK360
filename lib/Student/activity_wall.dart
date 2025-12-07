@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'join_meet.dart';
-import 'course_screen.dart';
-import 'join_class.dart';
-import 'more_feature.dart';
+import '../widgets/student_bottom_nav.dart';
 
 class ActivityWallScreen extends StatefulWidget {
   const ActivityWallScreen({super.key});
@@ -21,56 +17,8 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      // =================== BOTTOM NAVIGATION (Same as Home Screen) ===================
-      bottomNavigationBar: Container(
-        height: h * 0.1,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            navItem(Icons.home_outlined, "Home", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StudentHomeScreen(),
-                ),
-              );
-            }),
-            navItem(Icons.group_outlined, "Join meet", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const JoinMeetScreen()),
-              );
-            }),
-            addButton(w, h, () {
-              // Add button action (stay on same page)
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const JoinClassScreen(),
-                ),
-              );
-            }),
-            navItem(Icons.menu_book_outlined, "Classwork", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CoursesScreen()),
-              );
-            }),
-            navItem(Icons.more_horiz, "More", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MoreFeaturesScreen(),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
+      // ⭐ NEW COMMON NAV BAR
+      bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
 
       // =================== BODY WITH SAME HEADER AS HOME ===================
       body: Column(
@@ -142,7 +90,6 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                   children: [
                     SizedBox(height: h * 0.02),
 
-                    // Example Activity Card (you can add more)
                     activityCard(
                       w,
                       h,
@@ -152,8 +99,8 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                       date: "Nov 04 2025",
                       description:
                           "A Test named UNIT - I is created and set to\nbe expired on 2025-11-27 23:15:00",
-                      start: "2025-11-27 19:56:00",
-                      end: "2025-11-27 23:15:00",
+                      start: "Start Time : 2025-11-27 19:56:00",
+                      end: "End Time : 2025-11-27 23:15:00",
                       buttonText: "Take Test",
                     ),
 
@@ -283,35 +230,6 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // =================== Bottom Nav Widgets ===================
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23),
-          Text(text, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  Widget addButton(double w, double h, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: h * 0.06,
-        width: h * 0.06,
-        decoration: const BoxDecoration(
-          color: Color(0xFFCAF3D0),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.add, size: 28, color: Colors.black),
       ),
     );
   }

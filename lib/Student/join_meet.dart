@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'course_screen.dart';
-import 'join_class.dart';
-import 'more_feature.dart';
+import '../widgets/student_bottom_nav.dart';
 
 class JoinMeetScreen extends StatefulWidget {
   const JoinMeetScreen({super.key});
@@ -137,90 +134,8 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
         ),
       ),
 
-      // ================= BOTTOM NAVIGATION BAR =================
-      bottomNavigationBar: Container(
-        height: h * 0.1,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            navItem(Icons.home_outlined, "Home", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StudentHomeScreen(),
-                ),
-              );
-              // TODO: Navigate to Home
-            }),
-
-            navItem(Icons.group_outlined, "Join meet", () {
-              // TODO: Navigate to Join Meet
-            }),
-
-            addButton(w, h, () {
-              // TODO: Add Button Click
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const JoinClassScreen(),
-                ),
-              );
-            }),
-
-            navItem(Icons.menu_book_outlined, "Classwork", () {
-              // TODO: Navigate to Classwork
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CoursesScreen()),
-              );
-            }),
-
-            navItem(Icons.more_horiz, "More", () {
-              // TODO: Navigate to More Page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MoreFeaturesScreen(),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Bottom nav normal item (NOW CLICKABLE)
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23),
-          Text(text, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  // Add Button (NOW CLICKABLE)
-  Widget addButton(double w, double h, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: h * 0.06,
-        width: h * 0.06,
-        decoration: const BoxDecoration(
-          color: Color(0xFFCAF3D0), // green plus
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.add, size: 28, color: Colors.black),
-      ),
+      // ⭐ NEW COMMON NAVIGATION BAR — this screen is index 1
+      bottomNavigationBar: const StudentBottomNav(currentIndex: 1),
     );
   }
 }

@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'join_meet.dart';
-import 'course_screen.dart';
-import 'join_class.dart';
-import 'more_feature.dart';
+import '../widgets/student_bottom_nav.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -30,7 +27,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             height: h * 0.23,
             padding: EdgeInsets.symmetric(horizontal: w * 0.06),
             decoration: const BoxDecoration(
-              color: Color(0xFF4B3FA3), // purple
+              color: Color(0xFF4B3FA3),
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
@@ -144,7 +141,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
                   SizedBox(height: h * 0.03),
 
-                  // =================== Alerts Title LEFT ===================
+                  // =================== Alerts Title ===================
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                     child: const Text(
@@ -173,51 +170,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ],
       ),
 
-      // =================== BOTTOM NAV BAR ===================
-      bottomNavigationBar: Container(
-        height: h * 0.1,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            navItem(Icons.home_outlined, "Home", () {
-              // Already on Home Screen
-            }),
-            navItem(Icons.group_outlined, "Join meet", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const JoinMeetScreen()),
-              );
-            }),
-            addButton(w, h, () {
-              // Add button action
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const JoinClassScreen(),
-                ),
-              );
-            }),
-            navItem(Icons.menu_book_outlined, "Classwork", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CoursesScreen()),
-              );
-            }),
-            navItem(Icons.more_horiz, "More", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MoreFeaturesScreen(),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
+      // =================== REPLACED WITH COMMON NAV BAR ===================
+      bottomNavigationBar: const StudentBottomNav(currentIndex: 0),
     );
   }
 
@@ -320,36 +274,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ------------------ NAV ITEM WIDGET ------------------
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23),
-          Text(text, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  // ------------------ ADD BUTTON ------------------
-  Widget addButton(double w, double h, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: h * 0.06,
-        width: h * 0.06,
-        decoration: const BoxDecoration(
-          color: Color(0xFFCAF3D0),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.add, size: 28, color: Colors.black),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../Tutor/home_screen.dart';
 import '../Tutor/meeting_control.dart';
 import '../Tutor/your_work.dart';
+import '../Tutor/add_people.dart';
 
 class TutorBottomNav extends StatefulWidget {
   final int currentIndex;
@@ -51,7 +52,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
         break;
       case 3:
       default:
-        page = const TeacherStreamScreen();
+        page = const AddPeopleScreen();
         break;
     }
 

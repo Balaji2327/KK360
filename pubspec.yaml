@@ -54,6 +54,9 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"   # <-- replace with your app icon image
-  adaptive_icon_background: "#FFFFFF"        # solid background (can be your brand color)
+  # I changed this to use 'logo.jpg' since that is in your assets list
+  image_path: "assets/images/app_icon.png"
+  
+  # This creates the "Circle" icon on Android (Adaptive Icon)
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/app_icon.png"

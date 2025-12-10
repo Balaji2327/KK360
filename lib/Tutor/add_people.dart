@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
 import 'invite_tutor.dart';
 import 'invite_student.dart';
+import '../widgets/nav_helper.dart';
 
 class AddPeopleScreen extends StatefulWidget {
   const AddPeopleScreen({super.key});
@@ -109,12 +110,7 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                         // ⭐ SCHOOL ICON — ON TAP → NAVIGATE
                         GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const InviteTutorsScreen(),
-                              ),
-                            );
+                            goPush(context, InviteTutorsScreen());
                           },
                           child: Icon(
                             Icons.school,
@@ -169,12 +165,7 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                         // ✅ Make person_add icon navigate to InviteStudentsScreen
                         GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const InviteStudentsScreen(),
-                              ),
-                            );
+                            goPush(context, InviteStudentsScreen());
                           },
                           child: Icon(
                             Icons.person_add,
@@ -267,12 +258,7 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                               elevation: 0,
                             ),
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const InviteStudentsScreen(),
-                                ),
-                              );
+                              goPush(context, InviteStudentsScreen());
                             },
                             child: Text(
                               "Invite",

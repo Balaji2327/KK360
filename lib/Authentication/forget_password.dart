@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/nav_helper.dart';
 
 class ForgetPasswordScreen extends StatefulWidget {
   const ForgetPasswordScreen({super.key});
@@ -109,7 +110,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                 // 🔹 Back to Login
                 GestureDetector(
                   onTap: () {
-                    Navigator.pop(context);
+                    goBack(context);
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

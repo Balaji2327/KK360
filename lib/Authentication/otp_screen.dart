@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/nav_helper.dart';
 
 class OtpLoginScreen extends StatefulWidget {
   const OtpLoginScreen({super.key});
@@ -191,7 +192,7 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
                 // Back to Login (Your same UI)
                 GestureDetector(
                   onTap: () {
-                    Navigator.pop(context);
+                    goBack(context);
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

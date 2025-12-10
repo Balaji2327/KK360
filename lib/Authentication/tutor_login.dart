@@ -3,6 +3,8 @@ import 'forget_password.dart';
 import 'student_login.dart';
 import 'otp_screen.dart';
 import '../tutor/home_screen.dart';
+import '../widgets/nav_helper.dart';
+
 class TutorLoginScreen extends StatefulWidget {
   const TutorLoginScreen({super.key});
 
@@ -121,12 +123,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
               // 🔹 Login Button
                GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TeacherStreamScreen(),
-                    ),
-                  );
+                  goPush(context, TeacherStreamScreen());
                 },
                 child: Container(
                   width: w,
@@ -156,12 +153,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ForgetPasswordScreen(),
-                        ),
-                      );
+                      goPush(context, ForgetPasswordScreen());
                     },
                     child: const Text(
                       "Forget Password?",
@@ -174,7 +166,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => OtpLoginScreen()));
+                      goPush(context, OtpLoginScreen());
                     },
                     child: const Text(
                       "Log in with OTP?",
@@ -231,12 +223,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
 
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentLoginScreen(),
-                        ),
-                      );
+                      goPush(context, StudentLoginScreen());
                     },
                     child: Text(
                       "Click here",

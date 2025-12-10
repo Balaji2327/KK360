@@ -3,6 +3,7 @@ import 'forget_password.dart';
 import 'tutor_login.dart';
 import 'otp_screen.dart';
 import '../student/home_screen.dart';
+import '../widgets/nav_helper.dart';
 
 class StudentLoginScreen extends StatefulWidget {
   const StudentLoginScreen({super.key});
@@ -122,12 +123,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               // ⭐ Login Button (Navigation Added)
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const StudentHomeScreen(),
-                    ),
-                  );
+                  goPush(context, StudentHomeScreen());
                 },
                 child: Container(
                   width: w,
@@ -157,12 +153,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ForgetPasswordScreen(),
-                        ),
-                      );
+                      goPush(context, ForgetPasswordScreen());
                     },
                     child: const Text(
                       "Forget Password?",
@@ -176,12 +167,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const OtpLoginScreen(),
-                        ),
-                      );
+                      goPush(context, OtpLoginScreen());
                     },
                     child: const Text(
                       "Log in with OTP?",
@@ -237,12 +223,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   const SizedBox(height: 3),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TutorLoginScreen(),
-                        ),
-                      );
+                      goPush(context, TutorLoginScreen());
                     },
                     child: const Text(
                       "Click here",

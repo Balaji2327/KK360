@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'activity_wall.dart';
 import '../widgets/student_bottom_nav.dart';
+import '../widgets/nav_helper.dart';
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -121,12 +122,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
               InkWell(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ActivityWallScreen(),
-                    ),
-                  );
+                  goPush(context, const ActivityWallScreen());
                 },
                 child: Container(
                   padding: EdgeInsets.symmetric(

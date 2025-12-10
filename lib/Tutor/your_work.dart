@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
 import 'create_assignment.dart';
 import 'create_material.dart';
+import '../widgets/nav_helper.dart';
 
 class WorksScreen extends StatefulWidget {
   const WorksScreen({super.key});
@@ -244,14 +245,9 @@ class _CreateSheetContent extends StatelessWidget {
                 icon: Icons.assignment_outlined,
                 label: "Assignment",
                 onTap: () {
-                  Navigator.pop(context); // close sheet first
+                  goBack(context); // close sheet first
                   // then push your existing assignment page
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CreateAssignmentScreen(),
-                    ),
-                  );
+                  goPush(context, CreateAssignmentScreen());
                 },
               ),
 
@@ -272,14 +268,9 @@ class _CreateSheetContent extends StatelessWidget {
                 icon: Icons.insert_drive_file_outlined,
                 label: "Material",
                 onTap: () {
-                  Navigator.pop(context); // close sheet first
+                  goBack(context); // close sheet first
                   // then push your existing assignment page
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CreateMaterialScreen(),
-                    ),
-                  );
+                  goPush(context, CreateMaterialScreen());
                 },
               ),
 

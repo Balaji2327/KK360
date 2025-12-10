@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'student_login.dart';
 import 'tutor_login.dart';
 import 'admin_login.dart';
+import '../widgets/nav_helper.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -46,12 +47,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       GestureDetector(
                         onTap: () {
                           // TODO: Navigate to Tutor screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const TutorLoginScreen(),
-                            ),
-                          );
+
+                          goPush(context, TutorLoginScreen());
                         },
                         child: Container(
                           width: width * 0.7,
@@ -89,12 +86,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       GestureDetector(
                         onTap: () {
                           // TODO: Navigate to Student screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const StudentLoginScreen(),
-                            ),
-                          );
+                          goPush(context, StudentLoginScreen());
                         },
                         child: Container(
                           width: width * 0.7,
@@ -132,12 +124,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       GestureDetector(
                         onTap: () {
                           // TODO: Navigate to Admin screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AdminLoginScreen(),
-                            ),
-                          );
+                          goPush(context, AdminLoginScreen());
                         },
                         child: Container(
                           width: width * 0.7,

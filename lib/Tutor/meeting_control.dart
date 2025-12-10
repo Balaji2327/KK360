@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
 import 'join_meet.dart';
+import '../widgets/nav_helper.dart';
 
 class MeetingControlScreen extends StatefulWidget {
   const MeetingControlScreen({super.key});
@@ -100,12 +101,7 @@ class _MeetingControlScreenState extends State<MeetingControlScreen> {
                             );
                             setState(() => isJoinPressed = false);
 
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const JoinMeetingScreen(),
-                              ),
-                            );
+                            goPush(context, const JoinMeetingScreen());
                           },
                           child: headerButton(
                             "Join a meeting",

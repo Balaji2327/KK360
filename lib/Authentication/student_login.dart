@@ -4,6 +4,7 @@ import 'tutor_login.dart';
 import 'otp_screen.dart';
 import '../student/home_screen.dart';
 import '../widgets/nav_helper.dart';
+import '../services/firebase_auth_service.dart';
 
 class StudentLoginScreen extends StatefulWidget {
   const StudentLoginScreen({super.key});
@@ -15,6 +16,66 @@ class StudentLoginScreen extends StatefulWidget {
 class _StudentLoginScreenState extends State<StudentLoginScreen> {
   bool rememberMe = false;
   bool isPasswordVisible = false;
+  bool isLoading = false;
+
+  late TextEditingController emailController;
+  late TextEditingController passwordController;
+  late FirebaseAuthService authService;
+
+  @override
+  void initState() {
+    super.initState();
+    emailController = TextEditingController();
+    passwordController = TextEditingController();
+    authService = FirebaseAuthService();
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showSuccessSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
+  }
+
+  Future<void> _handleLogin() async {
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.isEmpty) {
+      _showErrorSnackbar('Please enter email and password');
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      await authService.signInStudent(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+        projectId: 'kk360-69504',
+      );
+      _showSuccessSnackbar('Login successful!');
+      if (mounted) {
+        goPush(context, const StudentHomeScreen());
+      }
+    } catch (e) {
+      _showErrorSnackbar(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +114,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
               // Username Field
               TextField(
+                controller: emailController,
+                enabled: !isLoading,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.person_outline, size: 20),
@@ -72,6 +135,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
               // Password Field
               TextField(
+                controller: passwordController,
+                enabled: !isLoading,
                 obscureText: !isPasswordVisible,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
@@ -85,11 +150,14 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                           : Icons.visibility_off,
                       size: 20,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        isPasswordVisible = !isPasswordVisible;
-                      });
-                    },
+                    onPressed:
+                        isLoading
+                            ? null
+                            : () {
+                              setState(() {
+                                isPasswordVisible = !isPasswordVisible;
+                              });
+                            },
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     vertical: 10,
@@ -108,11 +176,14 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 children: [
                   Checkbox(
                     value: rememberMe,
-                    onChanged: (val) {
-                      setState(() {
-                        rememberMe = val!;
-                      });
-                    },
+                    onChanged:
+                        isLoading
+                            ? null
+                            : (val) {
+                              setState(() {
+                                rememberMe = val!;
+                              });
+                            },
                   ),
                   const Text("Remember Me", style: TextStyle(fontSize: 13)),
                 ],
@@ -122,9 +193,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
               // ⭐ Login Button (Navigation Added)
               GestureDetector(
-                onTap: () {
-                  goPush(context, StudentHomeScreen());
-                },
+                onTap: isLoading ? null : _handleLogin,
                 child: Container(
                   width: w,
                   height: h * 0.055,
@@ -132,15 +201,27 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(35),
                   ),
-                  child: const Center(
-                    child: Text(
-                      "Log In",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  child: Center(
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : const Text(
+                              "Log In",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                   ),
                 ),
               ),
@@ -152,9 +233,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () {
-                      goPush(context, ForgetPasswordScreen());
-                    },
+                    onTap:
+                        isLoading
+                            ? null
+                            : () {
+                              goPush(context, ForgetPasswordScreen());
+                            },
                     child: const Text(
                       "Forget Password?",
                       style: TextStyle(
@@ -166,9 +250,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   ),
 
                   GestureDetector(
-                    onTap: () {
-                      goPush(context, OtpLoginScreen());
-                    },
+                    onTap:
+                        isLoading
+                            ? null
+                            : () {
+                              goPush(context, OtpLoginScreen());
+                            },
                     child: const Text(
                       "Log in with OTP?",
                       style: TextStyle(
@@ -222,9 +309,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   ),
                   const SizedBox(height: 3),
                   GestureDetector(
-                    onTap: () {
-                      goPush(context, TutorLoginScreen());
-                    },
+                    onTap:
+                        isLoading
+                            ? null
+                            : () {
+                              goPush(context, TutorLoginScreen());
+                            },
                     child: const Text(
                       "Click here",
                       style: TextStyle(

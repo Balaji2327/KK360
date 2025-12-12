@@ -3,6 +3,7 @@ import '../widgets/tutor_bottom_nav.dart';
 import 'create_assignment.dart';
 import 'create_material.dart';
 import '../widgets/nav_helper.dart';
+import '../services/firebase_auth_service.dart';
 
 class WorksScreen extends StatefulWidget {
   const WorksScreen({super.key});
@@ -12,6 +13,30 @@ class WorksScreen extends StatefulWidget {
 }
 
 class _WorksScreenState extends State<WorksScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'User';
+  String userEmail = '';
+  bool profileLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
+  }
+
   void _showCreateSheet(BuildContext context) {
     // compute heightFactor based on device height to avoid overflow
     final h = MediaQuery.of(context).size.height;
@@ -51,7 +76,7 @@ class _WorksScreenState extends State<WorksScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withAlpha(15),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -92,7 +117,7 @@ class _WorksScreenState extends State<WorksScreen> {
                   ),
                   SizedBox(height: h * 0.006),
                   Text(
-                    "Sowmiya S | sowmiyaselvam07@gmail.com",
+                    profileLoading ? 'Loading...' : '$userName | $userEmail',
                     style: TextStyle(fontSize: h * 0.014, color: Colors.white),
                   ),
                 ],

@@ -107,7 +107,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withAlpha(20),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

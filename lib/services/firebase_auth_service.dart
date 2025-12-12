@@ -133,6 +133,77 @@ class FirebaseAuthService {
     return _auth.currentUser;
   }
 
+  // Simple model for user profile
+  // Contains name, email and role as filled in Firestore `users/{uid}` doc
+  // Fields are optional and may be null
+  // Example usage: final profile = await authService.getUserProfile(projectId: 'kk360-69504');
+  Future<UserProfile?> getUserProfile({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    final idToken = await user.getIdToken();
+    if (idToken == null) return null;
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/users/${user.uid}',
+    );
+
+    try {
+      final resp = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final fields = body['fields'] as Map<String, dynamic>?;
+        final name = fields?['name']?['stringValue'] as String?;
+        final email = fields?['email']?['stringValue'] as String?;
+        final role = fields?['role']?['stringValue'] as String?;
+        return UserProfile(name: name, email: email, role: role);
+      } else {
+        // Fallback: return basic auth user info
+        return UserProfile(
+          name: user.displayName,
+          email: user.email,
+          role: null,
+        );
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error fetching user profile: $e');
+      return UserProfile(name: user.displayName, email: user.email, role: null);
+    }
+  }
+
+  // Return a best-effort display name for the currently signed-in user.
+  // Priority: Firestore `name` field -> Firebase `displayName` -> Derived from email -> 'User'
+  Future<String> getUserDisplayName({required String projectId}) async {
+    final profile = await getUserProfile(projectId: projectId);
+    final authUser = _auth.currentUser;
+    final email = profile?.email ?? authUser?.email;
+    final derived = _deriveNameFromEmail(email);
+    return profile?.name ?? authUser?.displayName ?? derived ?? 'User';
+  }
+
+  String? _deriveNameFromEmail(String? email) {
+    if (email == null) return null;
+    final local = email.split('@').first;
+    final cleaned = local.replaceAll(RegExp(r'[^A-Za-z]+'), ' ').trim();
+    if (cleaned.isEmpty) return null;
+    final parts = cleaned.split(RegExp(r'\s+'));
+    final titled = parts
+        .map(
+          (p) =>
+              p.isEmpty ? p : p[0].toUpperCase() + p.substring(1).toLowerCase(),
+        )
+        .join(' ');
+    return titled;
+  }
+
   // Check if user is logged in
   bool isUserLoggedIn() {
     return _auth.currentUser != null;
@@ -170,4 +241,12 @@ class FirebaseAuthService {
         return 'Authentication error: ${e.message}';
     }
   }
+}
+
+class UserProfile {
+  final String? name;
+  final String? email;
+  final String? role;
+
+  UserProfile({this.name, this.email, this.role});
 }

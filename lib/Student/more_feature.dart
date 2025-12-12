@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_auth_service.dart';
 import '../widgets/student_bottom_nav.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
@@ -9,6 +10,10 @@ class MoreFeaturesScreen extends StatefulWidget {
 }
 
 class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'Guest';
+  String userEmail = '';
+  bool profileLoading = true;
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -97,14 +102,14 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "VISALI K",
+                        profileLoading ? 'Loading...' : userName,
                         style: TextStyle(
                           fontSize: w * 0.045,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        "sit23sc059@sairamtap.edu.in",
+                        profileLoading ? '' : userEmail,
                         style: TextStyle(
                           color: Colors.black54,
                           fontSize: w * 0.032,
@@ -187,5 +192,24 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'activity_wall.dart';
 import '../widgets/student_bottom_nav.dart';
+import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 
 class CoursesScreen extends StatefulWidget {
@@ -12,6 +13,10 @@ class CoursesScreen extends StatefulWidget {
 }
 
 class _CoursesScreenState extends State<CoursesScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'Guest';
+  String userEmail = '';
+  bool profileLoading = true;
   String selectedCourse = "Mathematics";
 
   final List<Map<String, String?>> assignmentList = [
@@ -50,6 +55,25 @@ class _CoursesScreenState extends State<CoursesScreen> {
         statusBarIconBrightness: Brightness.light,
       ),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
   }
 
   @override
@@ -153,8 +177,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
           ),
 
           SizedBox(height: h * 0.005),
-          const Text(
-            "Visali K | sit23sc059@sairamtap.edu.in",
+          Text(
+            profileLoading ? 'Loading...' : '$userName | $userEmail',
             style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
           SizedBox(height: h * 0.02),

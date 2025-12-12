@@ -145,11 +145,13 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                               password: password,
                               projectId: 'kk360-69504',
                             );
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Welcome Tutor!')),
                             );
                             goPush(context, TeacherStreamScreen());
                           } catch (e) {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(e.toString())),
                             );

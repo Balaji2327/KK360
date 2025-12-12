@@ -76,7 +76,7 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withAlpha(20),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -115,7 +115,7 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
+                      color: Colors.black.withAlpha(31),
                       blurRadius: 10,
                       offset: const Offset(0, 6),
                     ),

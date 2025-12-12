@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_auth_service.dart';
 import '../widgets/student_bottom_nav.dart';
 
 class StudentHomeScreen extends StatefulWidget {
@@ -9,6 +10,10 @@ class StudentHomeScreen extends StatefulWidget {
 }
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'Guest';
+  String userEmail = '';
+  bool profileLoading = true;
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -38,8 +43,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               children: [
                 SizedBox(height: h * 0.07),
 
-                const Text(
-                  "Hello, VISALI K",
+                Text(
+                  "Hello, ${profileLoading ? 'Loading...' : userName}",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -49,8 +54,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
                 SizedBox(height: 5),
 
-                const Text(
-                  "sit23sc059@sairamtap.edu.in",
+                Text(
+                  profileLoading ? 'Loading...' : userEmail,
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
 
@@ -175,6 +180,25 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
+  }
+
   // ------------------ Alert Card Widget ------------------
   Widget alertCard(double w, double h) {
     return Container(
@@ -185,7 +209,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withAlpha(51),
             blurRadius: 6,
             spreadRadius: 2,
             offset: const Offset(0, 3),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
+import '../services/firebase_auth_service.dart';
 
 class TeacherStreamScreen extends StatefulWidget {
   const TeacherStreamScreen({super.key});
@@ -9,6 +10,30 @@ class TeacherStreamScreen extends StatefulWidget {
 }
 
 class _TeacherStreamScreenState extends State<TeacherStreamScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'User';
+  String userEmail = '';
+  bool profileLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -60,9 +85,9 @@ class _TeacherStreamScreenState extends State<TeacherStreamScreen> {
               children: [
                 SizedBox(height: h * 0.07),
 
-                const Text(
-                  "Hello, SOWMIYA S",
-                  style: TextStyle(
+                Text(
+                  "Hello, ${profileLoading ? 'Loading...' : userName}",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -71,9 +96,9 @@ class _TeacherStreamScreenState extends State<TeacherStreamScreen> {
 
                 SizedBox(height: 5),
 
-                const Text(
-                  "sowmiyaselvam07@gmail.com",
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                Text(
+                  profileLoading ? '' : userEmail,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
 
                 SizedBox(height: 15),

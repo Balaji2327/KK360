@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
+import '../services/firebase_auth_service.dart';
 
 class JoinMeetingScreen extends StatefulWidget {
   const JoinMeetingScreen({super.key});
@@ -9,6 +10,30 @@ class JoinMeetingScreen extends StatefulWidget {
 }
 
 class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'User';
+  String userEmail = '';
+  bool profileLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -80,7 +105,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                   SizedBox(height: h * 0.006),
 
                   Text(
-                    "Sowmiya S | sowmiyaselvam07@gmail.com",
+                    profileLoading ? 'Loading...' : '$userName | $userEmail',
                     style: TextStyle(fontSize: h * 0.014, color: Colors.white),
                   ),
                 ],

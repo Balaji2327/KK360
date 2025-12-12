@@ -151,7 +151,7 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
+            color: Colors.grey.withAlpha(38),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),

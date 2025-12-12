@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
 import 'join_meet.dart';
 import '../widgets/nav_helper.dart';
+import '../services/firebase_auth_service.dart';
 
 class MeetingControlScreen extends StatefulWidget {
   const MeetingControlScreen({super.key});
@@ -12,6 +13,29 @@ class MeetingControlScreen extends StatefulWidget {
 
 class _MeetingControlScreenState extends State<MeetingControlScreen> {
   bool isJoinPressed = false; // for blinking animation
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'User';
+  String userEmail = '';
+  bool profileLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +79,7 @@ class _MeetingControlScreenState extends State<MeetingControlScreen> {
                   ),
                   SizedBox(height: h * 0.006),
                   Text(
-                    "Sowmiya S | sowmiyaselvam07@gmail.com",
+                    profileLoading ? 'Loading...' : '$userName | $userEmail',
                     style: TextStyle(fontSize: h * 0.014, color: Colors.white),
                   ),
                 ],
@@ -99,6 +123,7 @@ class _MeetingControlScreenState extends State<MeetingControlScreen> {
                             await Future.delayed(
                               const Duration(milliseconds: 120),
                             );
+                            if (!mounted) return;
                             setState(() => isJoinPressed = false);
 
                             goPush(context, const JoinMeetingScreen());

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_auth_service.dart';
 import 'forget_password.dart';
 import 'student_login.dart';
 import 'otp_screen.dart';
@@ -15,6 +16,10 @@ class TutorLoginScreen extends StatefulWidget {
 class _TutorLoginScreenState extends State<TutorLoginScreen> {
   bool rememberMe = false;
   bool isPasswordVisible = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +58,9 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
 
               // 🔹 Username Field
               TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                enabled: !isLoading,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.person_outline, size: 20),
@@ -72,7 +80,9 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
 
               // 🔹 Password Field
               TextField(
+                controller: _passwordController,
                 obscureText: !isPasswordVisible,
+                enabled: !isLoading,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.lock_outline, size: 20),
@@ -121,26 +131,72 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
               SizedBox(height: h * 0.01),
 
               // 🔹 Login Button
-               GestureDetector(
-                onTap: () {
-                  goPush(context, TeacherStreamScreen());
-                },
+              GestureDetector(
+                onTap:
+                    isLoading
+                        ? null
+                        : () async {
+                          setState(() => isLoading = true);
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text;
+                          try {
+                            await _authService.signInTutor(
+                              email: email,
+                              password: password,
+                              projectId: 'kk360-69504',
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Welcome Tutor!')),
+                            );
+                            goPush(context, TeacherStreamScreen());
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          } finally {
+                            if (mounted) setState(() => isLoading = false);
+                          }
+                        },
                 child: Container(
                   width: w,
                   height: h * 0.055,
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: isLoading ? Colors.green.shade200 : Colors.green,
                     borderRadius: BorderRadius.circular(35),
                   ),
-                  child: const Center(
-                    child: Text(
-                      "Log In",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  child: Center(
+                    child:
+                        isLoading
+                            ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'Logging in...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                            : const Text(
+                              'Log In',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                   ),
                 ),
               ),
@@ -244,5 +300,12 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

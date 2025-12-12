@@ -36,110 +36,88 @@ class FirebaseAuthService {
     }
   }
 
-  // Sign in student: authenticate then verify role from Firestore
-  // STRICTLY rejects tutor accounts - does not allow login
-  Future<UserCredential> signInStudent({
+  // Generic sign-in verifying role via Firestore REST API
+  Future<UserCredential> signInWithRole({
     required String email,
     required String password,
     required String projectId,
+    required String requiredRole,
+    required String roleDisplayName,
   }) async {
-    // First authenticate with Firebase
     final credential = await signInWithEmail(email: email, password: password);
     final user = credential.user;
-    if (user == null) {
-      throw 'Authentication failed.';
-    }
+    if (user == null) throw 'Authentication failed.';
 
-    debugPrint(
-      '[StudentLogin] Authenticated user: ${user.uid} (${user.email})',
-    );
+    debugPrint('[Auth] Authenticated user: ${user.uid} (${user.email})');
 
-    // Get ID token for Firestore API access
     final idToken = await user.getIdToken();
-    debugPrint(
-      '[StudentLogin] Got ID token: ${idToken?.substring(0, 20) ?? 'null'}...',
-    );
-
     if (idToken == null) {
-      // Can't verify role - reject to be safe
       await _auth.signOut();
-      throw 'Could not verify your account. Please try again.';
+      throw 'Could not verify your account.';
     }
 
-    // Call Firestore REST API to check role
     final url = Uri.https(
       'firestore.googleapis.com',
       '/v1/projects/$projectId/databases/(default)/documents/users/${user.uid}',
     );
 
-    debugPrint('[StudentLogin] Calling Firestore API: $url');
+    debugPrint('[Auth] Checking role via Firestore: $url');
 
-    try {
-      final resp = await http
-          .get(
-            url,
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
+    final resp = await http
+        .get(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 10));
 
-      debugPrint(
-        '[StudentLogin] Firestore API response code: ${resp.statusCode}',
-      );
+    debugPrint('[Auth] Firestore response: ${resp.statusCode}');
 
-      if (resp.statusCode == 200) {
-        // User document found - check role field
-        final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        final role = body['fields']?['role']?['stringValue'] as String?;
-
-        debugPrint('[StudentLogin] User role: $role');
-
-        if (role == 'student') {
-          // ✅ Correct role - allow login
-          debugPrint('[StudentLogin] ✅ Student role verified - login allowed');
-          return credential;
-        } else if (role == 'tutor') {
-          // ❌ Tutor account - REJECT login
-          await _auth.signOut();
-          debugPrint('[StudentLogin] ❌ Tutor detected - login denied');
-          throw 'This account is registered as a Tutor. Please login with a Student account.';
-        } else {
-          // Unknown role - reject
-          await _auth.signOut();
-          debugPrint('[StudentLogin] ❌ Unknown role: $role - login denied');
-          throw 'Unknown account type: $role. Please contact support.';
-        }
-      } else if (resp.statusCode == 404) {
-        // User document not found - reject
-        await _auth.signOut();
-        debugPrint('[StudentLogin] ❌ User profile not found (404)');
-        throw 'Your account has not been registered. Please contact administrator.';
-      } else if (resp.statusCode == 401 || resp.statusCode == 403) {
-        // Permission denied - log and reject
-        debugPrint('[StudentLogin] ⚠️ Permission denied (${resp.statusCode})');
-        debugPrint('[StudentLogin] Response: ${resp.body}');
-        await _auth.signOut();
-        throw 'Unable to verify your account. Please check Firestore security rules.';
-      } else {
-        // Other API error - reject
-        debugPrint('[StudentLogin] ⚠️ API error: ${resp.statusCode}');
-        debugPrint('[StudentLogin] Response: ${resp.body}');
-        await _auth.signOut();
-        throw 'Failed to verify your account. Please try again later.';
-      }
-    } catch (e) {
-      // If exception during API call or parsing, reject login
-      // Don't re-throw if it's our custom error message
-      if (e is String) {
-        rethrow;
-      }
-      debugPrint('[StudentLogin] Exception during role verification: $e');
+    if (resp.statusCode == 200) {
+      final body = jsonDecode(resp.body) as Map<String, dynamic>;
+      final role = body['fields']?['role']?['stringValue'] as String?;
+      debugPrint('[Auth] Role for user ${user.uid}: $role');
+      if (role == requiredRole) return credential;
       await _auth.signOut();
-      throw 'Unable to verify your account. Please try again.';
+      throw 'This account is registered as a $role. Please login with a $roleDisplayName account.';
+    } else if (resp.statusCode == 404) {
+      await _auth.signOut();
+      throw 'Your account is not registered in profile. Please contact admin.';
+    } else if (resp.statusCode == 401 || resp.statusCode == 403) {
+      await _auth.signOut();
+      throw 'Unable to verify your account. Check Firestore rules or permissions.';
+    } else {
+      await _auth.signOut();
+      throw 'Failed to verify role (error ${resp.statusCode}).';
     }
   }
+
+  // Wrapper methods for explicit student and tutor sign-ins
+  Future<UserCredential> signInStudent({
+    required String email,
+    required String password,
+    required String projectId,
+  }) => signInWithRole(
+    email: email,
+    password: password,
+    projectId: projectId,
+    requiredRole: 'student',
+    roleDisplayName: 'Student',
+  );
+
+  Future<UserCredential> signInTutor({
+    required String email,
+    required String password,
+    required String projectId,
+  }) => signInWithRole(
+    email: email,
+    password: password,
+    projectId: projectId,
+    requiredRole: 'tutor',
+    roleDisplayName: 'Tutor',
+  );
 
   // Sign out
   Future<void> signOut() async {

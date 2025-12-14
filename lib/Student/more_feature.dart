@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
+import '../Authentication/student_login.dart';
 import '../widgets/student_bottom_nav.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
@@ -11,6 +12,7 @@ class MoreFeaturesScreen extends StatefulWidget {
 
 class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
+  bool isLoggingOut = false;
   String userName = 'Guest';
   String userEmail = '';
   bool profileLoading = true;
@@ -60,21 +62,106 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                       ),
 
                       // Logout button
-                      Container(
-                        height: h * 0.04,
-                        width: w * 0.25,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            "Log out",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      GestureDetector(
+                        onTap:
+                            isLoggingOut
+                                ? null
+                                : () async {
+                                  final doLogout = await showDialog<bool>(
+                                    context: context,
+                                    builder:
+                                        (ctx) => AlertDialog(
+                                          title: const Text('Log out'),
+                                          content: const Text(
+                                            'Are you sure you want to log out?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed:
+                                                  () =>
+                                                      Navigator.pop(ctx, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed:
+                                                  () =>
+                                                      Navigator.pop(ctx, true),
+                                              child: const Text('Log out'),
+                                            ),
+                                          ],
+                                        ),
+                                  );
+
+                                  if (doLogout != true) {
+                                    return;
+                                  }
+
+                                  setState(() {
+                                    isLoggingOut = true;
+                                  });
+                                  try {
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
+                                    final navigator = Navigator.of(context);
+                                    await _authService.signOut();
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Logged out'),
+                                      ),
+                                    );
+                                    navigator.pushReplacement(
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => const StudentLoginScreen(),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Logout failed: $e'),
+                                      ),
+                                    );
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() {
+                                        isLoggingOut = false;
+                                      });
+                                    }
+                                  }
+                                },
+                        child: Container(
+                          height: h * 0.04,
+                          width: w * 0.25,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Center(
+                            child:
+                                isLoggingOut
+                                    ? SizedBox(
+                                      width: h * 0.02,
+                                      height: h * 0.02,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Text(
+                                      "Log out",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                           ),
                         ),
                       ),

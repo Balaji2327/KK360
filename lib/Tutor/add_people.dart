@@ -3,6 +3,8 @@ import '../widgets/tutor_bottom_nav.dart';
 import 'invite_tutor.dart';
 import 'invite_student.dart';
 import '../widgets/nav_helper.dart';
+import '../Authentication/tutor_login.dart';
+import '../services/firebase_auth_service.dart';
 
 class AddPeopleScreen extends StatefulWidget {
   const AddPeopleScreen({super.key});
@@ -12,6 +14,8 @@ class AddPeopleScreen extends StatefulWidget {
 }
 
 class _AddPeopleScreenState extends State<AddPeopleScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  bool isLoggingOut = false;
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
@@ -53,11 +57,74 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Log out tapped')),
-                        );
-                      },
+                      onTap:
+                          isLoggingOut
+                              ? null
+                              : () async {
+                                final doLogout = await showDialog<bool>(
+                                  context: context,
+                                  builder:
+                                      (ctx) => AlertDialog(
+                                        title: const Text('Log out'),
+                                        content: const Text(
+                                          'Are you sure you want to log out?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(ctx, false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(ctx, true),
+                                            child: const Text('Log out'),
+                                          ),
+                                        ],
+                                      ),
+                                );
+
+                                if (doLogout != true) {
+                                  return;
+                                }
+
+                                setState(() {
+                                  isLoggingOut = true;
+                                });
+                                try {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  final navigator = Navigator.of(context);
+                                  await _authService.signOut();
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Logged out')),
+                                  );
+                                  navigator.pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (_) => const TutorLoginScreen(),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Logout failed: $e'),
+                                    ),
+                                  );
+                                } finally {
+                                  if (mounted) {
+                                    setState(() {
+                                      isLoggingOut = false;
+                                    });
+                                  }
+                                }
+                              },
                       child: Container(
                         height: h * 0.04,
                         width: w * 0.25,
@@ -65,15 +132,25 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                           color: Colors.green,
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        child: const Center(
-                          child: Text(
-                            "Log out",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        child: Center(
+                          child:
+                              isLoggingOut
+                                  ? SizedBox(
+                                    width: h * 0.02,
+                                    height: h * 0.02,
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Text(
+                                    "Log out",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                         ),
                       ),
                     ),

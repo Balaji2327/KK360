@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'forget_password.dart';
 import 'otp_screen.dart';
 import '../widgets/nav_helper.dart';
+import '../Admin/home_screen.dart';
+import '../services/firebase_auth_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -13,6 +15,11 @@ class AdminLoginScreen extends StatefulWidget {
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool rememberMe = false;
   bool isPasswordVisible = false;
+  bool isLoading = false;
+
+  late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +58,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
               // 🔹 Username Field
               TextField(
+                controller: _emailController,
+                enabled: !isLoading,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.person_outline, size: 20),
@@ -70,6 +79,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
               // 🔹 Password Field
               TextField(
+                controller: _passwordController,
+                enabled: !isLoading,
                 obscureText: !isPasswordVisible,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
@@ -118,29 +129,70 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
               SizedBox(height: h * 0.01),
 
-              // 🔹 Login Button
-              Container(
-                width: w,
-                height: h * 0.055,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: const Center(
-                  child: Text(
-                    "Log In",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+              // 🔹 LOGIN BUTTON
+              GestureDetector(
+                onTap:
+                    isLoading
+                        ? null
+                        : () async {
+                          setState(() => isLoading = true);
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text;
+                          try {
+                            await _authService.signInAdmin(
+                              email: email,
+                              password: password,
+                              projectId: 'kk360-69504',
+                            );
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Welcome Admin!')),
+                            );
+                            goPush(context, AdminStreamScreen());
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          } finally {
+                            if (mounted) setState(() => isLoading = false);
+                          }
+                        },
+                child: Container(
+                  width: w,
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    color: isLoading ? Colors.green.shade200 : Colors.green,
+                    borderRadius: BorderRadius.circular(35),
+                  ),
+                  child: Center(
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : const Text(
+                              "Log In",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                   ),
                 ),
               ),
 
               SizedBox(height: h * 0.015),
 
-              // 🔹 Forget password & OTP as buttons
+              // 🔹 Forget password & OTP
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -179,7 +231,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
               SizedBox(height: h * 0.015),
 
-              // 🔹 Google Login Button
+              // 🔹 Google Login
               Container(
                 width: w * 0.7,
                 height: h * 0.055,
@@ -209,5 +261,19 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

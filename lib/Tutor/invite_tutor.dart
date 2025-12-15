@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart'; // change to student_bottom_nav if needed
 
-class InviteTutorsScreen extends StatefulWidget {
-  const InviteTutorsScreen({super.key});
+class TutorInviteTutorsScreen extends StatefulWidget {
+  const TutorInviteTutorsScreen({super.key});
 
   @override
-  State<InviteTutorsScreen> createState() => _InviteTutorsScreenState();
+  State<TutorInviteTutorsScreen> createState() =>
+      _TutorInviteTutorsScreenState();
 }
 
-class _InviteTutorsScreenState extends State<InviteTutorsScreen> {
+class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final List<String> _emails = [];

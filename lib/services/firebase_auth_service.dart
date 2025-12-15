@@ -119,6 +119,18 @@ class FirebaseAuthService {
     roleDisplayName: 'Tutor',
   );
 
+  Future<UserCredential> signInAdmin({
+    required String email,
+    required String password,
+    required String projectId,
+  }) => signInWithRole(
+    email: email,
+    password: password,
+    projectId: projectId,
+    requiredRole: 'admin',
+    roleDisplayName: 'Admin',
+  );
+
   // Sign out
   Future<void> signOut() async {
     try {

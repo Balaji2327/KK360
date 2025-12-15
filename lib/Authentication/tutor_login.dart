@@ -149,7 +149,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Welcome Tutor!')),
                             );
-                            goPush(context, TeacherStreamScreen());
+                            goPush(context, TutorStreamScreen());
                           } catch (e) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(

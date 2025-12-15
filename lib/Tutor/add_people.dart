@@ -191,7 +191,7 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                         // ⭐ SCHOOL ICON — ON TAP → NAVIGATE
                         GestureDetector(
                           onTap: () {
-                            goPush(context, InviteTutorsScreen());
+                            goPush(context, TutorInviteTutorsScreen());
                           },
                           child: Icon(
                             Icons.school,
@@ -246,7 +246,7 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                         // ✅ Make person_add icon navigate to InviteStudentsScreen
                         GestureDetector(
                           onTap: () {
-                            goPush(context, InviteStudentsScreen());
+                            goPush(context, TutorInviteStudentsScreen());
                           },
                           child: Icon(
                             Icons.person_add,
@@ -339,7 +339,7 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                               elevation: 0,
                             ),
                             onPressed: () {
-                              goPush(context, InviteStudentsScreen());
+                              goPush(context, TutorInviteStudentsScreen());
                             },
                             child: Text(
                               "Invite",

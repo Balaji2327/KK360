@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
+import '../widgets/admin_bottom_nav.dart'; // <-- ADDED IMPORT
 import 'join_meet.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
-class TutorMeetingControlScreen extends StatefulWidget {
-  const TutorMeetingControlScreen({super.key});
+class AdminMeetingControlScreen extends StatefulWidget {
+  const AdminMeetingControlScreen({super.key});
 
   @override
-  State<TutorMeetingControlScreen> createState() =>
-      _TutorMeetingControlScreenState();
+  State<AdminMeetingControlScreen> createState() =>
+      _AdminMeetingControlScreenState();
 }
 
-class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
+class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
   bool isJoinPressed = false; // for blinking animation
   final FirebaseAuthService _authService = FirebaseAuthService();
   String userName = 'User';
@@ -47,7 +47,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
       backgroundColor: Colors.white,
 
       // ---------------- BOTTOM NAVIGATION BAR ----------------
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 1),
+      bottomNavigationBar: const AdminBottomNav(currentIndex: 1),
 
       // ---------------- BODY (HEADER + SCROLLABLE CONTENT) ----------------
       body: Column(
@@ -127,7 +127,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                             if (!mounted) return;
                             setState(() => isJoinPressed = false);
 
-                            goPush(context, const TutorJoinMeetingScreen());
+                            goPush(context, const AdminJoinMeetingScreen());
                           },
                           child: headerButton(
                             "Join a meeting",

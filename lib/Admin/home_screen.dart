@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
+import '../widgets/admin_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
 
-class TutorStreamScreen extends StatefulWidget {
-  const TutorStreamScreen({super.key});
+class AdminStreamScreen extends StatefulWidget {
+  const AdminStreamScreen({super.key});
 
   @override
-  State<TutorStreamScreen> createState() => _TutorStreamScreenState();
+  State<AdminStreamScreen> createState() => _AdminStreamScreenState();
 }
 
-class _TutorStreamScreenState extends State<TutorStreamScreen> {
+class _AdminStreamScreenState extends State<AdminStreamScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   String userName = 'User';
   String userEmail = '';
@@ -27,6 +27,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> {
     final displayName = await _authService.getUserDisplayName(
       projectId: 'kk360-69504',
     );
+    if (!mounted) return;
     setState(() {
       userName = displayName;
       userEmail = profile?.email ?? authUser?.email ?? '';
@@ -63,7 +64,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
 
       // ================= REUSABLE BOTTOM NAVIGATION =================
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 0),
+      bottomNavigationBar: const AdminBottomNav(currentIndex: 0),
 
       // ================= PAGE BODY =================
       body: Column(
@@ -152,7 +153,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "MATHEMATICS 2024",
+                                "TUTORS 2024",
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -171,7 +172,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            "Sowmiya Selvam",
+                            "SINDHU",
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,

@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
-import '../Tutor/home_screen.dart';
-import '../Tutor/meeting_control.dart';
-import '../Tutor/your_work.dart';
-import '../Tutor/add_people.dart';
+import '../Admin/home_screen.dart';
+import '../Admin/meeting_control.dart';
+import '../Admin/controls_screen.dart';
+import '../Admin/add_people.dart';
 
-class TutorBottomNav extends StatefulWidget {
+class AdminBottomNav extends StatefulWidget {
   final int currentIndex;
-  const TutorBottomNav({super.key, required this.currentIndex});
+
+  const AdminBottomNav({super.key, required this.currentIndex});
 
   @override
-  State<TutorBottomNav> createState() => _TutorBottomNavState();
+  State<AdminBottomNav> createState() => _AdminBottomNavState();
 }
 
-class _TutorBottomNavState extends State<TutorBottomNav> {
+class _AdminBottomNavState extends State<AdminBottomNav> {
+  // ---------------- PAGE TRANSITION (SAME AS TUTOR) ----------------
   PageRouteBuilder _createRoute(Widget page, bool forward) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 300),
       reverseTransitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final offsetAnim = Tween<Offset>(
+      pageBuilder: (_, animation, secondaryAnimation) => page,
+      transitionsBuilder: (_, animation, secondaryAnimation, child) {
+        final slide = Tween<Offset>(
           begin: Offset(forward ? 1.0 : -1.0, 0.0),
           end: Offset.zero,
         ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
@@ -27,40 +29,42 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
         final fade = CurvedAnimation(parent: animation, curve: Curves.easeIn);
 
         return SlideTransition(
-          position: offsetAnim,
+          position: slide,
           child: FadeTransition(opacity: fade, child: child),
         );
       },
     );
   }
 
+  // ---------------- NAV TAP HANDLER ----------------
   void _onTap(BuildContext context, int index) {
     if (index == widget.currentIndex) return;
 
-    final forward = index > widget.currentIndex;
+    final bool forward = index > widget.currentIndex;
     late Widget page;
 
     switch (index) {
       case 0:
-        page = const TutorStreamScreen();
+        page = const AdminStreamScreen();
         break;
       case 1:
-        page = const TutorMeetingControlScreen();
+        page = const AdminMeetingControlScreen();
         break;
       case 2:
-        page = const WorksScreen();
+        page = const AdminControlSelectionScreen();
         break;
       case 3:
       default:
-        page = const AddPeopleScreen();
+        page = const AdminAddPeopleScreen();
         break;
     }
 
     Navigator.of(context).pushReplacement(_createRoute(page, forward));
   }
 
+  // ---------------- SINGLE NAV ITEM ----------------
   Widget _item(IconData icon, String label, int index) {
-    bool active = index == widget.currentIndex;
+    final bool active = index == widget.currentIndex;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -74,7 +78,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
             curve: Curves.easeOut,
             child: Icon(
               icon,
-              size: 28, // same as student bar
+              size: 28,
               color: active ? const Color(0xFF4B3FA3) : Colors.black54,
             ),
           ),
@@ -84,8 +88,8 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 11,
-              color: active ? const Color(0xFF4B3FA3) : Colors.black54,
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? const Color(0xFF4B3FA3) : Colors.black54,
             ),
             child: Text(label),
           ),
@@ -94,15 +98,16 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
     );
   }
 
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       width: w,
       height: h * 0.10,
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -117,9 +122,9 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _item(Icons.home_outlined, "Home", 0),
-          _item(Icons.group_outlined, "Join meet", 1),
-          _item(Icons.menu_book_outlined, "Classwork", 2),
-          _item(Icons.people_alt_outlined, "People", 3),
+          _item(Icons.groups_outlined, "Join meet", 1),
+          _item(Icons.tune_outlined, "Controls", 2),
+          _item(Icons.more_horiz_outlined, "More", 3),
         ],
       ),
     );

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart'; // change to student_bottom_nav if needed
+import '../widgets/admin_bottom_nav.dart'; // change to student_bottom_nav if needed
 
-class TutorInviteStudentsScreen extends StatefulWidget {
-  const TutorInviteStudentsScreen({super.key});
+class AdminInviteStudentsScreen extends StatefulWidget {
+  const AdminInviteStudentsScreen({super.key});
 
   @override
-  State<TutorInviteStudentsScreen> createState() =>
-      _TutorInviteStudentsScreenState();
+  State<AdminInviteStudentsScreen> createState() =>
+      _AdminInviteStudentsScreenState();
 }
 
-class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
+class _AdminInviteStudentsScreenState extends State<AdminInviteStudentsScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final List<String> _emails = [];
@@ -235,7 +235,7 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
         ],
       ),
 
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 3),
+      bottomNavigationBar: const AdminBottomNav(currentIndex: 3),
     );
   }
 }

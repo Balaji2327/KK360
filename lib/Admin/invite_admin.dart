@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart'; // change to student_bottom_nav if needed
+import '../widgets/admin_bottom_nav.dart'; // change to student_bottom_nav if needed
 
-class TutorInviteStudentsScreen extends StatefulWidget {
-  const TutorInviteStudentsScreen({super.key});
+class AdminInviteAdminsScreen extends StatefulWidget {
+  const AdminInviteAdminsScreen({super.key});
 
   @override
-  State<TutorInviteStudentsScreen> createState() =>
-      _TutorInviteStudentsScreenState();
+  State<AdminInviteAdminsScreen> createState() =>
+      _AdminInviteAdminsScreenState();
 }
 
-class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
+class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final List<String> _emails = [];
@@ -93,7 +93,7 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      "Invite Students",
+                      "Invite Admins",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -115,7 +115,7 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                         // TODO: call invite API
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Invited ${_emails.length} tutor(s)'),
+                            content: Text('Invited ${_emails.length} admin(s)'),
                           ),
                         );
                       },
@@ -235,7 +235,7 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
         ],
       ),
 
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 3),
+      bottomNavigationBar: const AdminBottomNav(currentIndex: 3),
     );
   }
 }

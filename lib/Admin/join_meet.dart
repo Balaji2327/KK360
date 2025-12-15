@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
 import '../services/firebase_auth_service.dart';
 
-class TutorJoinMeetingScreen extends StatefulWidget {
-  const TutorJoinMeetingScreen({super.key});
+class AdminJoinMeetingScreen extends StatefulWidget {
+  const AdminJoinMeetingScreen({super.key});
 
   @override
-  State<TutorJoinMeetingScreen> createState() => _TutorJoinMeetingScreenState();
+  State<AdminJoinMeetingScreen> createState() => _AdminJoinMeetingScreenState();
 }
 
-class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
+class _AdminJoinMeetingScreenState extends State<AdminJoinMeetingScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   String userName = 'User';
   String userEmail = '';

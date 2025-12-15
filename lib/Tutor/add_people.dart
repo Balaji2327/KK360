@@ -75,9 +75,13 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                                                 () => Navigator.pop(ctx, false),
                                             child: const Text('Cancel'),
                                           ),
-                                          TextButton(
+                                          ElevatedButton(
                                             onPressed:
                                                 () => Navigator.pop(ctx, true),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                              foregroundColor: Colors.white,
+                                            ),
                                             child: const Text('Log out'),
                                           ),
                                         ],

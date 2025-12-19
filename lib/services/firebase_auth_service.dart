@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -134,6 +135,14 @@ class FirebaseAuthService {
   // Sign out
   Future<void> signOut() async {
     try {
+      // Note: We intentionally do NOT clear cached classes on sign out
+      // This allows classes to persist when the same user logs back in
+      // The cache is keyed by user ID, so different users have separate caches
+      final user = _auth.currentUser;
+      if (user != null) {
+        debugPrint('[Auth] Signing out user ${user.uid} (cache preserved)');
+      }
+
       await _auth.signOut();
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
@@ -253,6 +262,651 @@ class FirebaseAuthService {
         return 'Authentication error: ${e.message}';
     }
   }
+
+  // ---------------- Assignments API ----------------
+  // Create an assignment that is visible to students of a course
+  Future<void> createAssignment({
+    required String projectId,
+    required String title,
+    required String classId,
+    String? course,
+    String? description,
+    String? points,
+    DateTime? dueDate,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/assignments',
+    );
+
+    final fields = <String, dynamic>{
+      'title': {'stringValue': title},
+      'classId': {'stringValue': classId},
+      'createdBy': {'stringValue': user.uid},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+    if (course != null && course.isNotEmpty)
+      fields['course'] = {'stringValue': course};
+    if (description != null && description.isNotEmpty)
+      fields['description'] = {'stringValue': description};
+    if (points != null && points.isNotEmpty)
+      fields['points'] = {'stringValue': points};
+    if (dueDate != null)
+      fields['dueDate'] = {'timestampValue': dueDate.toUtc().toIso8601String()};
+
+    final body = jsonEncode({'fields': fields});
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: body,
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create assignment (status ${resp.statusCode}): ${resp.body}';
+    }
+  }
+
+  // Model for assignment
+  List<AssignmentInfo> _parseAssignmentsFromRunQuery(List<dynamic> respJson) {
+    final out = <AssignmentInfo>[];
+    for (final item in respJson) {
+      final doc = item['document'] as Map<String, dynamic>?;
+      if (doc == null) continue;
+      final name = doc['name'] as String?;
+      final fields = doc['fields'] as Map<String, dynamic>?;
+      if (fields == null) continue;
+      final title = fields['title']?['stringValue'] as String? ?? '';
+      final classId = fields['classId']?['stringValue'] as String? ?? '';
+      final course = fields['course']?['stringValue'] as String? ?? '';
+      final description =
+          fields['description']?['stringValue'] as String? ?? '';
+      final points = fields['points']?['stringValue'] as String? ?? '';
+      final dueDate = fields['dueDate']?['timestampValue'] as String?;
+      final createdAt = fields['createdAt']?['timestampValue'] as String?;
+      out.add(
+        AssignmentInfo(
+          id: name ?? '',
+          title: title,
+          course: course,
+          description: description,
+          points: points,
+          dueDate: dueDate != null ? DateTime.tryParse(dueDate) : null,
+          createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
+          classId: classId,
+        ),
+      );
+    }
+    return out;
+  }
+
+  // Get assignments for a class (by classId)
+  Future<List<AssignmentInfo>> getAssignmentsForClass({
+    required String projectId,
+    required String classId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'assignments'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'classId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': classId},
+          },
+        },
+        'orderBy': [
+          {
+            'field': {'fieldPath': 'createdAt'},
+            'direction': 'DESCENDING',
+          },
+        ],
+      },
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200)
+      throw 'Failed to fetch assignments (status ${resp.statusCode})';
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    return _parseAssignmentsFromRunQuery(body);
+  }
+
+  // -------- Classes API --------
+  List<ClassInfo> _parseClassesFromRunQuery(List<dynamic> respJson) {
+    final out = <ClassInfo>[];
+    for (final item in respJson) {
+      final doc = item['document'] as Map<String, dynamic>?;
+      if (doc == null) continue;
+      final name = doc['name'] as String?;
+      final fields = doc['fields'] as Map<String, dynamic>?;
+      if (fields == null) continue;
+      final title = fields['name']?['stringValue'] as String? ?? '';
+      final course = fields['course']?['stringValue'] as String? ?? '';
+      final tutorId = fields['tutorId']?['stringValue'] as String? ?? '';
+      final membersList = <String>[];
+      final membersVal =
+          fields['members']?['arrayValue']?['values'] as List<dynamic>?;
+      if (membersVal != null) {
+        for (final v in membersVal) {
+          final s = v['stringValue'] as String?;
+          if (s != null) membersList.add(s);
+        }
+      }
+      final createdAt = fields['createdAt']?['timestampValue'] as String?;
+      out.add(
+        ClassInfo(
+          id: name ?? '',
+          name: title,
+          course: course,
+          tutorId: tutorId,
+          members: membersList,
+          createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
+        ),
+      );
+    }
+    return out;
+  }
+
+  Future<List<ClassInfo>> getClassesForTutor({
+    required String projectId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      debugPrint('[Auth] getClassesForTutor: No current user');
+      return [];
+    }
+
+    debugPrint(
+      '[Auth] getClassesForTutor: Fetching classes for user ${user.uid}',
+    );
+    final idToken = await user.getIdToken();
+    if (idToken == null) {
+      debugPrint('[Auth] getClassesForTutor: No ID token available');
+      return [];
+    }
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'classes'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'tutorId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': user.uid},
+          },
+        },
+        'orderBy': [
+          {
+            'field': {'fieldPath': 'createdAt'},
+            'direction': 'DESCENDING',
+          },
+        ],
+      },
+    };
+
+    debugPrint('[Auth] getClassesForTutor: Query: ${jsonEncode(q)}');
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint(
+      '[Auth] getClassesForTutor: Response status: ${resp.statusCode}',
+    );
+    debugPrint('[Auth] getClassesForTutor: Response body: ${resp.body}');
+
+    if (resp.statusCode != 200)
+      throw 'Failed to fetch classes (status ${resp.statusCode}): ${resp.body}';
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final parsed = _parseClassesFromRunQuery(body);
+
+    debugPrint('[Auth] getClassesForTutor: Parsed ${parsed.length} classes');
+    for (final c in parsed) {
+      debugPrint(
+        '[Auth] getClassesForTutor: Class: ${c.name} (${c.id}) - tutorId: ${c.tutorId}',
+      );
+    }
+
+    // Cache the fetched classes for quick access
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final key = 'cached_tutor_classes_${user.uid}';
+        await prefs.setString(
+          key,
+          jsonEncode(parsed.map((c) => c.toJson()).toList()),
+        );
+      }
+    } catch (e) {
+      debugPrint('[Auth] Could not cache classes: $e');
+    }
+
+    return parsed;
+  }
+
+  Future<List<ClassInfo>> getClassesForUser({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'classes'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'members'},
+            'op': 'ARRAY_CONTAINS',
+            'value': {'stringValue': user.uid},
+          },
+        },
+        'orderBy': [
+          {
+            'field': {'fieldPath': 'createdAt'},
+            'direction': 'DESCENDING',
+          },
+        ],
+      },
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200)
+      throw 'Failed to fetch classes (status ${resp.statusCode})';
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final parsed = _parseClassesFromRunQuery(body);
+
+    // Cache the fetched classes for quick access
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final key = 'cached_tutor_classes_${user.uid}';
+        await prefs.setString(
+          key,
+          jsonEncode(parsed.map((c) => c.toJson()).toList()),
+        );
+      }
+    } catch (e) {
+      debugPrint('[Auth] Could not cache classes: $e');
+    }
+
+    return parsed;
+  }
+
+  // Create a class document in 'classes' collection and return its document id
+  Future<String> createClass({
+    required String projectId,
+    required String name,
+    String? course,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+
+    // Get fresh token for each request to avoid token expiry issues
+    final idToken = await user.getIdToken(true); // Force refresh
+    if (idToken == null) throw 'Not authenticated';
+
+    debugPrint(
+      '[Auth] Creating class: $name (course: $course) for user: ${user.uid}',
+    );
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes',
+    );
+
+    final fields = <String, dynamic>{
+      'name': {'stringValue': name},
+      'tutorId': {'stringValue': user.uid},
+      'members': {'arrayValue': {}},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+    if (course != null && course.isNotEmpty)
+      fields['course'] = {'stringValue': course};
+
+    final body = jsonEncode({'fields': fields});
+    debugPrint('[Auth] Request body: $body');
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: body,
+        )
+        .timeout(const Duration(seconds: 15)); // Increased timeout
+
+    debugPrint('[Auth] Create class response status: ${resp.statusCode}');
+    debugPrint('[Auth] Create class response body: ${resp.body}');
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create class (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    final respBody = jsonDecode(resp.body) as Map<String, dynamic>;
+    final nameField = respBody['name'] as String?;
+    final docId = nameField != null ? nameField.split('/').last : '';
+
+    if (docId.isEmpty) {
+      throw 'Failed to get document ID from response: $respBody';
+    }
+
+    debugPrint('[Auth] Successfully created class with ID: $docId');
+    return docId;
+  }
+
+  // Helper: find users by email and return mapping email->uid for found users
+  Future<Map<String, String>> lookupUsersByEmails({
+    required String projectId,
+    required List<String> emails,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return {};
+    final idToken = await user.getIdToken();
+    if (idToken == null) return {};
+
+    final found = <String, String>{};
+
+    for (final email in emails) {
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+      );
+
+      final q = {
+        'structuredQuery': {
+          'from': [
+            {'collectionId': 'users'},
+          ],
+          'where': {
+            'fieldFilter': {
+              'field': {'fieldPath': 'email'},
+              'op': 'EQUAL',
+              'value': {'stringValue': email},
+            },
+          },
+        },
+      };
+
+      try {
+        final resp = await http
+            .post(
+              url,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(q),
+            )
+            .timeout(const Duration(seconds: 10));
+
+        if (resp.statusCode != 200) continue;
+        final body = jsonDecode(resp.body) as List<dynamic>;
+        for (final item in body) {
+          final doc = item['document'] as Map<String, dynamic>?;
+          if (doc == null) continue;
+          final fullName = doc['name'] as String?;
+          if (fullName == null) continue;
+          final uid = fullName.split('/').last;
+          found[email] = uid;
+          break;
+        }
+      } catch (e) {
+        // ignore per-email errors and continue
+        continue;
+      }
+    }
+    return found;
+  }
+
+  // Add members to a class document (classId = document id)
+  Future<void> addMembersToClass({
+    required String projectId,
+    required String classId,
+    required List<String> memberUids,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final docUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes/$classId',
+    );
+
+    // Fetch current members if any
+    final getResp = await http
+        .get(
+          docUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 10));
+
+    List<String> existing = [];
+    if (getResp.statusCode == 200) {
+      final body = jsonDecode(getResp.body) as Map<String, dynamic>;
+      final fields = body['fields'] as Map<String, dynamic>?;
+      final membersVal =
+          fields?['members']?['arrayValue']?['values'] as List<dynamic>?;
+      if (membersVal != null) {
+        for (final v in membersVal) {
+          final s = v['stringValue'] as String?;
+          if (s != null) existing.add(s);
+        }
+      }
+    }
+
+    final finalSet = {...existing, ...memberUids};
+
+    final fields = {
+      'members': {
+        'arrayValue': {
+          'values': finalSet.map((s) => {'stringValue': s}).toList(),
+        },
+      },
+    };
+
+    final patchUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes/$classId',
+      {'updateMask.fieldPaths': 'members'},
+    );
+
+    final resp = await http
+        .patch(
+          patchUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': fields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to update class members (status ${resp.statusCode}): ${resp.body}';
+    }
+  }
+
+  // Delete a class document
+  Future<void> deleteClass({
+    required String projectId,
+    required String classId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+
+    // Get fresh token for delete operation
+    final idToken = await user.getIdToken(true);
+    if (idToken == null) throw 'Not authenticated';
+
+    // Extract simple ID if full path provided
+    final simpleId = classId.contains('/') ? classId.split('/').last : classId;
+
+    debugPrint('[Auth] Deleting class with ID: $simpleId (original: $classId)');
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes/$simpleId',
+    );
+
+    debugPrint('[Auth] Delete URL: $url');
+
+    final resp = await http
+        .delete(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
+
+    debugPrint('[Auth] Delete response status: ${resp.statusCode}');
+    debugPrint('[Auth] Delete response body: ${resp.body}');
+
+    // Both 200 (OK) and 404 (already deleted) are acceptable
+    if (resp.statusCode != 200 && resp.statusCode != 404) {
+      // Check for permission/precondition errors
+      if (resp.body.contains('FAILED_PRECONDITION') ||
+          resp.body.contains('PERMISSION_DENIED') ||
+          resp.statusCode == 403) {
+        throw 'Permission denied. Please update Firestore security rules to allow tutors to delete their own classes.';
+      }
+      throw 'Failed to delete class (status ${resp.statusCode})';
+    }
+
+    debugPrint('[Auth] Class deleted successfully from database');
+
+    // Update cached classes (if present)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cached_tutor_classes_${user.uid}';
+      final s = prefs.getString(key);
+      if (s != null) {
+        final arr = jsonDecode(s) as List<dynamic>;
+        // Match both simple ID and full path ID
+        final preserved =
+            arr.where((e) {
+              final storedId = e['id'] as String? ?? '';
+              final storedSimpleId =
+                  storedId.contains('/') ? storedId.split('/').last : storedId;
+              return storedSimpleId != simpleId && storedId != classId;
+            }).toList();
+        await prefs.setString(key, jsonEncode(preserved));
+        debugPrint(
+          '[Auth] Updated cache after delete: ${preserved.length} classes remaining',
+        );
+      }
+    } catch (e) {
+      debugPrint('[Auth] Could not update cache after delete: $e');
+    }
+  }
+
+  // Return cached classes for the currently signed-in user
+  Future<List<ClassInfo>> getCachedClassesForCurrentUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cached_tutor_classes_${user.uid}';
+      final s = prefs.getString(key);
+      if (s == null) return [];
+      final arr = jsonDecode(s) as List<dynamic>;
+      return arr
+          .map((e) => ClassInfo.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[Auth] Could not read cached classes: $e');
+      return [];
+    }
+  }
+
+  // Save classes to cache for the current user
+  Future<void> saveClassesToCacheForCurrentUser(List<ClassInfo> classes) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cached_tutor_classes_${user.uid}';
+      await prefs.setString(
+        key,
+        jsonEncode(classes.map((c) => c.toJson()).toList()),
+      );
+    } catch (e) {
+      debugPrint('[Auth] Could not save cached classes: $e');
+    }
+  }
 }
 
 class UserProfile {
@@ -261,4 +915,65 @@ class UserProfile {
   final String? role;
 
   UserProfile({this.name, this.email, this.role});
+}
+
+class AssignmentInfo {
+  final String id;
+  final String title;
+  final String course;
+  final String description;
+  final String points;
+  final String classId;
+  final DateTime? dueDate;
+  final DateTime? createdAt;
+
+  AssignmentInfo({
+    required this.id,
+    required this.title,
+    required this.course,
+    required this.description,
+    required this.points,
+    required this.classId,
+    this.dueDate,
+    this.createdAt,
+  });
+}
+
+class ClassInfo {
+  final String id;
+  final String name;
+  final String course;
+  final String tutorId;
+  final List<String> members;
+  final DateTime? createdAt;
+
+  ClassInfo({
+    required this.id,
+    required this.name,
+    required this.course,
+    required this.tutorId,
+    required this.members,
+    this.createdAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'course': course,
+    'tutorId': tutorId,
+    'members': members,
+    'createdAt': createdAt?.toIso8601String(),
+  };
+
+  static ClassInfo fromJson(Map<String, dynamic> j) => ClassInfo(
+    id: j['id'] as String? ?? '',
+    name: j['name'] as String? ?? '',
+    course: j['course'] as String? ?? '',
+    tutorId: j['tutorId'] as String? ?? '',
+    members: (j['members'] as List<dynamic>?)?.cast<String>() ?? [],
+    createdAt:
+        j['createdAt'] != null
+            ? DateTime.tryParse(j['createdAt'] as String)
+            : null,
+  );
 }

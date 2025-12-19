@@ -177,7 +177,7 @@ class _WorksScreenState extends State<WorksScreen> {
 }
 
 class _CreateSheetContent extends StatelessWidget {
-  const _CreateSheetContent({super.key});
+  const _CreateSheetContent();
 
   // generic sheet item row
   Widget _sheetItem(

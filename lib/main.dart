@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'Authentication/role_selection.dart';
+import 'nav_observer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,7 @@ class KK360App extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'KK 360',
+      navigatorObservers: [routeObserver],
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Poppins', // 👈 Set your custom font family name here

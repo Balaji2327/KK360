@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
+import '../services/firebase_auth_service.dart';
 
 class CreateAssignmentScreen extends StatefulWidget {
   const CreateAssignmentScreen({super.key});
@@ -11,15 +12,48 @@ class CreateAssignmentScreen extends StatefulWidget {
 class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _pointsController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  String _selectedCourse = 'Mathematics';
 
   String? _savedPoints;
   DateTime? _dueDate;
+
+  final FirebaseAuthService _auth = FirebaseAuthService();
+  List<ClassInfo> _myClasses = [];
+  String? _selectedClassId;
+  bool _classesLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyClasses();
+  }
 
   @override
   void dispose() {
     _descriptionController.dispose();
     _pointsController.dispose();
+    _titleController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMyClasses() async {
+    setState(() => _classesLoading = true);
+    try {
+      final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
+      if (!mounted) return;
+      setState(() {
+        _myClasses = items;
+        _selectedClassId = _myClasses.isNotEmpty ? _myClasses.first.id : null;
+        _classesLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _classesLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
+    }
   }
 
   String _formatDate(DateTime d) {
@@ -142,15 +176,57 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       size: 32,
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: w * 0.05,
-                      vertical: h * 0.008,
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+                    onPressed: () async {
+                      final title = _titleController.text.trim();
+                      if (title.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter an assignment title'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (_selectedClassId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a class to assign to'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      try {
+                        await _auth.createAssignment(
+                          projectId: 'kk360-69504',
+                          title: title,
+                          classId: _selectedClassId!,
+                          course: _selectedCourse,
+                          description: _descriptionController.text.trim(),
+                          points: _pointsController.text.trim(),
+                          dueDate: _dueDate,
+                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Assignment assigned'),
+                            ),
+                          );
+                          Navigator.of(context).maybePop();
+                        }
+                      } catch (e) {
+                        if (mounted)
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to assign: $e')),
+                          );
+                      }
+                    },
                     child: const Text(
                       "Assign",
                       style: TextStyle(
@@ -185,13 +261,58 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     ),
                     SizedBox(height: h * 0.02),
 
+                    // Title input
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Assignment - 5',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    SizedBox(height: h * 0.02),
+
+                    // Class selector (so tutor can choose which class to assign to)
                     Row(
                       children: [
-                        _chip("Mathematics"),
+                        Expanded(
+                          child:
+                              _classesLoading
+                                  ? const SizedBox(
+                                    height: 48,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                  : DropdownButtonFormField<String>(
+                                    value: _selectedClassId,
+                                    items:
+                                        _myClasses
+                                            .map(
+                                              (c) => DropdownMenuItem(
+                                                value: c.id,
+                                                child: Text(
+                                                  c.name.isNotEmpty
+                                                      ? c.name
+                                                      : c.id,
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged:
+                                        (v) => setState(
+                                          () => _selectedClassId = v,
+                                        ),
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      labelText: 'Class',
+                                    ),
+                                  ),
+                        ),
                         SizedBox(width: w * 0.02),
                         _chip("All students"),
                       ],
                     ),
+                    SizedBox(height: h * 0.02),
                     SizedBox(height: h * 0.02),
 
                     // DESCRIPTION BOX

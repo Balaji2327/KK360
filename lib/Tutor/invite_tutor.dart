@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart'; // change to student_bottom_nav if needed
+import '../services/firebase_auth_service.dart';
+import 'create_class.dart';
 
 class TutorInviteTutorsScreen extends StatefulWidget {
   const TutorInviteTutorsScreen({super.key});
@@ -13,12 +15,38 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final List<String> _emails = [];
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  List<ClassInfo> _classes = [];
+  String? _selectedClassId;
+  bool _loading = false;
 
   @override
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClasses();
+  }
+
+  Future<void> _loadClasses() async {
+    try {
+      final classes = await _authService.getClassesForTutor(
+        projectId: 'kk360-69504',
+      );
+      if (!mounted) return;
+      setState(() {
+        _classes = classes;
+        if (_classes.isNotEmpty)
+          _selectedClassId = _classes.first.id.split('/').last;
+      });
+    } catch (e) {
+      // ignore load errors
+    }
   }
 
   bool _isValidEmail(String email) {
@@ -103,7 +131,7 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
 
                     // ⭐ Invite button in header (uses previous invite logic)
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         if (_emails.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -112,12 +140,55 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
                           );
                           return;
                         }
-                        // TODO: call invite API
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Invited ${_emails.length} tutor(s)'),
-                          ),
-                        );
+                        if (_selectedClassId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select a class first'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() => _loading = true);
+                        try {
+                          final map = await _authService.lookupUsersByEmails(
+                            projectId: 'kk360-69504',
+                            emails: _emails,
+                          );
+                          final foundUids = map.values.toList();
+                          final missing =
+                              _emails
+                                  .where((e) => !map.containsKey(e))
+                                  .toList();
+
+                          if (foundUids.isNotEmpty) {
+                            await _authService.addMembersToClass(
+                              projectId: 'kk360-69504',
+                              classId: _selectedClassId!,
+                              memberUids: foundUids,
+                            );
+                          }
+
+                          if (!mounted) return;
+                          final messages = <String>[];
+                          if (foundUids.isNotEmpty)
+                            messages.add('Invited ${foundUids.length} user(s)');
+                          if (missing.isNotEmpty)
+                            messages.add('Not found: ${missing.join(', ')}');
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(messages.join(' — '))),
+                          );
+                          _controller.clear();
+                          setState(() => _emails.clear());
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Invite failed: $e')),
+                          );
+                        } finally {
+                          if (mounted) setState(() => _loading = false);
+                        }
                       },
                       child: Container(
                         height: h * 0.04,
@@ -126,15 +197,25 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
                           color: Colors.green,
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        child: const Center(
-                          child: Text(
-                            "Invite",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        child: Center(
+                          child:
+                              _loading
+                                  ? SizedBox(
+                                    width: h * 0.02,
+                                    height: h * 0.02,
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Text(
+                                    "Invite",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                         ),
                       ),
                     ),
@@ -154,6 +235,58 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Class selector (required to know which class to invite into)
+                  if (_classes.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: h * 0.015),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('No classes found'),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CreateClassScreen(),
+                                ),
+                              );
+                              if (result == true) _loadClasses();
+                            },
+                            child: const Text('Create class'),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: EdgeInsets.only(bottom: h * 0.015),
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedClassId,
+                        items:
+                            _classes
+                                .map(
+                                  (c) => DropdownMenuItem(
+                                    value: c.id.split('/').last,
+                                    child: Text(
+                                      c.name.isNotEmpty ? c.name : c.course,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) => setState(() => _selectedClassId = v),
+                        decoration: InputDecoration(
+                          labelText: 'Select class',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Input field (outlined rounded)
                   Container(
                     margin: EdgeInsets.only(bottom: h * 0.015),

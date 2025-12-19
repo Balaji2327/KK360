@@ -17,34 +17,13 @@ class _CoursesScreenState extends State<CoursesScreen> {
   String userName = 'Guest';
   String userEmail = '';
   bool profileLoading = true;
-  String selectedCourse = "Mathematics";
 
-  final List<Map<String, String?>> assignmentList = [
-    {
-      "title": "Assignment - 5",
-      "subtitle": "Due Oct 30, 11:59 PM",
-      "status": "Submitted",
-    },
-    {"title": "Unit II Notes", "subtitle": "Posted Aug 21", "status": ""},
-    {
-      "title": "Assignment - 1",
-      "subtitle": "Due Oct 30, 11:59 PM",
-      "status": "Missing",
-    },
-    {"title": "Unit III Notes", "subtitle": "Posted Aug 21", "status": ""},
-    {
-      "title": "Assignment - 3",
-      "subtitle": "Due Oct 30, 11:59 PM",
-      "status": "Submitted",
-    },
-    {"title": "Question Papers", "subtitle": "Posted Aug 21", "status": ""},
-    {
-      "title": "Assignment - 1",
-      "subtitle": "Due Oct 30, 11:59 PM",
-      "status": "Missing",
-    },
-    {"title": "Class schedule 2024", "subtitle": "Posted Aug 21", "status": ""},
-  ];
+  List<ClassInfo> _myClasses = [];
+  String? _selectedClassId;
+  bool _classesLoading = false;
+
+  List<AssignmentInfo> assignmentList = [];
+  bool assignmentsLoading = false;
 
   @override
   void initState() {
@@ -74,6 +53,79 @@ class _CoursesScreenState extends State<CoursesScreen> {
       userEmail = profile?.email ?? authUser?.email ?? '';
       profileLoading = false;
     });
+
+    // Load student's classes and assignments
+    _loadStudentClasses();
+  }
+
+  Future<void> _loadStudentClasses() async {
+    setState(() => _classesLoading = true);
+    try {
+      final items = await _authService.getClassesForUser(
+        projectId: 'kk360-69504',
+      );
+      if (!mounted) return;
+      setState(() {
+        _myClasses = items;
+        _selectedClassId = _myClasses.isNotEmpty ? _myClasses.first.id : null;
+        _classesLoading = false;
+      });
+
+      // Once classes are loaded, load assignments for the selected class
+      if (_selectedClassId != null) _loadAssignmentsForClass();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _classesLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
+    }
+  }
+
+  Future<void> _loadAssignmentsForClass() async {
+    if (_selectedClassId == null) return;
+    setState(() {
+      assignmentsLoading = true;
+    });
+
+    try {
+      final items = await _authService.getAssignmentsForClass(
+        projectId: 'kk360-69504',
+        classId: _selectedClassId!,
+      );
+      if (!mounted) return;
+      setState(() {
+        assignmentList = items;
+        assignmentsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        assignmentsLoading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load assignments: $e')));
+    }
+  }
+
+  String _assignmentSubtitle(AssignmentInfo item) {
+    if (item.dueDate != null) {
+      final dt = item.dueDate!.toLocal();
+      return 'Due ${dt.day}/${dt.month}/${dt.year}';
+    }
+
+    if (item.createdAt != null) {
+      final dt = item.createdAt!.toLocal();
+      return 'Posted ${dt.day}/${dt.month}/${dt.year}';
+    }
+
+    return '';
+  }
+
+  String _selectedClassDisplayName() {
+    final found = _myClasses.where((c) => c.id == _selectedClassId);
+    return found.isNotEmpty ? found.first.name : 'this class';
   }
 
   @override
@@ -95,11 +147,20 @@ class _CoursesScreenState extends State<CoursesScreen> {
               child: Column(
                 children: [
                   SizedBox(height: h * 0.015),
+                  if (assignmentsLoading)
+                    const Center(child: CircularProgressIndicator()),
+                  if (!assignmentsLoading && assignmentList.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: h * 0.02),
+                      child: Text(
+                        'No assignments yet for ${_selectedClassDisplayName()}',
+                      ),
+                    ),
                   ...assignmentList.map(
                     (item) => AssignmentTile(
-                      title: item["title"] ?? "",
-                      subtitle: item["subtitle"] ?? "",
-                      status: item["status"] ?? "",
+                      title: item.title,
+                      subtitle: _assignmentSubtitle(item),
+                      status: '',
                       h: h,
                       w: w,
                     ),
@@ -191,22 +252,29 @@ class _CoursesScreenState extends State<CoursesScreen> {
             ),
             padding: EdgeInsets.symmetric(horizontal: w * 0.04),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedCourse,
-                isExpanded: true,
-                items: const [
-                  DropdownMenuItem(
-                    value: "Mathematics",
-                    child: Text("Mathematics"),
-                  ),
-                  DropdownMenuItem(value: "Physics", child: Text("Physics")),
-                  DropdownMenuItem(
-                    value: "Chemistry",
-                    child: Text("Chemistry"),
-                  ),
-                ],
-                onChanged: (v) => setState(() => selectedCourse = v!),
-              ),
+              child:
+                  _classesLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : DropdownButton<String>(
+                        value: _selectedClassId,
+                        isExpanded: true,
+                        items:
+                            _myClasses
+                                .map(
+                                  (c) => DropdownMenuItem(
+                                    value: c.id,
+                                    child: Text(
+                                      c.name.isNotEmpty ? c.name : c.id,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() => _selectedClassId = v);
+                          _loadAssignmentsForClass();
+                        },
+                      ),
             ),
           ),
         ],

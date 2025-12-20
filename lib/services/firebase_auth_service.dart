@@ -474,12 +474,8 @@ class FirebaseAuthService {
             'value': {'stringValue': user.uid},
           },
         },
-        'orderBy': [
-          {
-            'field': {'fieldPath': 'createdAt'},
-            'direction': 'DESCENDING',
-          },
-        ],
+        // Remove the orderBy to avoid needing a composite index
+        // We can sort the results in the app instead
       },
     };
 
@@ -505,6 +501,14 @@ class FirebaseAuthService {
       throw 'Failed to fetch classes (status ${resp.statusCode}): ${resp.body}';
     final body = jsonDecode(resp.body) as List<dynamic>;
     final parsed = _parseClassesFromRunQuery(body);
+
+    // Sort by createdAt in descending order (newest first) on the client side
+    parsed.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
 
     debugPrint('[Auth] getClassesForTutor: Parsed ${parsed.length} classes');
     for (final c in parsed) {
@@ -533,9 +537,20 @@ class FirebaseAuthService {
 
   Future<List<ClassInfo>> getClassesForUser({required String projectId}) async {
     final user = _auth.currentUser;
-    if (user == null) return [];
+    if (user == null) {
+      debugPrint('[Auth] getClassesForUser: No current user');
+      return [];
+    }
+
+    debugPrint(
+      '[Auth] getClassesForUser: Fetching classes for user ${user.uid}',
+    );
+
     final idToken = await user.getIdToken();
-    if (idToken == null) return [];
+    if (idToken == null) {
+      debugPrint('[Auth] getClassesForUser: No ID token');
+      return [];
+    }
 
     final url = Uri.https(
       'firestore.googleapis.com',
@@ -563,6 +578,10 @@ class FirebaseAuthService {
       },
     };
 
+    debugPrint(
+      '[Auth] getClassesForUser: Query for user ${user.uid}: ${jsonEncode(q)}',
+    );
+
     final resp = await http
         .post(
           url,
@@ -574,17 +593,29 @@ class FirebaseAuthService {
         )
         .timeout(const Duration(seconds: 10));
 
+    debugPrint('[Auth] getClassesForUser: Response status: ${resp.statusCode}');
+    debugPrint('[Auth] getClassesForUser: Response body: ${resp.body}');
+
     if (resp.statusCode != 200)
       throw 'Failed to fetch classes (status ${resp.statusCode})';
     final body = jsonDecode(resp.body) as List<dynamic>;
     final parsed = _parseClassesFromRunQuery(body);
+
+    debugPrint(
+      '[Auth] getClassesForUser: Found ${parsed.length} classes for user ${user.uid}',
+    );
+    for (final c in parsed) {
+      debugPrint(
+        '[Auth] getClassesForUser: Class: ${c.name} (${c.id}) - members: ${c.members}',
+      );
+    }
 
     // Cache the fetched classes for quick access
     try {
       final user = _auth.currentUser;
       if (user != null) {
         final prefs = await SharedPreferences.getInstance();
-        final key = 'cached_tutor_classes_${user.uid}';
+        final key = 'cached_student_classes_${user.uid}';
         await prefs.setString(
           key,
           jsonEncode(parsed.map((c) => c.toJson()).toList()),
@@ -666,14 +697,26 @@ class FirebaseAuthService {
     required String projectId,
     required List<String> emails,
   }) async {
+    debugPrint(
+      '[Auth] lookupUsersByEmails: Looking up ${emails.length} emails: $emails',
+    );
+
     final user = _auth.currentUser;
-    if (user == null) return {};
+    if (user == null) {
+      debugPrint('[Auth] lookupUsersByEmails: No current user');
+      return {};
+    }
     final idToken = await user.getIdToken();
-    if (idToken == null) return {};
+    if (idToken == null) {
+      debugPrint('[Auth] lookupUsersByEmails: No ID token');
+      return {};
+    }
 
     final found = <String, String>{};
 
     for (final email in emails) {
+      debugPrint('[Auth] lookupUsersByEmails: Looking up email: $email');
+
       final url = Uri.https(
         'firestore.googleapis.com',
         '/v1/projects/$projectId/databases/(default)/documents:runQuery',
@@ -706,22 +749,46 @@ class FirebaseAuthService {
             )
             .timeout(const Duration(seconds: 10));
 
-        if (resp.statusCode != 200) continue;
+        debugPrint(
+          '[Auth] lookupUsersByEmails: Response status for $email: ${resp.statusCode}',
+        );
+
+        if (resp.statusCode != 200) {
+          debugPrint(
+            '[Auth] lookupUsersByEmails: Failed response body: ${resp.body}',
+          );
+          continue;
+        }
+
         final body = jsonDecode(resp.body) as List<dynamic>;
+        debugPrint(
+          '[Auth] lookupUsersByEmails: Response body for $email: $body',
+        );
+
         for (final item in body) {
           final doc = item['document'] as Map<String, dynamic>?;
-          if (doc == null) continue;
+          if (doc == null) {
+            debugPrint(
+              '[Auth] lookupUsersByEmails: No document found for $email',
+            );
+            continue;
+          }
           final fullName = doc['name'] as String?;
           if (fullName == null) continue;
           final uid = fullName.split('/').last;
+          debugPrint(
+            '[Auth] lookupUsersByEmails: Found UID $uid for email $email',
+          );
           found[email] = uid;
           break;
         }
       } catch (e) {
-        // ignore per-email errors and continue
+        debugPrint('[Auth] lookupUsersByEmails: Error for $email: $e');
         continue;
       }
     }
+
+    debugPrint('[Auth] lookupUsersByEmails: Final result: $found');
     return found;
   }
 
@@ -731,6 +798,10 @@ class FirebaseAuthService {
     required String classId,
     required List<String> memberUids,
   }) async {
+    debugPrint(
+      '[Auth] addMembersToClass: Adding members $memberUids to class $classId',
+    );
+
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
     final idToken = await user.getIdToken();
@@ -739,6 +810,10 @@ class FirebaseAuthService {
     final docUrl = Uri.https(
       'firestore.googleapis.com',
       '/v1/projects/$projectId/databases/(default)/documents/classes/$classId',
+    );
+
+    debugPrint(
+      '[Auth] addMembersToClass: Fetching current class document from $docUrl',
     );
 
     // Fetch current members if any
@@ -752,9 +827,15 @@ class FirebaseAuthService {
         )
         .timeout(const Duration(seconds: 10));
 
+    debugPrint(
+      '[Auth] addMembersToClass: GET response status: ${getResp.statusCode}',
+    );
+
     List<String> existing = [];
     if (getResp.statusCode == 200) {
       final body = jsonDecode(getResp.body) as Map<String, dynamic>;
+      debugPrint('[Auth] addMembersToClass: Current document: $body');
+
       final fields = body['fields'] as Map<String, dynamic>?;
       final membersVal =
           fields?['members']?['arrayValue']?['values'] as List<dynamic>?;
@@ -764,9 +845,15 @@ class FirebaseAuthService {
           if (s != null) existing.add(s);
         }
       }
+      debugPrint('[Auth] addMembersToClass: Existing members: $existing');
+    } else {
+      debugPrint(
+        '[Auth] addMembersToClass: Failed to fetch class: ${getResp.body}',
+      );
     }
 
     final finalSet = {...existing, ...memberUids};
+    debugPrint('[Auth] addMembersToClass: Final members set: $finalSet');
 
     final fields = {
       'members': {
@@ -782,6 +869,11 @@ class FirebaseAuthService {
       {'updateMask.fieldPaths': 'members'},
     );
 
+    debugPrint('[Auth] addMembersToClass: Patching to $patchUrl');
+    debugPrint(
+      '[Auth] addMembersToClass: Patch body: ${jsonEncode({'fields': fields})}',
+    );
+
     final resp = await http
         .patch(
           patchUrl,
@@ -793,9 +885,266 @@ class FirebaseAuthService {
         )
         .timeout(const Duration(seconds: 10));
 
+    debugPrint(
+      '[Auth] addMembersToClass: PATCH response status: ${resp.statusCode}',
+    );
+    debugPrint('[Auth] addMembersToClass: PATCH response body: ${resp.body}');
+
     if (resp.statusCode != 200) {
       throw 'Failed to update class members (status ${resp.statusCode}): ${resp.body}';
     }
+
+    debugPrint('[Auth] addMembersToClass: Successfully added members!');
+  }
+
+  // Create a pending invite for users
+  Future<void> createInvite({
+    required String projectId,
+    required String classId,
+    required String invitedUserEmail,
+    required String invitedByUserId,
+    required String invitedByUserName,
+    required String className,
+    required String role, // 'student' or 'tutor'
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/invites',
+    );
+
+    final fields = {
+      'classId': {'stringValue': classId},
+      'invitedUserEmail': {'stringValue': invitedUserEmail},
+      'invitedByUserId': {'stringValue': invitedByUserId},
+      'invitedByUserName': {'stringValue': invitedByUserName},
+      'className': {'stringValue': className},
+      'role': {'stringValue': role},
+      'status': {'stringValue': 'pending'},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': fields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create invite (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] Successfully created invite for $invitedUserEmail');
+  }
+
+  // Get pending invites for a user
+  Future<List<InviteInfo>> getPendingInvites({
+    required String projectId,
+    required String userEmail,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'invites'},
+        ],
+        'where': {
+          'compositeFilter': {
+            'op': 'AND',
+            'filters': [
+              {
+                'fieldFilter': {
+                  'field': {'fieldPath': 'invitedUserEmail'},
+                  'op': 'EQUAL',
+                  'value': {'stringValue': userEmail},
+                },
+              },
+              {
+                'fieldFilter': {
+                  'field': {'fieldPath': 'status'},
+                  'op': 'EQUAL',
+                  'value': {'stringValue': 'pending'},
+                },
+              },
+            ],
+          },
+        },
+        // Remove orderBy to avoid composite index requirement
+      },
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to fetch invites (status ${resp.statusCode})';
+    }
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final parsed = _parseInvitesFromRunQuery(body);
+
+    // Sort by createdAt in descending order (newest first) on the client side
+    parsed.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    return parsed;
+  }
+
+  // Accept an invite
+  Future<void> acceptInvite({
+    required String projectId,
+    required String inviteId,
+    required String classId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    // Update invite status to accepted
+    final inviteUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/invites/$inviteId',
+    );
+
+    final updateFields = {
+      'status': {'stringValue': 'accepted'},
+      'acceptedAt': {
+        'timestampValue': DateTime.now().toUtc().toIso8601String(),
+      },
+    };
+
+    final updateResp = await http
+        .patch(
+          inviteUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': updateFields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (updateResp.statusCode != 200) {
+      throw 'Failed to update invite status (status ${updateResp.statusCode})';
+    }
+
+    // Add user to class
+    await addMembersToClass(
+      projectId: projectId,
+      classId: classId,
+      memberUids: [user.uid],
+    );
+
+    debugPrint('[Auth] Successfully accepted invite and joined class');
+  }
+
+  // Decline an invite
+  Future<void> declineInvite({
+    required String projectId,
+    required String inviteId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/invites/$inviteId',
+    );
+
+    final updateFields = {
+      'status': {'stringValue': 'declined'},
+      'declinedAt': {
+        'timestampValue': DateTime.now().toUtc().toIso8601String(),
+      },
+    };
+
+    final resp = await http
+        .patch(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': updateFields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to decline invite (status ${resp.statusCode})';
+    }
+
+    debugPrint('[Auth] Successfully declined invite');
+  }
+
+  // Helper method to parse invites from Firestore query response
+  List<InviteInfo> _parseInvitesFromRunQuery(List<dynamic> docs) {
+    final out = <InviteInfo>[];
+    for (final doc in docs) {
+      final document = doc['document'];
+      if (document == null) continue;
+
+      final name = document['name'] as String?;
+      final fields = document['fields'] as Map<String, dynamic>?;
+      if (fields == null) continue;
+
+      final id = name?.split('/').last ?? '';
+      final classId = fields['classId']?['stringValue'] as String? ?? '';
+      final invitedUserEmail =
+          fields['invitedUserEmail']?['stringValue'] as String? ?? '';
+      final invitedByUserName =
+          fields['invitedByUserName']?['stringValue'] as String? ?? '';
+      final className = fields['className']?['stringValue'] as String? ?? '';
+      final role = fields['role']?['stringValue'] as String? ?? '';
+      final status = fields['status']?['stringValue'] as String? ?? '';
+      final createdAt = fields['createdAt']?['timestampValue'] as String?;
+
+      out.add(
+        InviteInfo(
+          id: id,
+          classId: classId,
+          invitedUserEmail: invitedUserEmail,
+          invitedByUserName: invitedByUserName,
+          className: className,
+          role: role,
+          status: status,
+          createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
+        ),
+      );
+    }
+    return out;
   }
 
   // Delete a class document
@@ -971,6 +1320,53 @@ class ClassInfo {
     course: j['course'] as String? ?? '',
     tutorId: j['tutorId'] as String? ?? '',
     members: (j['members'] as List<dynamic>?)?.cast<String>() ?? [],
+    createdAt:
+        j['createdAt'] != null
+            ? DateTime.tryParse(j['createdAt'] as String)
+            : null,
+  );
+}
+
+class InviteInfo {
+  final String id;
+  final String classId;
+  final String invitedUserEmail;
+  final String invitedByUserName;
+  final String className;
+  final String role;
+  final String status;
+  final DateTime? createdAt;
+
+  InviteInfo({
+    required this.id,
+    required this.classId,
+    required this.invitedUserEmail,
+    required this.invitedByUserName,
+    required this.className,
+    required this.role,
+    required this.status,
+    this.createdAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'classId': classId,
+    'invitedUserEmail': invitedUserEmail,
+    'invitedByUserName': invitedByUserName,
+    'className': className,
+    'role': role,
+    'status': status,
+    'createdAt': createdAt?.toIso8601String(),
+  };
+
+  static InviteInfo fromJson(Map<String, dynamic> j) => InviteInfo(
+    id: j['id'] as String? ?? '',
+    classId: j['classId'] as String? ?? '',
+    invitedUserEmail: j['invitedUserEmail'] as String? ?? '',
+    invitedByUserName: j['invitedByUserName'] as String? ?? '',
+    className: j['className'] as String? ?? '',
+    role: j['role'] as String? ?? '',
+    status: j['status'] as String? ?? '',
     createdAt:
         j['createdAt'] != null
             ? DateTime.tryParse(j['createdAt'] as String)

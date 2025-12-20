@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'create_class.dart';
+import 'invite_student.dart';
+import 'invite_tutor.dart';
 import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
 import '../services/firebase_auth_service.dart';
 import '../nav_observer.dart';
@@ -406,7 +408,39 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                                               )
                                               : PopupMenuButton<String>(
                                                 onSelected: (v) async {
-                                                  if (v == 'delete') {
+                                                  // Get the class ID for navigation
+                                                  final classId =
+                                                      c.id.contains('/')
+                                                          ? c.id.split('/').last
+                                                          : c.id;
+
+                                                  if (v == 'add_student') {
+                                                    // Navigate to invite students screen with this class pre-selected
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder:
+                                                            (_) =>
+                                                                TutorInviteStudentsScreen(
+                                                                  initialClassId:
+                                                                      classId,
+                                                                ),
+                                                      ),
+                                                    );
+                                                  } else if (v == 'add_tutor') {
+                                                    // Navigate to invite tutors screen with this class pre-selected
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder:
+                                                            (_) =>
+                                                                TutorInviteTutorsScreen(
+                                                                  initialClassId:
+                                                                      classId,
+                                                                ),
+                                                      ),
+                                                    );
+                                                  } else if (v == 'delete') {
                                                     // Prevent double-click
                                                     if (_deletingClassIds
                                                         .contains(c.id))
@@ -698,6 +732,53 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                                                 },
                                                 itemBuilder:
                                                     (_) => [
+                                                      const PopupMenuItem(
+                                                        value: 'add_student',
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(
+                                                              Icons.person_add,
+                                                              color: Color(
+                                                                0xFF4B3FA3,
+                                                              ),
+                                                              size: 20,
+                                                            ),
+                                                            SizedBox(width: 8),
+                                                            Text(
+                                                              'Add Student',
+                                                              style: TextStyle(
+                                                                color: Color(
+                                                                  0xFF4B3FA3,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'add_tutor',
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(
+                                                              Icons.school,
+                                                              color: Color(
+                                                                0xFF4B3FA3,
+                                                              ),
+                                                              size: 20,
+                                                            ),
+                                                            SizedBox(width: 8),
+                                                            Text(
+                                                              'Add Tutor',
+                                                              style: TextStyle(
+                                                                color: Color(
+                                                                  0xFF4B3FA3,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const PopupMenuDivider(),
                                                       const PopupMenuItem(
                                                         value: 'delete',
                                                         child: Row(

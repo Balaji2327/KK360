@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart'; // change to student_bottom_nav if needed
+import '../widgets/tutor_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
-import 'create_class.dart';
 
 class TutorInviteTutorsScreen extends StatefulWidget {
-  const TutorInviteTutorsScreen({super.key});
+  final String? initialClassId;
+
+  const TutorInviteTutorsScreen({super.key, this.initialClassId});
 
   @override
   State<TutorInviteTutorsScreen> createState() =>
@@ -30,6 +31,14 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint(
+      '[InviteTutor] initState - initialClassId: ${widget.initialClassId}',
+    );
+    // Set the selected class ID immediately if provided
+    if (widget.initialClassId != null && widget.initialClassId!.isNotEmpty) {
+      _selectedClassId = widget.initialClassId;
+      debugPrint('[InviteTutor] Set _selectedClassId to: $_selectedClassId');
+    }
     _loadClasses();
   }
 
@@ -41,11 +50,14 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
       if (!mounted) return;
       setState(() {
         _classes = classes;
-        if (_classes.isNotEmpty)
+        // Only set _selectedClassId from classes if it wasn't provided via initialClassId
+        if (_selectedClassId == null && _classes.isNotEmpty) {
           _selectedClassId = _classes.first.id.split('/').last;
+        }
       });
     } catch (e) {
       // ignore load errors
+      debugPrint('[InviteTutor] Error loading classes: $e');
     }
   }
 
@@ -151,40 +163,95 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
 
                         setState(() => _loading = true);
                         try {
+                          debugPrint(
+                            '[InviteTutor] Starting invite process for emails: $_emails',
+                          );
+                          debugPrint(
+                            '[InviteTutor] Target class ID: $_selectedClassId',
+                          );
+
+                          // resolve emails -> uids
                           final map = await _authService.lookupUsersByEmails(
                             projectId: 'kk360-69504',
                             emails: _emails,
                           );
+                          debugPrint('[InviteTutor] Email lookup result: $map');
+
                           final foundUids = map.values.toList();
                           final missing =
                               _emails
                                   .where((e) => !map.containsKey(e))
                                   .toList();
 
+                          debugPrint('[InviteTutor] Found UIDs: $foundUids');
+                          debugPrint('[InviteTutor] Missing emails: $missing');
+
                           if (foundUids.isNotEmpty) {
-                            await _authService.addMembersToClass(
-                              projectId: 'kk360-69504',
-                              classId: _selectedClassId!,
-                              memberUids: foundUids,
+                            debugPrint(
+                              '[InviteTutor] Creating invites for ${foundUids.length} users',
+                            );
+
+                            // Get current user info for the invite
+                            final currentUser = _authService.getCurrentUser();
+                            final currentUserName = await _authService
+                                .getUserDisplayName(projectId: 'kk360-69504');
+                            final selectedClass = _classes.firstWhere(
+                              (c) => c.id.split('/').last == _selectedClassId,
+                              orElse: () => _classes.first,
+                            );
+
+                            // Create invites for each found user
+                            for (final email in map.keys) {
+                              if (map[email] != null) {
+                                await _authService.createInvite(
+                                  projectId: 'kk360-69504',
+                                  classId: _selectedClassId!,
+                                  invitedUserEmail: email,
+                                  invitedByUserId: currentUser?.uid ?? '',
+                                  invitedByUserName: currentUserName,
+                                  className: selectedClass.name,
+                                  role: 'tutor',
+                                );
+                              }
+                            }
+                            debugPrint(
+                              '[InviteTutor] Invites created successfully!',
+                            );
+                          } else {
+                            debugPrint(
+                              '[InviteTutor] No UIDs found - users may not be registered',
                             );
                           }
 
                           if (!mounted) return;
                           final messages = <String>[];
-                          if (foundUids.isNotEmpty)
-                            messages.add('Invited ${foundUids.length} user(s)');
-                          if (missing.isNotEmpty)
+                          if (foundUids.isNotEmpty) {
+                            messages.add('Sent ${foundUids.length} invite(s)');
+                          }
+                          if (missing.isNotEmpty) {
                             messages.add('Not found: ${missing.join(', ')}');
+                          }
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(messages.join(' — '))),
+                            SnackBar(
+                              content: Text(messages.join(' — ')),
+                              backgroundColor:
+                                  foundUids.isNotEmpty
+                                      ? Colors.green
+                                      : Colors.orange,
+                            ),
                           );
                           _controller.clear();
                           setState(() => _emails.clear());
-                        } catch (e) {
+                        } catch (e, stackTrace) {
+                          debugPrint('[InviteTutor] Error during invite: $e');
+                          debugPrint('[InviteTutor] Stack trace: $stackTrace');
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Invite failed: $e')),
+                            SnackBar(
+                              content: Text('Invite failed: $e'),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         } finally {
                           if (mounted) setState(() => _loading = false);
@@ -235,33 +302,195 @@ class _TutorInviteTutorsScreenState extends State<TutorInviteTutorsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Class selector (required to know which class to invite into)
-                  if (_classes.isEmpty)
+                  // Show class selection if no initial class provided
+                  if (widget.initialClassId == null && _classes.isNotEmpty)
                     Padding(
-                      padding: EdgeInsets.only(bottom: h * 0.015),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      padding: EdgeInsets.only(bottom: h * 0.02),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('No classes found'),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                          Text(
+                            'Select a class to invite tutors to:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: purple,
                             ),
-                            onPressed: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CreateClassScreen(),
-                                ),
-                              );
-                              if (result == true) _loadClasses();
-                            },
-                            child: const Text('Create class'),
                           ),
+                          SizedBox(height: h * 0.015),
+                          ...List.generate(_classes.length, (index) {
+                            final classInfo = _classes[index];
+                            final classId = classInfo.id.split('/').last;
+                            final isSelected = _selectedClassId == classId;
+
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedClassId = classId;
+                                });
+                              },
+                              child: Container(
+                                margin: EdgeInsets.only(bottom: h * 0.01),
+                                padding: EdgeInsets.all(w * 0.04),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? purple.withAlpha(25)
+                                          : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color:
+                                        isSelected
+                                            ? purple
+                                            : Colors.grey.shade300,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.class_,
+                                      color:
+                                          isSelected
+                                              ? purple
+                                              : Colors.grey.shade600,
+                                      size: 24,
+                                    ),
+                                    SizedBox(width: w * 0.03),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            classInfo.name.isNotEmpty
+                                                ? classInfo.name
+                                                : classInfo.course,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color:
+                                                  isSelected
+                                                      ? purple
+                                                      : Colors.black87,
+                                            ),
+                                          ),
+                                          if (classInfo.course.isNotEmpty &&
+                                              classInfo.name.isNotEmpty)
+                                            Text(
+                                              classInfo.course,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          Text(
+                                            '${classInfo.members.length} members',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: purple,
+                                        size: 24,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     )
-                  else
+                  // Show selected class info if initial class provided
+                  else if (_selectedClassId != null && _classes.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: h * 0.02),
+                      child: Container(
+                        width: w,
+                        padding: EdgeInsets.all(w * 0.04),
+                        decoration: BoxDecoration(
+                          color: purple.withAlpha(25),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: purple, width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.class_, color: purple, size: 24),
+                            SizedBox(width: w * 0.03),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Adding tutors to:',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    _classes
+                                        .firstWhere(
+                                          (c) =>
+                                              c.id.split('/').last ==
+                                              _selectedClassId,
+                                          orElse: () => _classes.first,
+                                        )
+                                        .name,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: purple,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  // Show message if no classes exist
+                  else if (_classes.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: h * 0.02),
+                      child: Container(
+                        width: w,
+                        padding: EdgeInsets.all(w * 0.04),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.orange.shade700,
+                            ),
+                            SizedBox(width: w * 0.03),
+                            Expanded(
+                              child: Text(
+                                'You need to create a class first before inviting tutors.',
+                                style: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_classes.isNotEmpty)
                     Padding(
                       padding: EdgeInsets.only(bottom: h * 0.015),
                       child: DropdownButtonFormField<String>(

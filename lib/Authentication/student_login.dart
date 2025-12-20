@@ -65,6 +65,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         projectId: 'kk360-69504',
       );
       _showSuccessSnackbar('Login successful!');
+
+      // Check for pending invites after successful login
+      await _checkPendingInvites();
+
       if (mounted) {
         goPush(context, const StudentHomeScreen());
       }
@@ -75,6 +79,141 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         setState(() => isLoading = false);
       }
     }
+  }
+
+  Future<void> _checkPendingInvites() async {
+    try {
+      final invites = await authService.getPendingInvites(
+        projectId: 'kk360-69504',
+        userEmail: emailController.text.trim(),
+      );
+
+      if (invites.isNotEmpty && mounted) {
+        _showInviteDialog(invites);
+      }
+    } catch (e) {
+      debugPrint('Error checking pending invites: $e');
+      // Don't show error to user, just log it
+    }
+  }
+
+  void _showInviteDialog(List<InviteInfo> invites) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text('Class Invitations (${invites.length})'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: invites.length,
+                itemBuilder: (context, index) {
+                  final invite = invites[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            invite.className,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Invited by: ${invite.invitedByUserName}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () async {
+                                  try {
+                                    await authService.declineInvite(
+                                      projectId: 'kk360-69504',
+                                      inviteId: invite.id,
+                                    );
+                                    if (mounted) {
+                                      Navigator.of(ctx).pop();
+                                      _showSuccessSnackbar(
+                                        'Invitation declined',
+                                      );
+                                      // Refresh the dialog with remaining invites
+                                      final remainingInvites =
+                                          invites
+                                              .where((i) => i.id != invite.id)
+                                              .toList();
+                                      if (remainingInvites.isNotEmpty) {
+                                        _showInviteDialog(remainingInvites);
+                                      }
+                                    }
+                                  } catch (e) {
+                                    _showErrorSnackbar(
+                                      'Failed to decline invitation: $e',
+                                    );
+                                  }
+                                },
+                                child: const Text('Decline'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  try {
+                                    await authService.acceptInvite(
+                                      projectId: 'kk360-69504',
+                                      inviteId: invite.id,
+                                      classId: invite.classId,
+                                    );
+                                    if (mounted) {
+                                      Navigator.of(ctx).pop();
+                                      _showSuccessSnackbar(
+                                        'Joined ${invite.className}!',
+                                      );
+                                      // Refresh the dialog with remaining invites
+                                      final remainingInvites =
+                                          invites
+                                              .where((i) => i.id != invite.id)
+                                              .toList();
+                                      if (remainingInvites.isNotEmpty) {
+                                        _showInviteDialog(remainingInvites);
+                                      }
+                                    }
+                                  } catch (e) {
+                                    _showErrorSnackbar(
+                                      'Failed to accept invitation: $e',
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
+                                child: const Text('Accept'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+    );
   }
 
   @override

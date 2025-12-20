@@ -199,32 +199,51 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                               '[InviteStudent] Creating invites for ${foundUids.length} users',
                             );
 
-                            // Get current user info for the invite
-                            final currentUser = _authService.getCurrentUser();
-                            final currentUserName = await _authService
-                                .getUserDisplayName(projectId: 'kk360-69504');
-                            final selectedClass = _classes.firstWhere(
-                              (c) => c.id.split('/').last == _selectedClassId,
-                              orElse: () => _classes.first,
-                            );
+                            try {
+                              // Get current user info for the invite
+                              final currentUser = _authService.getCurrentUser();
+                              final currentUserName = await _authService
+                                  .getUserDisplayName(projectId: 'kk360-69504');
+                              final selectedClass = _classes.firstWhere(
+                                (c) => c.id.split('/').last == _selectedClassId,
+                                orElse: () => _classes.first,
+                              );
 
-                            // Create invites for each found user
-                            for (final email in map.keys) {
-                              if (map[email] != null) {
-                                await _authService.createInvite(
-                                  projectId: 'kk360-69504',
-                                  classId: _selectedClassId!,
-                                  invitedUserEmail: email,
-                                  invitedByUserId: currentUser?.uid ?? '',
-                                  invitedByUserName: currentUserName,
-                                  className: selectedClass.name,
-                                  role: 'student',
-                                );
+                              // Create invites for each found user
+                              for (final email in map.keys) {
+                                if (map[email] != null) {
+                                  await _authService.createInvite(
+                                    projectId: 'kk360-69504',
+                                    classId: _selectedClassId!,
+                                    invitedUserEmail: email,
+                                    invitedByUserId: currentUser?.uid ?? '',
+                                    invitedByUserName: currentUserName,
+                                    className: selectedClass.name,
+                                    role: 'student',
+                                  );
+                                }
                               }
+                              debugPrint(
+                                '[InviteStudent] Invites created successfully!',
+                              );
+                            } catch (inviteError) {
+                              debugPrint(
+                                '[InviteStudent] Invite creation failed: $inviteError',
+                              );
+                              debugPrint(
+                                '[InviteStudent] Falling back to direct enrollment',
+                              );
+
+                              // Fallback to direct enrollment if invite creation fails
+                              await _authService.addMembersToClass(
+                                projectId: 'kk360-69504',
+                                classId: _selectedClassId!,
+                                memberUids: foundUids,
+                              );
+                              debugPrint(
+                                '[InviteStudent] Direct enrollment completed successfully!',
+                              );
                             }
-                            debugPrint(
-                              '[InviteStudent] Invites created successfully!',
-                            );
                           } else {
                             debugPrint(
                               '[InviteStudent] No UIDs found - users may not be registered',
@@ -234,7 +253,9 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                           if (!mounted) return;
                           final messages = <String>[];
                           if (foundUids.isNotEmpty) {
-                            messages.add('Sent ${foundUids.length} invite(s)');
+                            messages.add(
+                              'Added ${foundUids.length} student(s) to class',
+                            );
                           }
                           if (missing.isNotEmpty) {
                             messages.add('Not found: ${missing.join(', ')}');

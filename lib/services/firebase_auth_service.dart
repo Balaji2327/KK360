@@ -545,8 +545,10 @@ class FirebaseAuthService {
     debugPrint(
       '[Auth] getClassesForUser: Fetching classes for user ${user.uid}',
     );
+    debugPrint('[Auth] getClassesForUser: User email: ${user.email}');
 
-    final idToken = await user.getIdToken();
+    // Force refresh token to ensure we have the latest permissions
+    final idToken = await user.getIdToken(true);
     if (idToken == null) {
       debugPrint('[Auth] getClassesForUser: No ID token');
       return [];
@@ -569,12 +571,8 @@ class FirebaseAuthService {
             'value': {'stringValue': user.uid},
           },
         },
-        'orderBy': [
-          {
-            'field': {'fieldPath': 'createdAt'},
-            'direction': 'DESCENDING',
-          },
-        ],
+        // Remove the orderBy to avoid needing a composite index
+        // We can sort the results in the app instead
       },
     };
 
@@ -601,6 +599,14 @@ class FirebaseAuthService {
     final body = jsonDecode(resp.body) as List<dynamic>;
     final parsed = _parseClassesFromRunQuery(body);
 
+    // Sort by createdAt in descending order (newest first) on the client side
+    parsed.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
     debugPrint(
       '[Auth] getClassesForUser: Found ${parsed.length} classes for user ${user.uid}',
     );
@@ -608,6 +614,50 @@ class FirebaseAuthService {
       debugPrint(
         '[Auth] getClassesForUser: Class: ${c.name} (${c.id}) - members: ${c.members}',
       );
+      debugPrint(
+        '[Auth] getClassesForUser: Does class contain user? ${c.members.contains(user.uid)}',
+      );
+    }
+
+    // Also query ALL classes to see what's available (for debugging)
+    debugPrint(
+      '[Auth] getClassesForUser: DEBUG - Querying ALL classes to see what exists...',
+    );
+    try {
+      final allClassesQuery = {
+        'structuredQuery': {
+          'from': [
+            {'collectionId': 'classes'},
+          ],
+        },
+      };
+
+      final allResp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(allClassesQuery),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (allResp.statusCode == 200) {
+        final allBody = jsonDecode(allResp.body) as List<dynamic>;
+        final allClasses = _parseClassesFromRunQuery(allBody);
+        debugPrint(
+          '[Auth] getClassesForUser: DEBUG - Total classes in database: ${allClasses.length}',
+        );
+        for (final c in allClasses) {
+          final containsUser = c.members.contains(user.uid);
+          debugPrint(
+            '[Auth] getClassesForUser: DEBUG - Class: ${c.name} (${c.id}) - members: ${c.members} - contains user: $containsUser',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[Auth] getClassesForUser: DEBUG query failed: $e');
     }
 
     // Cache the fetched classes for quick access
@@ -620,6 +670,7 @@ class FirebaseAuthService {
           key,
           jsonEncode(parsed.map((c) => c.toJson()).toList()),
         );
+        debugPrint('[Auth] getClassesForUser: Cached ${parsed.length} classes');
       }
     } catch (e) {
       debugPrint('[Auth] Could not cache classes: $e');
@@ -895,6 +946,60 @@ class FirebaseAuthService {
     }
 
     debugPrint('[Auth] addMembersToClass: Successfully added members!');
+
+    // Verify the update was successful by fetching the class again
+    debugPrint('[Auth] addMembersToClass: Verifying update...');
+    try {
+      final verifyResp = await http
+          .get(
+            Uri.https(
+              'firestore.googleapis.com',
+              '/v1/projects/$projectId/databases/(default)/documents/classes/$classId',
+            ),
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (verifyResp.statusCode == 200) {
+        final verifyBody = jsonDecode(verifyResp.body) as Map<String, dynamic>;
+        final verifyFields = verifyBody['fields'] as Map<String, dynamic>?;
+        final verifyMembersVal =
+            verifyFields?['members']?['arrayValue']?['values']
+                as List<dynamic>?;
+        final verifyMembers = <String>[];
+        if (verifyMembersVal != null) {
+          for (final v in verifyMembersVal) {
+            final s = v['stringValue'] as String?;
+            if (s != null) verifyMembers.add(s);
+          }
+        }
+        debugPrint(
+          '[Auth] addMembersToClass: Verification - Current members: $verifyMembers',
+        );
+
+        // Check if all requested members were added
+        for (final uid in memberUids) {
+          if (verifyMembers.contains(uid)) {
+            debugPrint(
+              '[Auth] addMembersToClass: ✅ Verified: User $uid is in class',
+            );
+          } else {
+            debugPrint(
+              '[Auth] addMembersToClass: ❌ Warning: User $uid NOT found in class members',
+            );
+          }
+        }
+      } else {
+        debugPrint(
+          '[Auth] addMembersToClass: Could not verify update: ${verifyResp.statusCode}',
+        );
+      }
+    } catch (e) {
+      debugPrint('[Auth] addMembersToClass: Verification error: $e');
+    }
   }
 
   // Create a pending invite for users
@@ -909,8 +1014,13 @@ class FirebaseAuthService {
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
-    final idToken = await user.getIdToken();
+    final idToken = await user.getIdToken(true); // Force refresh token
     if (idToken == null) throw 'Not authenticated';
+
+    debugPrint(
+      '[Auth] 🚀 Creating invite for $invitedUserEmail in class $classId',
+    );
+    debugPrint('[Auth] 👤 Invited by: $invitedByUserName ($invitedByUserId)');
 
     final url = Uri.https(
       'firestore.googleapis.com',
@@ -928,25 +1038,111 @@ class FirebaseAuthService {
       'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
     };
 
-    final resp = await http
-        .post(
-          url,
-          headers: {
-            'Authorization': 'Bearer $idToken',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({'fields': fields}),
-        )
-        .timeout(const Duration(seconds: 10));
+    debugPrint('[Auth] 📡 Request URL: $url');
+    debugPrint('[Auth] 📦 Request body: ${jsonEncode({'fields': fields})}');
 
-    if (resp.statusCode != 200) {
-      throw 'Failed to create invite (status ${resp.statusCode}): ${resp.body}';
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': fields}),
+          )
+          .timeout(const Duration(seconds: 15)); // Increased timeout
+
+      debugPrint('[Auth] 📊 Response status: ${resp.statusCode}');
+      debugPrint('[Auth] 📄 Response body: ${resp.body}');
+
+      if (resp.statusCode == 200) {
+        debugPrint(
+          '[Auth] ✅ Successfully created invite for $invitedUserEmail',
+        );
+        return;
+      } else if (resp.statusCode == 403) {
+        debugPrint(
+          '[Auth] ❌ PERMISSION DENIED - Firestore security rules issue',
+        );
+        throw 'PERMISSION_DENIED: Firestore security rules prevent creating invites. Please update rules or contact admin.';
+      } else if (resp.statusCode == 404) {
+        debugPrint('[Auth] ❌ PROJECT NOT FOUND');
+        throw 'Project or database not found';
+      } else {
+        final errorMsg = 'HTTP_ERROR_${resp.statusCode}: ${resp.body}';
+        debugPrint('[Auth] ❌ $errorMsg');
+        throw errorMsg;
+      }
+    } catch (e) {
+      debugPrint('[Auth] ❌ Exception during invite creation: $e');
+      rethrow;
     }
-
-    debugPrint('[Auth] Successfully created invite for $invitedUserEmail');
   }
 
-  // Get pending invites for a user
+  // Test method to diagnose invite creation issues
+  Future<String> testInviteCreation({
+    required String projectId,
+    required String testEmail,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return '❌ Not authenticated';
+
+      final idToken = await user.getIdToken(true);
+      if (idToken == null) return '❌ No ID token';
+
+      debugPrint('[Auth] 🧪 Testing invite creation for: $testEmail');
+
+      // Test URL
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents/invites',
+      );
+
+      // Test data
+      final fields = {
+        'classId': {'stringValue': 'test-class'},
+        'invitedUserEmail': {'stringValue': testEmail},
+        'invitedByUserId': {'stringValue': user.uid},
+        'invitedByUserName': {'stringValue': 'Test User'},
+        'className': {'stringValue': 'Test Class'},
+        'role': {'stringValue': 'student'},
+        'status': {'stringValue': 'pending'},
+        'createdAt': {
+          'timestampValue': DateTime.now().toUtc().toIso8601String(),
+        },
+      };
+
+      debugPrint('[Auth] 🧪 Test URL: $url');
+      debugPrint('[Auth] 🧪 Test payload: ${jsonEncode({'fields': fields})}');
+
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': fields}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint('[Auth] 🧪 Response status: ${resp.statusCode}');
+      debugPrint('[Auth] 🧪 Response body: ${resp.body}');
+
+      if (resp.statusCode == 200) {
+        return '✅ Invite creation successful!';
+      } else if (resp.statusCode == 403) {
+        return '❌ Permission denied (403) - Firestore security rules issue';
+      } else {
+        return '❌ Failed with status ${resp.statusCode}: ${resp.body}';
+      }
+    } catch (e) {
+      return '❌ Exception: $e';
+    }
+  }
+
   Future<List<InviteInfo>> getPendingInvites({
     required String projectId,
     required String userEmail,
@@ -1026,15 +1222,27 @@ class FirebaseAuthService {
     required String inviteId,
     required String classId,
   }) async {
+    debugPrint('[Auth] 🎯 Accepting invite: $inviteId for class: $classId');
+
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
-    final idToken = await user.getIdToken();
+    final idToken = await user.getIdToken(true); // Force refresh
     if (idToken == null) throw 'Not authenticated';
+
+    // Extract simple ID if full path provided
+    final simpleInviteId =
+        inviteId.contains('/') ? inviteId.split('/').last : inviteId;
+    final simpleClassId =
+        classId.contains('/') ? classId.split('/').last : classId;
+
+    debugPrint(
+      '[Auth] 📝 Using invite ID: $simpleInviteId, class ID: $simpleClassId',
+    );
 
     // Update invite status to accepted
     final inviteUrl = Uri.https(
       'firestore.googleapis.com',
-      '/v1/projects/$projectId/databases/(default)/documents/invites/$inviteId',
+      '/v1/projects/$projectId/databases/(default)/documents/invites/$simpleInviteId',
     );
 
     final updateFields = {
@@ -1044,29 +1252,55 @@ class FirebaseAuthService {
       },
     };
 
-    final updateResp = await http
-        .patch(
-          inviteUrl,
-          headers: {
-            'Authorization': 'Bearer $idToken',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({'fields': updateFields}),
-        )
-        .timeout(const Duration(seconds: 10));
-
-    if (updateResp.statusCode != 200) {
-      throw 'Failed to update invite status (status ${updateResp.statusCode})';
-    }
-
-    // Add user to class
-    await addMembersToClass(
-      projectId: projectId,
-      classId: classId,
-      memberUids: [user.uid],
+    debugPrint('[Auth] 📡 Updating invite at: $inviteUrl');
+    debugPrint(
+      '[Auth] 📦 Update payload: ${jsonEncode({'fields': updateFields})}',
     );
 
-    debugPrint('[Auth] Successfully accepted invite and joined class');
+    try {
+      final updateResp = await http
+          .patch(
+            inviteUrl,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': updateFields}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      debugPrint('[Auth] 📊 Update response status: ${updateResp.statusCode}');
+      debugPrint('[Auth] 📄 Update response body: ${updateResp.body}');
+
+      if (updateResp.statusCode != 200) {
+        throw 'Failed to update invite status (status ${updateResp.statusCode}): ${updateResp.body}';
+      }
+
+      debugPrint('[Auth] ✅ Invite status updated successfully');
+
+      // Add user to class
+      debugPrint('[Auth] 👥 Adding user to class: $simpleClassId');
+      await addMembersToClass(
+        projectId: projectId,
+        classId: simpleClassId,
+        memberUids: [user.uid],
+      );
+
+      debugPrint('[Auth] ✅ Successfully accepted invite and joined class');
+
+      // Clear student class cache to force fresh data on next load
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final key = 'cached_student_classes_${user.uid}';
+        await prefs.remove(key);
+        debugPrint('[Auth] 🗑️ Cleared student class cache after joining');
+      } catch (e) {
+        debugPrint('[Auth] ⚠️ Could not clear cache: $e');
+      }
+    } catch (e) {
+      debugPrint('[Auth] ❌ Error accepting invite: $e');
+      rethrow;
+    }
   }
 
   // Decline an invite
@@ -1074,14 +1308,22 @@ class FirebaseAuthService {
     required String projectId,
     required String inviteId,
   }) async {
+    debugPrint('[Auth] 🎯 Declining invite: $inviteId');
+
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
-    final idToken = await user.getIdToken();
+    final idToken = await user.getIdToken(true); // Force refresh
     if (idToken == null) throw 'Not authenticated';
+
+    // Extract simple ID if full path provided
+    final simpleInviteId =
+        inviteId.contains('/') ? inviteId.split('/').last : inviteId;
+
+    debugPrint('[Auth] 📝 Using invite ID: $simpleInviteId');
 
     final url = Uri.https(
       'firestore.googleapis.com',
-      '/v1/projects/$projectId/databases/(default)/documents/invites/$inviteId',
+      '/v1/projects/$projectId/databases/(default)/documents/invites/$simpleInviteId',
     );
 
     final updateFields = {
@@ -1091,22 +1333,35 @@ class FirebaseAuthService {
       },
     };
 
-    final resp = await http
-        .patch(
-          url,
-          headers: {
-            'Authorization': 'Bearer $idToken',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({'fields': updateFields}),
-        )
-        .timeout(const Duration(seconds: 10));
+    debugPrint('[Auth] 📡 Declining invite at: $url');
+    debugPrint(
+      '[Auth] 📦 Update payload: ${jsonEncode({'fields': updateFields})}',
+    );
 
-    if (resp.statusCode != 200) {
-      throw 'Failed to decline invite (status ${resp.statusCode})';
+    try {
+      final resp = await http
+          .patch(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': updateFields}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      debugPrint('[Auth] 📊 Decline response status: ${resp.statusCode}');
+      debugPrint('[Auth] 📄 Decline response body: ${resp.body}');
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to decline invite (status ${resp.statusCode}): ${resp.body}';
+      }
+
+      debugPrint('[Auth] ✅ Successfully declined invite');
+    } catch (e) {
+      debugPrint('[Auth] ❌ Error declining invite: $e');
+      rethrow;
     }
-
-    debugPrint('[Auth] Successfully declined invite');
   }
 
   // Helper method to parse invites from Firestore query response
@@ -1254,6 +1509,413 @@ class FirebaseAuthService {
       );
     } catch (e) {
       debugPrint('[Auth] Could not save cached classes: $e');
+    }
+  }
+
+  // ============ UPDATE METHODS ============
+
+  // Update class information (name, course)
+  Future<void> updateClass({
+    required String projectId,
+    required String classId,
+    String? name,
+    String? course,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken(true);
+    if (idToken == null) throw 'Not authenticated';
+
+    final simpleId = classId.contains('/') ? classId.split('/').last : classId;
+
+    final fields = <String, dynamic>{};
+    if (name != null) fields['name'] = {'stringValue': name};
+    if (course != null) fields['course'] = {'stringValue': course};
+
+    if (fields.isEmpty) throw 'No fields to update';
+
+    final updateMask = fields.keys.join(',');
+    final patchUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes/$simpleId',
+      {'updateMask.fieldPaths': updateMask},
+    );
+
+    final resp = await http
+        .patch(
+          patchUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': fields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to update class (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] Successfully updated class $simpleId');
+  }
+
+  // Update user profile information
+  Future<void> updateUserProfile({
+    required String projectId,
+    String? name,
+    String? email,
+    String? role,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken(true);
+    if (idToken == null) throw 'Not authenticated';
+
+    final fields = <String, dynamic>{};
+    if (name != null) fields['name'] = {'stringValue': name};
+    if (email != null) fields['email'] = {'stringValue': email};
+    if (role != null) fields['role'] = {'stringValue': role};
+
+    if (fields.isEmpty) throw 'No fields to update';
+
+    final updateMask = fields.keys.join(',');
+    final patchUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/users/${user.uid}',
+      {'updateMask.fieldPaths': updateMask},
+    );
+
+    final resp = await http
+        .patch(
+          patchUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': fields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to update user profile (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] Successfully updated user profile');
+  }
+
+  // Remove members from a class
+  Future<void> removeMembersFromClass({
+    required String projectId,
+    required String classId,
+    required List<String> memberUidsToRemove,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final simpleId = classId.contains('/') ? classId.split('/').last : classId;
+
+    final docUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes/$simpleId',
+    );
+
+    // Fetch current members
+    final getResp = await http
+        .get(
+          docUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (getResp.statusCode != 200) {
+      throw 'Failed to fetch class members (status ${getResp.statusCode})';
+    }
+
+    final body = jsonDecode(getResp.body) as Map<String, dynamic>;
+    final fields = body['fields'] as Map<String, dynamic>?;
+    final membersVal =
+        fields?['members']?['arrayValue']?['values'] as List<dynamic>?;
+
+    List<String> currentMembers = [];
+    if (membersVal != null) {
+      for (final v in membersVal) {
+        final s = v['stringValue'] as String?;
+        if (s != null) currentMembers.add(s);
+      }
+    }
+
+    // Remove specified members
+    final updatedMembers =
+        currentMembers
+            .where((uid) => !memberUidsToRemove.contains(uid))
+            .toList();
+
+    final updateFields = {
+      'members': {
+        'arrayValue': {
+          'values': updatedMembers.map((s) => {'stringValue': s}).toList(),
+        },
+      },
+    };
+
+    final patchUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes/$simpleId',
+      {'updateMask.fieldPaths': 'members'},
+    );
+
+    final resp = await http
+        .patch(
+          patchUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': updateFields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to remove members (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint(
+      '[Auth] Successfully removed ${memberUidsToRemove.length} members from class',
+    );
+  }
+
+  // Update assignment information
+  Future<void> updateAssignment({
+    required String projectId,
+    required String assignmentId,
+    String? title,
+    String? description,
+    String? points,
+    DateTime? dueDate,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken(true);
+    if (idToken == null) throw 'Not authenticated';
+
+    final simpleId =
+        assignmentId.contains('/')
+            ? assignmentId.split('/').last
+            : assignmentId;
+
+    final fields = <String, dynamic>{};
+    if (title != null) fields['title'] = {'stringValue': title};
+    if (description != null)
+      fields['description'] = {'stringValue': description};
+    if (points != null) fields['points'] = {'stringValue': points};
+    if (dueDate != null)
+      fields['dueDate'] = {'timestampValue': dueDate.toUtc().toIso8601String()};
+
+    if (fields.isEmpty) throw 'No fields to update';
+
+    final updateMask = fields.keys.join(',');
+    final patchUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/assignments/$simpleId',
+      {'updateMask.fieldPaths': updateMask},
+    );
+
+    final resp = await http
+        .patch(
+          patchUrl,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': fields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to update assignment (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] Successfully updated assignment $simpleId');
+  }
+
+  // Check if current user is a member of a specific class
+  Future<bool> isUserMemberOfClass({
+    required String projectId,
+    required String classId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    final idToken = await user.getIdToken(true);
+    if (idToken == null) return false;
+
+    final simpleClassId =
+        classId.contains('/') ? classId.split('/').last : classId;
+
+    try {
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents/classes/$simpleClassId',
+      );
+
+      final resp = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final fields = body['fields'] as Map<String, dynamic>?;
+        final membersVal =
+            fields?['members']?['arrayValue']?['values'] as List<dynamic>?;
+
+        if (membersVal != null) {
+          for (final v in membersVal) {
+            final memberUid = v['stringValue'] as String?;
+            if (memberUid == user.uid) {
+              debugPrint(
+                '[Auth] isUserMemberOfClass: ✅ User ${user.uid} IS a member of class $simpleClassId',
+              );
+              return true;
+            }
+          }
+        }
+
+        debugPrint(
+          '[Auth] isUserMemberOfClass: ❌ User ${user.uid} is NOT a member of class $simpleClassId',
+        );
+        return false;
+      } else {
+        debugPrint(
+          '[Auth] isUserMemberOfClass: Failed to fetch class: ${resp.statusCode}',
+        );
+        return false;
+      }
+    } catch (e) {
+      debugPrint('[Auth] isUserMemberOfClass: Error: $e');
+      return false;
+    }
+  }
+
+  // Debug method to test if we can access a specific class
+  Future<void> debugTestClassAccess({
+    required String projectId,
+    required String classId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      debugPrint('[Auth] debugTestClassAccess: No current user');
+      return;
+    }
+
+    final idToken = await user.getIdToken(true);
+    if (idToken == null) {
+      debugPrint('[Auth] debugTestClassAccess: No ID token');
+      return;
+    }
+
+    final simpleClassId =
+        classId.contains('/') ? classId.split('/').last : classId;
+
+    debugPrint(
+      '[Auth] debugTestClassAccess: Testing access to class $simpleClassId for user ${user.uid}',
+    );
+
+    try {
+      // Test direct class access
+      final directUrl = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents/classes/$simpleClassId',
+      );
+
+      final directResp = await http
+          .get(
+            directUrl,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint(
+        '[Auth] debugTestClassAccess: Direct access response: ${directResp.statusCode}',
+      );
+
+      if (directResp.statusCode == 200) {
+        final body = jsonDecode(directResp.body) as Map<String, dynamic>;
+        final fields = body['fields'] as Map<String, dynamic>?;
+        final className =
+            fields?['name']?['stringValue'] as String? ?? 'Unknown';
+        final membersVal =
+            fields?['members']?['arrayValue']?['values'] as List<dynamic>?;
+        final members = <String>[];
+        if (membersVal != null) {
+          for (final v in membersVal) {
+            final s = v['stringValue'] as String?;
+            if (s != null) members.add(s);
+          }
+        }
+
+        debugPrint('[Auth] debugTestClassAccess: Class name: $className');
+        debugPrint('[Auth] debugTestClassAccess: Class members: $members');
+        debugPrint(
+          '[Auth] debugTestClassAccess: User ${user.uid} in members: ${members.contains(user.uid)}',
+        );
+      } else {
+        debugPrint(
+          '[Auth] debugTestClassAccess: Failed to access class: ${directResp.body}',
+        );
+      }
+
+      // Test query access
+      final queryUrl = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+      );
+
+      final q = {
+        'structuredQuery': {
+          'from': [
+            {'collectionId': 'classes'},
+          ],
+          'where': {
+            'fieldFilter': {
+              'field': {'fieldPath': 'members'},
+              'op': 'ARRAY_CONTAINS',
+              'value': {'stringValue': user.uid},
+            },
+          },
+        },
+      };
+
+      final queryResp = await http
+          .post(
+            queryUrl,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(q),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint(
+        '[Auth] debugTestClassAccess: Query response: ${queryResp.statusCode}',
+      );
+      debugPrint('[Auth] debugTestClassAccess: Query body: ${queryResp.body}');
+    } catch (e) {
+      debugPrint('[Auth] debugTestClassAccess: Error: $e');
     }
   }
 }

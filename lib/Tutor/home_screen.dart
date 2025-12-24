@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'create_class.dart';
-import 'invite_student.dart';
-import 'invite_tutor.dart';
-import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
+// import 'invite_student.dart';
+// import 'invite_tutor.dart';
+import '../widgets/tutor_bottom_nav.dart';
+import '../widgets/class_card.dart';
 import '../services/firebase_auth_service.dart';
 import '../nav_observer.dart';
 
@@ -22,20 +23,24 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
   // Classes shown on the home screen
   List<ClassInfo> _classes = [];
   bool _classesLoading = true;
-  final Set<String> _deletingClassIds =
-      {}; // Tracks which classes are being deleted by ID
+
+  // Pending invites for tutors
+  List<InviteInfo> _pendingInvites = [];
+  bool _invitesLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
     _loadClasses();
+    _loadPendingInvites();
 
     // Also try to load classes after the widget is fully built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         debugPrint('[Home] Post-frame callback: Attempting to reload classes');
         _loadClasses();
+        _loadPendingInvites();
       }
     });
   }
@@ -160,6 +165,73 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
       userEmail = profile?.email ?? authUser?.email ?? '';
       profileLoading = false;
     });
+  }
+
+  Future<void> _loadPendingInvites() async {
+    setState(() => _invitesLoading = true);
+    try {
+      final authUser = _authService.getCurrentUser();
+      if (authUser?.email != null) {
+        final invites = await _authService.getPendingInvites(
+          projectId: 'kk360-69504',
+          userEmail: authUser!.email!,
+        );
+        if (!mounted) return;
+        debugPrint('[TutorHome] Loaded ${invites.length} pending invites');
+        setState(() {
+          _pendingInvites = invites;
+          _invitesLoading = false;
+        });
+      } else {
+        setState(() => _invitesLoading = false);
+      }
+    } catch (e) {
+      debugPrint('[TutorHome] Error loading invites: $e');
+      if (mounted) {
+        setState(() => _invitesLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleInviteAction(InviteInfo invite, bool accept) async {
+    try {
+      if (accept) {
+        await _authService.acceptInvite(
+          projectId: 'kk360-69504',
+          inviteId: invite.id,
+          classId: invite.classId,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Joined ${invite.className}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Reload both classes and invites
+        _loadClasses();
+        _loadPendingInvites();
+      } else {
+        await _authService.declineInvite(
+          projectId: 'kk360-69504',
+          inviteId: invite.id,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Declined invitation to ${invite.className}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        // Reload invites
+        _loadPendingInvites();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
@@ -295,7 +367,6 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: h * 0.07),
-
                   Text(
                     "Hello, ${profileLoading ? 'Loading...' : userName}",
                     style: const TextStyle(
@@ -304,16 +375,12 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   SizedBox(height: 5),
-
                   Text(
                     profileLoading ? '' : userEmail,
                     style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-
                   SizedBox(height: 15),
-
                   Container(
                     height: h * 0.055,
                     decoration: BoxDecoration(
@@ -341,9 +408,131 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    SizedBox(height: h * 0.03),
+                    SizedBox(height: h * 0.02),
 
-                    // ================= Subject Card(s) =================
+                    // ================= PENDING INVITES SECTION =================
+                    if (!_invitesLoading && _pendingInvites.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.mail,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Class Invitations (${_pendingInvites.length})",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: h * 0.015),
+
+                            // Invite cards
+                            ...List.generate(_pendingInvites.length, (index) {
+                              final invite = _pendingInvites[index];
+                              return Container(
+                                margin: EdgeInsets.only(bottom: h * 0.015),
+                                padding: EdgeInsets.all(w * 0.04),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.orange.shade200,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.class_,
+                                          color: Colors.orange.shade700,
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            invite.className,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Invited by: ${invite.invitedByUserName}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Role: ${invite.role}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                    SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed:
+                                              () => _handleInviteAction(
+                                                invite,
+                                                false,
+                                              ),
+                                          child: Text(
+                                            'Decline',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed:
+                                              () => _handleInviteAction(
+                                                invite,
+                                                true,
+                                              ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: Text('Accept'),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+
+                            SizedBox(height: h * 0.02),
+                          ],
+                        ),
+                      ),
+
+                    SizedBox(height: h * 0.01),
+
+                    // ================= CLASSES SECTION =================
                     if (_classesLoading)
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: w * 0.06),
@@ -359,556 +548,72 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                         child: Column(
-                          children: List.generate(_classes.length, (index) {
-                            try {
-                              final c = _classes[index];
-                              final title =
-                                  c.name.isNotEmpty
-                                      ? c.name
-                                      : (c.course.isNotEmpty
-                                          ? c.course
-                                          : 'Untitled Class');
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: h * 0.02),
-                                child: Container(
-                                  width: w,
-                                  padding: EdgeInsets.all(w * 0.045),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(15),
-                                    border: Border.all(
-                                      color: const Color(0xFF4B3FA3),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            title,
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          // Show loading indicator if this class is being deleted
-                                          _deletingClassIds.contains(c.id)
-                                              ? const SizedBox(
-                                                width: 24,
-                                                height: 24,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Color(0xFF4B3FA3),
-                                                    ),
-                                              )
-                                              : PopupMenuButton<String>(
-                                                onSelected: (v) async {
-                                                  // Get the class ID for navigation
-                                                  final classId =
-                                                      c.id.contains('/')
-                                                          ? c.id.split('/').last
-                                                          : c.id;
-
-                                                  if (v == 'add_student') {
-                                                    // Navigate to invite students screen with this class pre-selected
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder:
-                                                            (_) =>
-                                                                TutorInviteStudentsScreen(
-                                                                  initialClassId:
-                                                                      classId,
-                                                                ),
-                                                      ),
-                                                    );
-                                                  } else if (v == 'add_tutor') {
-                                                    // Navigate to invite tutors screen with this class pre-selected
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder:
-                                                            (_) =>
-                                                                TutorInviteTutorsScreen(
-                                                                  initialClassId:
-                                                                      classId,
-                                                                ),
-                                                      ),
-                                                    );
-                                                  } else if (v == 'delete') {
-                                                    // Prevent double-click
-                                                    if (_deletingClassIds
-                                                        .contains(c.id))
-                                                      return;
-
-                                                    final confirm = await showDialog<
-                                                      bool
-                                                    >(
-                                                      context: context,
-                                                      builder:
-                                                          (ctx) => AlertDialog(
-                                                            title: const Text(
-                                                              'Delete class',
-                                                            ),
-                                                            content: const Text(
-                                                              'Are you sure you want to delete this class? This cannot be undone.',
-                                                            ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed:
-                                                                    () =>
-                                                                        Navigator.pop(
-                                                                          ctx,
-                                                                          false,
-                                                                        ),
-                                                                child:
-                                                                    const Text(
-                                                                      'Cancel',
-                                                                    ),
-                                                              ),
-                                                              ElevatedButton(
-                                                                onPressed:
-                                                                    () =>
-                                                                        Navigator.pop(
-                                                                          ctx,
-                                                                          true,
-                                                                        ),
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor:
-                                                                      Colors
-                                                                          .red,
-                                                                ),
-                                                                child: const Text(
-                                                                  'Delete',
-                                                                  style: TextStyle(
-                                                                    color:
-                                                                        Colors
-                                                                            .white,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                    );
-                                                    if (confirm == true) {
-                                                      // Store class info before deletion
-                                                      final classToDelete = c;
-                                                      final classId =
-                                                          classToDelete.id
-                                                                  .contains('/')
-                                                              ? classToDelete.id
-                                                                  .split('/')
-                                                                  .last
-                                                              : classToDelete
-                                                                  .id;
-
-                                                      // Set deleting state
-                                                      setState(() {
-                                                        _deletingClassIds.add(
-                                                          classToDelete.id,
-                                                        );
-                                                      });
-
-                                                      try {
-                                                        // Check if this is a local-only class (not in database)
-                                                        if (classId.startsWith(
-                                                          'local-',
-                                                        )) {
-                                                          debugPrint(
-                                                            '[Home] Deleting local-only class: ${classToDelete.name} (${classId})',
-                                                          );
-                                                          // Small delay to ensure UI updates
-                                                          await Future.delayed(
-                                                            const Duration(
-                                                              milliseconds: 100,
-                                                            ),
-                                                          );
-                                                          if (!mounted) return;
-                                                          // Remove from local list by ID
-                                                          setState(() {
-                                                            _classes.removeWhere(
-                                                              (cls) =>
-                                                                  cls.id ==
-                                                                  classToDelete
-                                                                      .id,
-                                                            );
-                                                            _deletingClassIds
-                                                                .remove(
-                                                                  classToDelete
-                                                                      .id,
-                                                                );
-                                                          });
-                                                          // Update cache
-                                                          await _authService
-                                                              .saveClassesToCacheForCurrentUser(
-                                                                _classes,
-                                                              );
-                                                          if (!mounted) return;
-                                                          ScaffoldMessenger.of(
-                                                            context,
-                                                          ).showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text(
-                                                                'Local class removed',
-                                                              ),
-                                                            ),
-                                                          );
-                                                        } else {
-                                                          debugPrint(
-                                                            '[Home] Deleting database class: ${classToDelete.name} (${classId})',
-                                                          );
-                                                          try {
-                                                            // Delete from database
-                                                            await _authService
-                                                                .deleteClass(
-                                                                  projectId:
-                                                                      'kk360-69504',
-                                                                  classId:
-                                                                      classId,
-                                                                );
-                                                            if (!mounted)
-                                                              return;
-                                                            // Remove from local list by ID
-                                                            setState(() {
-                                                              _classes.removeWhere(
-                                                                (cls) =>
-                                                                    cls.id ==
-                                                                    classToDelete
-                                                                        .id,
-                                                              );
-                                                              _deletingClassIds
-                                                                  .remove(
-                                                                    classToDelete
-                                                                        .id,
-                                                                  );
-                                                            });
-                                                            // Update cache
-                                                            await _authService
-                                                                .saveClassesToCacheForCurrentUser(
-                                                                  _classes,
-                                                                );
-                                                            if (!mounted)
-                                                              return;
-                                                            ScaffoldMessenger.of(
-                                                              context,
-                                                            ).showSnackBar(
-                                                              const SnackBar(
-                                                                content: Text(
-                                                                  'Class deleted successfully',
-                                                                ),
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .green,
-                                                              ),
-                                                            );
-                                                          } catch (
-                                                            deleteError
-                                                          ) {
-                                                            debugPrint(
-                                                              '[Home] Database delete failed: $deleteError',
-                                                            );
-                                                            if (!mounted)
-                                                              return;
-                                                            setState(() {
-                                                              _deletingClassIds
-                                                                  .remove(
-                                                                    classToDelete
-                                                                        .id,
-                                                                  );
-                                                            });
-                                                            // If delete fails due to permissions or class not found,
-                                                            // offer to remove it locally
-                                                            final removeLocally = await showDialog<
-                                                              bool
-                                                            >(
-                                                              context: context,
-                                                              builder:
-                                                                  (
-                                                                    ctx,
-                                                                  ) => AlertDialog(
-                                                                    title: const Text(
-                                                                      'Delete Failed',
-                                                                    ),
-                                                                    content: Text(
-                                                                      'Failed to delete from database: $deleteError\n\nThis class may not exist in the database or you may not have permission to delete it. Would you like to remove it from your local view?',
-                                                                    ),
-                                                                    actions: [
-                                                                      TextButton(
-                                                                        onPressed:
-                                                                            () => Navigator.pop(
-                                                                              ctx,
-                                                                              false,
-                                                                            ),
-                                                                        child: const Text(
-                                                                          'Cancel',
-                                                                        ),
-                                                                      ),
-                                                                      ElevatedButton(
-                                                                        onPressed:
-                                                                            () => Navigator.pop(
-                                                                              ctx,
-                                                                              true,
-                                                                            ),
-                                                                        style: ElevatedButton.styleFrom(
-                                                                          backgroundColor:
-                                                                              Colors.orange,
-                                                                        ),
-                                                                        child: const Text(
-                                                                          'Remove Locally',
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                            );
-
-                                                            if (removeLocally ==
-                                                                true) {
-                                                              if (!mounted)
-                                                                return;
-                                                              setState(() {
-                                                                _classes.removeWhere(
-                                                                  (cls) =>
-                                                                      cls.id ==
-                                                                      classToDelete
-                                                                          .id,
-                                                                );
-                                                              });
-                                                              await _authService
-                                                                  .saveClassesToCacheForCurrentUser(
-                                                                    _classes,
-                                                                  );
-                                                              if (!mounted)
-                                                                return;
-                                                              ScaffoldMessenger.of(
-                                                                context,
-                                                              ).showSnackBar(
-                                                                const SnackBar(
-                                                                  content: Text(
-                                                                    'Class removed from local view',
-                                                                  ),
-                                                                  backgroundColor:
-                                                                      Colors
-                                                                          .orange,
-                                                                ),
-                                                              );
-                                                            } else {
-                                                              // Re-throw the error to be caught by outer catch
-                                                              throw deleteError;
-                                                            }
-                                                          }
-                                                        }
-                                                      } catch (e) {
-                                                        debugPrint(
-                                                          '[Home] Delete failed: $e',
-                                                        );
-                                                        if (mounted) {
-                                                          setState(() {
-                                                            _deletingClassIds
-                                                                .remove(
-                                                                  classToDelete
-                                                                      .id,
-                                                                );
-                                                          });
-                                                          ScaffoldMessenger.of(
-                                                            context,
-                                                          ).showSnackBar(
-                                                            SnackBar(
-                                                              content: Text(
-                                                                'Delete failed: $e',
-                                                              ),
-                                                              backgroundColor:
-                                                                  Colors.red,
-                                                            ),
-                                                          );
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                },
-                                                itemBuilder:
-                                                    (_) => [
-                                                      const PopupMenuItem(
-                                                        value: 'add_student',
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons.person_add,
-                                                              color: Color(
-                                                                0xFF4B3FA3,
-                                                              ),
-                                                              size: 20,
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                              'Add Student',
-                                                              style: TextStyle(
-                                                                color: Color(
-                                                                  0xFF4B3FA3,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'add_tutor',
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons.school,
-                                                              color: Color(
-                                                                0xFF4B3FA3,
-                                                              ),
-                                                              size: 20,
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                              'Add Tutor',
-                                                              style: TextStyle(
-                                                                color: Color(
-                                                                  0xFF4B3FA3,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      const PopupMenuDivider(),
-                                                      const PopupMenuItem(
-                                                        value: 'delete',
-                                                        child: Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons.delete,
-                                                              color: Colors.red,
-                                                              size: 20,
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                              'Delete',
-                                                              style: TextStyle(
-                                                                color:
-                                                                    Colors.red,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                icon: const Icon(
-                                                  Icons.more_vert,
-                                                ),
-                                              ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 5),
-                                      Text(
-                                        c.course.isNotEmpty ? c.course : ' ',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                      SizedBox(height: 6),
-                                      Text(
-                                        'Tutor: ${userName}',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            } catch (e, st) {
-                              debugPrint(
-                                '[Home] Error rendering class card: $e\n$st',
-                              );
-                              return const SizedBox();
-                            }
-                          }),
+                          children:
+                              _classes.map((classInfo) {
+                                return ClassCard(
+                                  classInfo: classInfo,
+                                  userRole: 'tutor',
+                                  currentUserId:
+                                      _authService.getCurrentUser()?.uid ?? '',
+                                  onClassUpdated: _loadClasses,
+                                  onClassDeleted: () {
+                                    // Remove from local list immediately for better UX
+                                    setState(() {
+                                      _classes.removeWhere(
+                                        (c) => c.id == classInfo.id,
+                                      );
+                                    });
+                                    _loadClasses(); // Refresh from server
+                                  },
+                                );
+                              }).toList(),
                         ),
                       ),
 
-                    SizedBox(height: h * 0.02),
+                    SizedBox(height: h * 0.03),
 
-                    // ================= Buttons Row =================
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: w * 0.05,
-                            vertical: h * 0.01,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4B3FA3),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            "New announcement",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        SizedBox(width: w * 0.04),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: w * 0.05,
-                            vertical: h * 0.009,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF4B3FA3)),
-                          ),
-                          child: Row(
-                            children: const [
-                              Icon(Icons.repeat, size: 16),
-                              SizedBox(width: 5),
-                              Text("Repost"),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: h * 0.015),
-
-                    // ================= Image =================
-                    if (_classes.length < 2)
-                      SizedBox(
-                        height: h * 0.22,
-                        child: Image.asset("assets/images/megaphone.png"),
-                      ),
-
-                    // ================= Content Text =================
+                    // ================= STREAM CARD =================
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.1),
-                      child: Column(
-                        children: const [
-                          Text(
-                            "This is where you can talk to your class",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                      child: Container(
+                        width: w,
+                        padding: EdgeInsets.all(w * 0.06),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                            width: 1,
                           ),
-                          SizedBox(height: 10),
-                          Text(
-                            "Use the stream to share announcements, post assignments, and respond to questions",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.black87,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.stream,
+                              size: 48,
+                              color: Colors.grey.shade400,
                             ),
-                          ),
-                        ],
+                            SizedBox(height: h * 0.02),
+                            Text(
+                              "This is where you can share with your class",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: h * 0.01),
+                            Text(
+                              "Use the stream to share announcements, post assignments, and respond to questions",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
 
@@ -923,49 +628,22 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
     } catch (e, st) {
       debugPrint('[Home] Build failed: $e\n$st');
       return Scaffold(
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF4B3FA3),
-          title: const Text('Home'),
-        ),
         body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Something went wrong on the home screen.',
-                  style: TextStyle(color: Colors.red.shade700),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
-                  onPressed: () {
-                    _loadClasses();
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error, size: 48, color: Colors.red),
+              SizedBox(height: 16),
+              Text('Error loading home screen'),
+              SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => setState(() {}),
+                child: Text('Retry'),
+              ),
+            ],
           ),
         ),
       );
     }
-  }
-
-  // ================= Reusable Navigation Item =================
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23),
-          Text(text, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    );
   }
 }

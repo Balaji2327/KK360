@@ -174,98 +174,111 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                             '[InviteStudent] Target class ID: $_selectedClassId',
                           );
 
-                          // resolve emails -> uids
-                          final map = await _authService.lookupUsersByEmails(
-                            projectId: 'kk360-69504',
-                            emails: _emails,
-                          );
-                          debugPrint(
-                            '[InviteStudent] Email lookup result: $map',
-                          );
+                          // Get current user info for the invite
+                          final currentUser = _authService.getCurrentUser();
+                          if (currentUser == null) {
+                            throw 'Not authenticated';
+                          }
 
-                          final foundUids = map.values.toList();
-                          final missing =
-                              _emails
-                                  .where((e) => !map.containsKey(e))
-                                  .toList();
+                          final userDisplayName = await _authService
+                              .getUserDisplayName(projectId: 'kk360-69504');
 
-                          debugPrint('[InviteStudent] Found UIDs: $foundUids');
-                          debugPrint(
-                            '[InviteStudent] Missing emails: $missing',
+                          // Get class name for the invite
+                          final selectedClass = _classes.firstWhere(
+                            (c) => c.id.split('/').last == _selectedClassId,
+                            orElse: () => _classes.first,
                           );
 
-                          if (foundUids.isNotEmpty) {
-                            debugPrint(
-                              '[InviteStudent] Creating invites for ${foundUids.length} users',
-                            );
+                          int invitesSent = 0;
+                          final failedEmails = <String>[];
 
+                          // Send invites to each email
+                          for (final email in _emails) {
                             try {
-                              // Get current user info for the invite
-                              final currentUser = _authService.getCurrentUser();
-                              final currentUserName = await _authService
-                                  .getUserDisplayName(projectId: 'kk360-69504');
-                              final selectedClass = _classes.firstWhere(
-                                (c) => c.id.split('/').last == _selectedClassId,
-                                orElse: () => _classes.first,
-                              );
-
-                              // Create invites for each found user
-                              for (final email in map.keys) {
-                                if (map[email] != null) {
-                                  await _authService.createInvite(
-                                    projectId: 'kk360-69504',
-                                    classId: _selectedClassId!,
-                                    invitedUserEmail: email,
-                                    invitedByUserId: currentUser?.uid ?? '',
-                                    invitedByUserName: currentUserName,
-                                    className: selectedClass.name,
-                                    role: 'student',
-                                  );
-                                }
-                              }
                               debugPrint(
-                                '[InviteStudent] Invites created successfully!',
+                                '[InviteStudent] Attempting to invite: $email',
                               );
-                            } catch (inviteError) {
-                              debugPrint(
-                                '[InviteStudent] Invite creation failed: $inviteError',
-                              );
-                              debugPrint(
-                                '[InviteStudent] Falling back to direct enrollment',
-                              );
-
-                              // Fallback to direct enrollment if invite creation fails
-                              await _authService.addMembersToClass(
+                              await _authService.createInvite(
                                 projectId: 'kk360-69504',
                                 classId: _selectedClassId!,
-                                memberUids: foundUids,
+                                invitedUserEmail: email,
+                                invitedByUserId: currentUser.uid,
+                                invitedByUserName: userDisplayName,
+                                className:
+                                    selectedClass.name.isNotEmpty
+                                        ? selectedClass.name
+                                        : selectedClass.course,
+                                role: 'student',
                               );
+                              invitesSent++;
                               debugPrint(
-                                '[InviteStudent] Direct enrollment completed successfully!',
+                                '[InviteStudent] Invite sent successfully to: $email',
                               );
+                            } catch (e) {
+                              debugPrint(
+                                '[InviteStudent] Failed to invite $email: $e',
+                              );
+
+                              // Check if it's a Firestore permission error
+                              if (e.toString().contains('PERMISSION_DENIED') ||
+                                  e.toString().contains('403') ||
+                                  e.toString().contains(
+                                    'FAILED_PRECONDITION',
+                                  )) {
+                                debugPrint(
+                                  '[InviteStudent] Firestore permission error, trying direct enrollment fallback',
+                                );
+
+                                try {
+                                  // Fallback: Try to find user by email and add directly
+                                  final userMap = await _authService
+                                      .lookupUsersByEmails(
+                                        projectId: 'kk360-69504',
+                                        emails: [email],
+                                      );
+
+                                  if (userMap.containsKey(email)) {
+                                    await _authService.addMembersToClass(
+                                      projectId: 'kk360-69504',
+                                      classId: _selectedClassId!,
+                                      memberUids: [userMap[email]!],
+                                    );
+                                    invitesSent++;
+                                    debugPrint(
+                                      '[InviteStudent] Direct enrollment successful for: $email',
+                                    );
+                                  } else {
+                                    failedEmails.add(email);
+                                    debugPrint(
+                                      '[InviteStudent] User not found: $email',
+                                    );
+                                  }
+                                } catch (fallbackError) {
+                                  debugPrint(
+                                    '[InviteStudent] Fallback also failed for $email: $fallbackError',
+                                  );
+                                  failedEmails.add(email);
+                                }
+                              } else {
+                                failedEmails.add(email);
+                              }
                             }
-                          } else {
-                            debugPrint(
-                              '[InviteStudent] No UIDs found - users may not be registered',
-                            );
                           }
 
                           if (!mounted) return;
                           final messages = <String>[];
-                          if (foundUids.isNotEmpty) {
-                            messages.add(
-                              'Added ${foundUids.length} student(s) to class',
-                            );
+                          if (invitesSent > 0) {
+                            messages.add('Sent $invitesSent invitation(s)');
                           }
-                          if (missing.isNotEmpty) {
-                            messages.add('Not found: ${missing.join(', ')}');
+                          if (failedEmails.isNotEmpty) {
+                            messages.add('Failed: ${failedEmails.join(', ')}');
                           }
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(messages.join(' — ')),
                               backgroundColor:
-                                  foundUids.isNotEmpty
+                                  invitesSent > 0
                                       ? Colors.green
                                       : Colors.orange,
                             ),
@@ -333,6 +346,47 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 🧪 DIAGNOSTIC BUTTON - Remove after testing
+                  Container(
+                    width: w,
+                    margin: EdgeInsets.only(bottom: h * 0.02),
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        if (_emails.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Add an email first to test'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final result = await _authService.testInviteCreation(
+                          projectId: 'kk360-69504',
+                          testEmail: _emails.first,
+                        );
+
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Test Result: $result'),
+                            duration: Duration(seconds: 5),
+                            backgroundColor:
+                                result.contains('✅')
+                                    ? Colors.green
+                                    : Colors.red,
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.bug_report),
+                      label: Text('🧪 Test Invite Creation'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+
                   // Show class selection if no initial class provided
                   if (widget.initialClassId == null && _classes.isNotEmpty)
                     Padding(

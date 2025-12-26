@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'activity_wall.dart';
 import '../widgets/student_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 
 class CoursesScreen extends StatefulWidget {
-  const CoursesScreen({super.key});
+  final String? initialClassId;
+  final String? initialClassName;
+
+  const CoursesScreen({super.key, this.initialClassId, this.initialClassName});
 
   @override
   State<CoursesScreen> createState() => _CoursesScreenState();
@@ -67,7 +71,17 @@ class _CoursesScreenState extends State<CoursesScreen> {
       if (!mounted) return;
       setState(() {
         _myClasses = items;
-        _selectedClassId = _myClasses.isNotEmpty ? _myClasses.first.id : null;
+
+        // Set initial class selection
+        if (widget.initialClassId != null &&
+            _myClasses.any((c) => c.id == widget.initialClassId)) {
+          // Use the provided initial class ID if it exists in the user's classes
+          _selectedClassId = widget.initialClassId;
+        } else {
+          // Default to first class if no initial class or initial class not found
+          _selectedClassId = _myClasses.isNotEmpty ? _myClasses.first.id : null;
+        }
+
         _classesLoading = false;
       });
 
@@ -84,6 +98,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   Future<void> _loadAssignmentsForClass() async {
     if (_selectedClassId == null) return;
+
+    debugPrint(
+      '[CoursesScreen] Loading assignments for classId: $_selectedClassId',
+    );
+
     setState(() {
       assignmentsLoading = true;
     });
@@ -94,12 +113,18 @@ class _CoursesScreenState extends State<CoursesScreen> {
         classId: _selectedClassId!,
       );
       if (!mounted) return;
+
+      debugPrint('[CoursesScreen] Loaded ${items.length} assignments');
+
       setState(() {
         assignmentList = items;
         assignmentsLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
+
+      debugPrint('[CoursesScreen] Error loading assignments: $e');
+
       setState(() {
         assignmentsLoading = false;
       });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
 import '../Tutor/invite_student.dart';
 import '../Tutor/invite_tutor.dart';
+import '../Student/course_screen.dart';
 
 class ClassCard extends StatelessWidget {
   final ClassInfo classInfo;
@@ -110,7 +111,29 @@ class ClassCard extends StatelessWidget {
                         ],
                   )
                 else
-                  Icon(Icons.school, color: Colors.grey.shade400, size: 24),
+                  PopupMenuButton<String>(
+                    onSelected: (value) => _handleMenuAction(context, value),
+                    itemBuilder:
+                        (context) => [
+                          const PopupMenuItem(
+                            value: 'exit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.exit_to_app,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Exit Class',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                  ),
               ],
             ),
 
@@ -225,6 +248,9 @@ class ClassCard extends StatelessWidget {
         break;
       case 'delete':
         _showDeleteDialog(context);
+        break;
+      case 'exit':
+        _showExitDialog(context);
         break;
     }
   }
@@ -341,12 +367,71 @@ class ClassCard extends StatelessWidget {
     );
   }
 
+  void _showExitDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text('Exit Class'),
+            content: Text(
+              'Are you sure you want to leave "${classInfo.name}"?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    final authService = FirebaseAuthService();
+                    await authService.removeMemberFromClass(
+                      projectId: 'kk360-69504',
+                      classId: classInfo.id,
+                      memberUid: currentUserId,
+                    );
+                    Navigator.pop(ctx);
+                    // Trigger update to remove class from list
+                    onClassUpdated?.call();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Left class successfully')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error leaving class: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('Exit Class'),
+              ),
+            ],
+          ),
+    );
+  }
+
   void _navigateToClasswork(BuildContext context) {
-    // TODO: Navigate to classwork/assignments page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Classwork for ${classInfo.name}'),
-        duration: Duration(seconds: 2),
+    // Extract just the document ID from the class ID (in case it's a full path)
+    final classId =
+        classInfo.id.contains('/')
+            ? classInfo.id.split('/').last
+            : classInfo.id;
+
+    // Navigate to the course screen with this specific class selected
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => CoursesScreen(
+              initialClassId: classId,
+              initialClassName: classInfo.name,
+            ),
       ),
     );
   }

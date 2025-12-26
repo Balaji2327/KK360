@@ -18,10 +18,14 @@ class _WorksScreenState extends State<WorksScreen> {
   String userEmail = '';
   bool profileLoading = true;
 
+  List<AssignmentInfo> _myAssignments = [];
+  bool _assignmentsLoading = false;
+
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _loadMyAssignments();
   }
 
   Future<void> _loadUserProfile() async {
@@ -37,6 +41,30 @@ class _WorksScreenState extends State<WorksScreen> {
     });
   }
 
+  Future<void> _loadMyAssignments() async {
+    setState(() => _assignmentsLoading = true);
+    try {
+      final assignments = await _authService.getAssignmentsForTutor(
+        projectId: 'kk360-69504',
+      );
+      if (!mounted) return;
+      setState(() {
+        _myAssignments = assignments;
+        _assignmentsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _assignmentsLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load assignments: $e')));
+    }
+  }
+
+  Future<void> _refreshAssignments() async {
+    await _loadMyAssignments();
+  }
+
   void _showCreateSheet(BuildContext context) {
     // compute heightFactor based on device height to avoid overflow
     final h = MediaQuery.of(context).size.height;
@@ -50,7 +78,7 @@ class _WorksScreenState extends State<WorksScreen> {
       builder: (_) {
         return FractionallySizedBox(
           heightFactor: heightFactor,
-          child: const _CreateSheetContent(),
+          child: _CreateSheetContent(onAssignmentCreated: _refreshAssignments),
         );
       },
     );
@@ -129,55 +157,275 @@ class _WorksScreenState extends State<WorksScreen> {
 
           // content
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  SizedBox(height: h * 0.08),
-                  SizedBox(
-                    height: h * 0.28,
-                    child: Center(
-                      child: Image.asset(
-                        "assets/images/work.png",
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: h * 0.02),
-                  Text(
-                    "This is where you'll assign work",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: h * 0.0185,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(height: h * 0.015),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: w * 0.12),
-                    child: Text(
-                      "You can add assignments and other work\nfor the class, then organize it into topics",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: h * 0.0145,
-                        color: Colors.black87,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: h * 0.18),
-                ],
-              ),
-            ),
+            child:
+                _assignmentsLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _myAssignments.isEmpty
+                    ? _buildEmptyState(h, w)
+                    : _buildAssignmentsList(h, w),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildEmptyState(double h, double w) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          SizedBox(height: h * 0.08),
+          SizedBox(
+            height: h * 0.28,
+            child: Center(
+              child: Image.asset("assets/images/work.png", fit: BoxFit.contain),
+            ),
+          ),
+          SizedBox(height: h * 0.02),
+          Text(
+            "This is where you'll assign work",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: h * 0.0185, fontWeight: FontWeight.w700),
+          ),
+          SizedBox(height: h * 0.015),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: w * 0.12),
+            child: Text(
+              "You can add assignments and other work\nfor the class, then organize it into topics",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: h * 0.0145,
+                color: Colors.black87,
+                height: 1.5,
+              ),
+            ),
+          ),
+          SizedBox(height: h * 0.18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignmentsList(double h, double w) {
+    return RefreshIndicator(
+      onRefresh: _refreshAssignments,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: h * 0.02),
+        itemCount: _myAssignments.length,
+        itemBuilder: (context, index) {
+          final assignment = _myAssignments[index];
+          return _buildAssignmentCard(assignment, h, w);
+        },
+      ),
+    );
+  }
+
+  Widget _buildAssignmentCard(AssignmentInfo assignment, double h, double w) {
+    return Card(
+      margin: EdgeInsets.only(bottom: h * 0.015),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(w * 0.04),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title and menu
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    assignment.title,
+                    style: TextStyle(
+                      fontSize: h * 0.018,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected:
+                      (value) => _handleAssignmentAction(assignment, value),
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 18),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                ),
+              ],
+            ),
+
+            if (assignment.course.isNotEmpty) ...[
+              SizedBox(height: h * 0.008),
+              Text(
+                'Course: ${assignment.course}',
+                style: TextStyle(
+                  fontSize: h * 0.014,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+
+            if (assignment.description.isNotEmpty) ...[
+              SizedBox(height: h * 0.008),
+              Text(
+                assignment.description,
+                style: TextStyle(
+                  fontSize: h * 0.014,
+                  color: Colors.grey.shade700,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+
+            SizedBox(height: h * 0.012),
+
+            // Assignment details
+            Row(
+              children: [
+                if (assignment.points.isNotEmpty) ...[
+                  Icon(
+                    Icons.star_outline,
+                    size: 16,
+                    color: Colors.grey.shade600,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    '${assignment.points} pts',
+                    style: TextStyle(
+                      fontSize: h * 0.012,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                ],
+
+                Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                SizedBox(width: 4),
+                Text(
+                  assignment.dueDate != null
+                      ? 'Due ${_formatDate(assignment.dueDate!)}'
+                      : 'Posted ${_formatDate(assignment.createdAt ?? DateTime.now())}',
+                  style: TextStyle(
+                    fontSize: h * 0.012,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  void _handleAssignmentAction(AssignmentInfo assignment, String action) {
+    switch (action) {
+      case 'edit':
+        // TODO: Navigate to edit assignment screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Edit assignment: ${assignment.title}')),
+        );
+        break;
+      case 'delete':
+        _showDeleteAssignmentDialog(assignment);
+        break;
+    }
+  }
+
+  void _showDeleteAssignmentDialog(AssignmentInfo assignment) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Delete Assignment'),
+            content: Text(
+              'Are you sure you want to delete "${assignment.title}"? This cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await _authService.deleteAssignment(
+                      projectId: 'kk360-69504',
+                      assignmentId: assignment.id,
+                    );
+                    Navigator.pop(ctx);
+                    _refreshAssignments();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Assignment deleted successfully'),
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error deleting assignment: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
 }
 
 class _CreateSheetContent extends StatelessWidget {
-  const _CreateSheetContent();
+  final VoidCallback onAssignmentCreated;
+
+  const _CreateSheetContent({required this.onAssignmentCreated});
 
   // generic sheet item row
   Widget _sheetItem(
@@ -272,7 +520,13 @@ class _CreateSheetContent extends StatelessWidget {
                 onTap: () {
                   goBack(context); // close sheet first
                   // then push your existing assignment page
-                  goPush(context, CreateAssignmentScreen());
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => CreateAssignmentScreen()),
+                  ).then((_) {
+                    // Refresh assignments when returning from create screen
+                    onAssignmentCreated();
+                  });
                 },
               ),
 

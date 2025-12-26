@@ -279,6 +279,10 @@ class FirebaseAuthService {
     final idToken = await user.getIdToken();
     if (idToken == null) throw 'Not authenticated';
 
+    debugPrint(
+      '[Auth] createAssignment: Creating assignment "$title" for classId: $classId',
+    );
+
     final url = Uri.https(
       'firestore.googleapis.com',
       '/v1/projects/$projectId/databases/(default)/documents/assignments',
@@ -300,6 +304,7 @@ class FirebaseAuthService {
       fields['dueDate'] = {'timestampValue': dueDate.toUtc().toIso8601String()};
 
     final body = jsonEncode({'fields': fields});
+    debugPrint('[Auth] createAssignment: Request body: $body');
 
     final resp = await http
         .post(
@@ -312,9 +317,14 @@ class FirebaseAuthService {
         )
         .timeout(const Duration(seconds: 10));
 
+    debugPrint('[Auth] createAssignment: Response status: ${resp.statusCode}');
+    debugPrint('[Auth] createAssignment: Response body: ${resp.body}');
+
     if (resp.statusCode != 200) {
       throw 'Failed to create assignment (status ${resp.statusCode}): ${resp.body}';
     }
+
+    debugPrint('[Auth] createAssignment: Successfully created assignment');
   }
 
   // Model for assignment
@@ -360,6 +370,10 @@ class FirebaseAuthService {
     final idToken = await user.getIdToken();
     if (idToken == null) return [];
 
+    debugPrint(
+      '[Auth] getAssignmentsForClass: Loading assignments for classId: $classId',
+    );
+
     final url = Uri.https(
       'firestore.googleapis.com',
       '/v1/projects/$projectId/databases/(default)/documents:runQuery',
@@ -377,14 +391,12 @@ class FirebaseAuthService {
             'value': {'stringValue': classId},
           },
         },
-        'orderBy': [
-          {
-            'field': {'fieldPath': 'createdAt'},
-            'direction': 'DESCENDING',
-          },
-        ],
+        // Remove the orderBy to avoid needing a composite index
+        // We can sort the results in the app instead
       },
     };
+
+    debugPrint('[Auth] getAssignmentsForClass: Query: ${jsonEncode(q)}');
 
     final resp = await http
         .post(
@@ -397,10 +409,151 @@ class FirebaseAuthService {
         )
         .timeout(const Duration(seconds: 10));
 
+    debugPrint(
+      '[Auth] getAssignmentsForClass: Response status: ${resp.statusCode}',
+    );
+    debugPrint('[Auth] getAssignmentsForClass: Response body: ${resp.body}');
+
     if (resp.statusCode != 200)
       throw 'Failed to fetch assignments (status ${resp.statusCode})';
     final body = jsonDecode(resp.body) as List<dynamic>;
-    return _parseAssignmentsFromRunQuery(body);
+    final assignments = _parseAssignmentsFromRunQuery(body);
+
+    debugPrint(
+      '[Auth] getAssignmentsForClass: Found ${assignments.length} assignments',
+    );
+    for (final assignment in assignments) {
+      debugPrint(
+        '[Auth] getAssignmentsForClass: Assignment: ${assignment.title} (classId: ${assignment.classId})',
+      );
+    }
+
+    // Sort by createdAt in descending order (newest first) on the client side
+    assignments.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    return assignments;
+  }
+
+  // Get assignments created by the current tutor
+  Future<List<AssignmentInfo>> getAssignmentsForTutor({
+    required String projectId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    debugPrint(
+      '[Auth] getAssignmentsForTutor: Loading assignments for tutor: ${user.uid}',
+    );
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'assignments'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'createdBy'},
+            'op': 'EQUAL',
+            'value': {'stringValue': user.uid},
+          },
+        },
+        // Remove the orderBy to avoid needing a composite index
+        // We can sort the results in the app instead
+      },
+    };
+
+    debugPrint('[Auth] getAssignmentsForTutor: Query: ${jsonEncode(q)}');
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint(
+      '[Auth] getAssignmentsForTutor: Response status: ${resp.statusCode}',
+    );
+    debugPrint('[Auth] getAssignmentsForTutor: Response body: ${resp.body}');
+
+    if (resp.statusCode != 200)
+      throw 'Failed to fetch tutor assignments (status ${resp.statusCode})';
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final assignments = _parseAssignmentsFromRunQuery(body);
+
+    // Sort by createdAt in descending order (newest first) on the client side
+    assignments.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    debugPrint(
+      '[Auth] getAssignmentsForTutor: Found ${assignments.length} assignments',
+    );
+    for (final assignment in assignments) {
+      debugPrint(
+        '[Auth] getAssignmentsForTutor: Assignment: ${assignment.title} (classId: ${assignment.classId})',
+      );
+    }
+
+    return assignments;
+  }
+
+  // Delete an assignment
+  Future<void> deleteAssignment({
+    required String projectId,
+    required String assignmentId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    // Extract simple ID if full path provided
+    final simpleId =
+        assignmentId.contains('/')
+            ? assignmentId.split('/').last
+            : assignmentId;
+
+    debugPrint(
+      '[Auth] deleteAssignment: Deleting assignment with ID: $simpleId',
+    );
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/assignments/$simpleId',
+    );
+
+    final resp = await http
+        .delete(url, headers: {'Authorization': 'Bearer $idToken'})
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint('[Auth] deleteAssignment: Response status: ${resp.statusCode}');
+    debugPrint('[Auth] deleteAssignment: Response body: ${resp.body}');
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to delete assignment (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] deleteAssignment: Successfully deleted assignment');
   }
 
   // -------- Classes API --------
@@ -425,9 +578,13 @@ class FirebaseAuthService {
         }
       }
       final createdAt = fields['createdAt']?['timestampValue'] as String?;
+
+      // Extract just the document ID from the full Firestore path
+      final documentId = name?.split('/').last ?? '';
+
       out.add(
         ClassInfo(
-          id: name ?? '',
+          id: documentId,
           name: title,
           course: course,
           tutorId: tutorId,
@@ -1000,6 +1157,76 @@ class FirebaseAuthService {
     } catch (e) {
       debugPrint('[Auth] addMembersToClass: Verification error: $e');
     }
+  }
+
+  Future<void> removeMemberFromClass({
+    required String projectId,
+    required String classId,
+    required String memberUid,
+  }) async {
+    debugPrint(
+      '[Auth] removeMemberFromClass: Attempting to remove $memberUid from $classId via transform',
+    );
+
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    // Use atomic commit with transform to avoid Read-Modify-Write issues and skip checking permissions for GET if unnecessary
+    final commitUrl = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:commit',
+    );
+
+    // Ensure classId is just the ID, not a full path (though callers usually handle this, we can be safe or assume callers are correct.
+    // Based on previous code, callers strip the path. We need to reconstruct the full path for the commit.
+    final fullPath =
+        'projects/$projectId/databases/(default)/documents/classes/$classId';
+
+    final body = {
+      'writes': [
+        {
+          'transform': {
+            'document': fullPath,
+            'fieldTransforms': [
+              {
+                'fieldPath': 'members',
+                'removeAllFromArray': {
+                  'values': [
+                    {'stringValue': memberUid},
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    debugPrint('[Auth] removeMemberFromClass: Committing transform...');
+
+    final resp = await http.post(
+      commitUrl,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    debugPrint(
+      '[Auth] removeMemberFromClass: COMMIT response status: ${resp.statusCode}',
+    );
+    debugPrint(
+      '[Auth] removeMemberFromClass: COMMIT response body: ${resp.body}',
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to remove member (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] removeMemberFromClass: Successfully removed member!');
   }
 
   // Create a pending invite for users

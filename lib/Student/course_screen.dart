@@ -135,8 +135,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   String _assignmentSubtitle(AssignmentInfo item) {
-    if (item.dueDate != null) {
-      final dt = item.dueDate!.toLocal();
+    if (item.endDate != null) {
+      final dt = item.endDate!.toLocal();
       return 'Due ${dt.day}/${dt.month}/${dt.year}';
     }
 

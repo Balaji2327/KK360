@@ -272,7 +272,8 @@ class FirebaseAuthService {
     String? course,
     String? description,
     String? points,
-    DateTime? dueDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
@@ -300,8 +301,12 @@ class FirebaseAuthService {
       fields['description'] = {'stringValue': description};
     if (points != null && points.isNotEmpty)
       fields['points'] = {'stringValue': points};
-    if (dueDate != null)
-      fields['dueDate'] = {'timestampValue': dueDate.toUtc().toIso8601String()};
+    if (startDate != null)
+      fields['startDate'] = {
+        'timestampValue': startDate.toUtc().toIso8601String(),
+      };
+    if (endDate != null)
+      fields['endDate'] = {'timestampValue': endDate.toUtc().toIso8601String()};
 
     final body = jsonEncode({'fields': fields});
     debugPrint('[Auth] createAssignment: Request body: $body');
@@ -342,7 +347,16 @@ class FirebaseAuthService {
       final description =
           fields['description']?['stringValue'] as String? ?? '';
       final points = fields['points']?['stringValue'] as String? ?? '';
-      final dueDate = fields['dueDate']?['timestampValue'] as String?;
+
+      // Keep backward compatibility if needed, map dueDate to endDate if endDate missing?
+      // For now, let's parse what's there.
+      final dueDateStr = fields['dueDate']?['timestampValue'] as String?;
+      final endDateStr = fields['endDate']?['timestampValue'] as String?;
+      final startDateStr = fields['startDate']?['timestampValue'] as String?;
+
+      // Use endDate if available, else fallback to dueDate (legacy)
+      final effectiveEndDateStr = endDateStr ?? dueDateStr;
+
       final createdAt = fields['createdAt']?['timestampValue'] as String?;
       out.add(
         AssignmentInfo(
@@ -351,7 +365,12 @@ class FirebaseAuthService {
           course: course,
           description: description,
           points: points,
-          dueDate: dueDate != null ? DateTime.tryParse(dueDate) : null,
+          startDate:
+              startDateStr != null ? DateTime.tryParse(startDateStr) : null,
+          endDate:
+              effectiveEndDateStr != null
+                  ? DateTime.tryParse(effectiveEndDateStr)
+                  : null,
           createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
           classId: classId,
         ),
@@ -2162,7 +2181,8 @@ class AssignmentInfo {
   final String description;
   final String points;
   final String classId;
-  final DateTime? dueDate;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final DateTime? createdAt;
 
   AssignmentInfo({
@@ -2172,7 +2192,8 @@ class AssignmentInfo {
     required this.description,
     required this.points,
     required this.classId,
-    this.dueDate,
+    this.startDate,
+    this.endDate,
     this.createdAt,
   });
 }

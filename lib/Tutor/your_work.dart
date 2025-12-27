@@ -153,7 +153,7 @@ class _WorksScreenState extends State<WorksScreen> {
             ),
           ),
 
-          SizedBox(height: h * 0.05),
+          SizedBox(height: h * 0.0005),
 
           // content
           Expanded(
@@ -222,123 +222,173 @@ class _WorksScreenState extends State<WorksScreen> {
   }
 
   Widget _buildAssignmentCard(AssignmentInfo assignment, double h, double w) {
-    return Card(
+    const appColor = Color(0xFF4B3FA3);
+
+    return Container(
       margin: EdgeInsets.only(bottom: h * 0.015),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(w * 0.04),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title and menu
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    assignment.title,
-                    style: TextStyle(
-                      fontSize: h * 0.018,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  onSelected:
-                      (value) => _handleAssignmentAction(assignment, value),
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 18),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 18, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                ),
-              ],
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            offset: const Offset(0, 4),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: const BoxDecoration(
+            border: Border(left: BorderSide(color: appColor, width: 6)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: h * 0.02,
+              horizontal: w * 0.04,
             ),
-
-            if (assignment.course.isNotEmpty) ...[
-              SizedBox(height: h * 0.008),
-              Text(
-                'Course: ${assignment.course}',
-                style: TextStyle(
-                  fontSize: h * 0.014,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-
-            if (assignment.description.isNotEmpty) ...[
-              SizedBox(height: h * 0.008),
-              Text(
-                assignment.description,
-                style: TextStyle(
-                  fontSize: h * 0.014,
-                  color: Colors.grey.shade700,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-
-            SizedBox(height: h * 0.012),
-
-            // Assignment details
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (assignment.points.isNotEmpty) ...[
-                  Icon(
-                    Icons.star_outline,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    '${assignment.points} pts',
-                    style: TextStyle(
-                      fontSize: h * 0.012,
-                      color: Colors.grey.shade600,
+                // Title and menu
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        assignment.title,
+                        style: TextStyle(
+                          fontSize: h * 0.02,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF333333),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(Icons.more_vert, color: Colors.grey.shade500),
+                      onSelected:
+                          (value) => _handleAssignmentAction(assignment, value),
+                      itemBuilder:
+                          (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete,
+                                    size: 18,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Delete',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                    ),
+                  ],
+                ),
+
+                if (assignment.course.isNotEmpty) ...[
+                  SizedBox(height: h * 0.005),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: appColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      assignment.course,
+                      style: TextStyle(
+                        fontSize: h * 0.014,
+                        color: appColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                  SizedBox(width: 16),
                 ],
 
-                Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
-                SizedBox(width: 4),
-                Text(
-                  assignment.dueDate != null
-                      ? 'Due ${_formatDate(assignment.dueDate!)}'
-                      : 'Posted ${_formatDate(assignment.createdAt ?? DateTime.now())}',
-                  style: TextStyle(
-                    fontSize: h * 0.012,
-                    color: Colors.grey.shade600,
+                if (assignment.description.isNotEmpty) ...[
+                  SizedBox(height: h * 0.012),
+                  Text(
+                    assignment.description,
+                    style: TextStyle(
+                      fontSize: h * 0.015,
+                      color: Colors.grey.shade700,
+                      height: 1.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ],
+
+                SizedBox(height: h * 0.02),
+                const Divider(height: 1),
+                SizedBox(height: h * 0.015),
+
+                // Assignment details
+                Row(
+                  children: [
+                    if (assignment.points.isNotEmpty) ...[
+                      Icon(
+                        Icons.verified_outlined, // Changed icon
+                        size: 18,
+                        color: appColor,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        '${assignment.points} pts',
+                        style: TextStyle(
+                          fontSize: h * 0.014,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                      SizedBox(width: 20),
+                    ],
+
+                    Icon(
+                      Icons.calendar_today_outlined, // Changed icon
+                      size: 16,
+                      color: appColor,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      assignment.endDate != null
+                          ? 'Due ${_formatDate(assignment.endDate!)}'
+                          : 'Posted ${_formatDate(assignment.createdAt ?? DateTime.now())}',
+                      style: TextStyle(
+                        fontSize: h * 0.014,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

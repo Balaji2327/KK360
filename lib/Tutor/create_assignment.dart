@@ -16,7 +16,8 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   String _selectedCourse = 'Mathematics';
 
   String? _savedPoints;
-  DateTime? _dueDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   final FirebaseAuthService _auth = FirebaseAuthService();
   List<ClassInfo> _myClasses = [];
@@ -115,18 +116,34 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
     );
   }
 
-  Future<void> _pickDueDate(BuildContext context) async {
+  Future<void> _pickStartDate(BuildContext context) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dueDate ?? now,
+      initialDate: _startDate ?? now,
       firstDate: DateTime(now.year - 5),
       lastDate: DateTime(now.year + 5),
     );
 
     if (picked != null) {
       setState(() {
-        _dueDate = picked;
+        _startDate = picked;
+      });
+    }
+  }
+
+  Future<void> _pickEndDate(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? now,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 5),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
       });
     }
   }
@@ -210,7 +227,8 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                           course: _selectedCourse,
                           description: _descriptionController.text.trim(),
                           points: _pointsController.text.trim(),
-                          dueDate: _dueDate,
+                          startDate: _startDate,
+                          endDate: _endDate,
                         );
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -407,21 +425,21 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
 
                     SizedBox(height: h * 0.02),
 
-                    // DUE DATE
+                    // START DATE
                     InkWell(
-                      onTap: () => _pickDueDate(context),
+                      onTap: () => _pickStartDate(context),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "Set due date",
+                            "Set start date",
                             style: TextStyle(
                               color: const Color(0xFF4B3FA3),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          if (_dueDate != null)
+                          if (_startDate != null)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
@@ -433,7 +451,45 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                 border: Border.all(color: Colors.black12),
                               ),
                               child: Text(
-                                _formatDate(_dueDate!),
+                                _formatDate(_startDate!),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: h * 0.02),
+
+                    // END DATE (was due date)
+                    InkWell(
+                      onTap: () => _pickEndDate(context),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Set end date",
+                            style: TextStyle(
+                              color: const Color(0xFF4B3FA3),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (_endDate != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.black12),
+                              ),
+                              child: Text(
+                                _formatDate(_endDate!),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                 ),

@@ -76,56 +76,88 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     final w = size.width;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF4B3FA3),
-        title: const Text('Create Class'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(w * 0.06),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: h * 0.02),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Class name',
-                border: OutlineInputBorder(),
+      body: Column(
+        children: [
+          Container(
+            width: w,
+            height: h * 0.12,
+            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+            decoration: const BoxDecoration(
+              color: Color(0xFF4B3FA3),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
             ),
-            SizedBox(height: h * 0.02),
-            TextField(
-              controller: _courseController,
-              decoration: const InputDecoration(
-                labelText: 'Course (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: EdgeInsets.symmetric(vertical: h * 0.015),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Create Class',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                onPressed: _loading ? null : _createClass,
-                child:
-                    _loading
-                        ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                        : const Text('Create'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(w * 0.06),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: h * 0.02),
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Class name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  SizedBox(height: h * 0.02),
+                  TextField(
+                    controller: _courseController,
+                    decoration: const InputDecoration(
+                      labelText: 'Course (optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF4B3FA3),
+
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: h * 0.015),
+                      ),
+                      onPressed: _loading ? null : _createClass,
+                      child:
+                          _loading
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Text('Create'),
+                    ),
+                  ),
+                  SizedBox(height: h * 0.02),
+                ],
               ),
             ),
-            SizedBox(height: h * 0.02),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

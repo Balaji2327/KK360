@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/student_login.dart';
 import '../widgets/student_bottom_nav.dart';
+import 'edit_profile.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
   const MoreFeaturesScreen({super.key});
@@ -229,6 +230,15 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
             SizedBox(height: h * 0.02),
 
             // ---------------- FEATURE TILES ----------------
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                );
+              },
+              child: featureTile(w, h, Icons.person, "Edit Profile"),
+            ),
             featureTile(w, h, Icons.check_circle, "Attendance"),
             featureTile(w, h, Icons.bar_chart, "Results"),
             featureTile(w, h, Icons.list_alt, "To Do List"),

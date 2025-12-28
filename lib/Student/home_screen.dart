@@ -461,90 +461,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     // =================== MY CLASSES SECTION ===================
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "My Classes",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          // Debug refresh button
-                          IconButton(
-                            onPressed: () async {
-                              debugPrint(
-                                '[StudentHome] 🔄 Manual refresh triggered',
-                              );
-                              await _clearStudentClassCache();
-                              setState(() => _classesLoading = true);
-                              await _loadClasses();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Refreshed classes: ${_classes.length} found',
-                                  ),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.refresh,
-                              color: Colors.grey.shade600,
-                            ),
-                            tooltip: 'Refresh Classes',
-                          ),
-                          // Debug info button
-                          IconButton(
-                            onPressed: () async {
-                              final user = _authService.getCurrentUser();
-                              if (user != null) {
-                                debugPrint('[StudentHome] 🔍 DEBUG INFO:');
-                                debugPrint(
-                                  '[StudentHome] User ID: ${user.uid}',
-                                );
-                                debugPrint(
-                                  '[StudentHome] User Email: ${user.email}',
-                                );
-                                debugPrint(
-                                  '[StudentHome] Current Classes: ${_classes.length}',
-                                );
-                                for (final c in _classes) {
-                                  debugPrint(
-                                    '[StudentHome] - ${c.name} (${c.id}) members: ${c.members}',
-                                  );
-                                }
-
-                                // Force a fresh query
-                                debugPrint(
-                                  '[StudentHome] 🔄 Running fresh query...',
-                                );
-                                final freshClasses = await _authService
-                                    .getClassesForUser(
-                                      projectId: 'kk360-69504',
-                                    );
-                                debugPrint(
-                                  '[StudentHome] Fresh query result: ${freshClasses.length} classes',
-                                );
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Debug: ${freshClasses.length} classes found. Check console for details.',
-                                    ),
-                                    duration: Duration(seconds: 3),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: Icon(
-                              Icons.info_outline,
-                              color: Colors.blue.shade600,
-                            ),
-                            tooltip: 'Debug Info',
-                          ),
-                        ],
+                      child: const Text(
+                        "My Classes",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
 

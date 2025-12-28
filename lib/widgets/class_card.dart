@@ -436,15 +436,191 @@ class ClassCard extends StatelessWidget {
     );
   }
 
-  void _navigateToMembers(BuildContext context) {
-    // TODO: Navigate to class members page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Members of ${classInfo.name}: ${classInfo.members.length} members',
-        ),
-        duration: Duration(seconds: 2),
-      ),
+  void _navigateToMembers(BuildContext context) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      final authService = FirebaseAuthService();
+      final profiles = await authService.getUserProfiles(
+        projectId: 'kk360-69504',
+        userIds: classInfo.members,
+      );
+
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!context.mounted) return;
+
+      // Separate members by role
+      final mainTutor = classInfo.tutorId;
+      final otherTutors = <String>[];
+      final students = <String>[];
+
+      for (final memberId in classInfo.members) {
+        final profile = profiles[memberId];
+        final role = profile?.role ?? 'student';
+        if (role == 'tutor' && memberId != mainTutor) {
+          otherTutors.add(memberId);
+        } else if (role == 'student' || role != 'tutor') {
+          students.add(memberId);
+        }
+      }
+
+      // Calculate total items: main tutor + other tutors + students + section headers
+      int totalItems = 1; // main tutor
+      if (otherTutors.isNotEmpty)
+        totalItems += otherTutors.length + 1; // +1 for header
+      if (students.isNotEmpty)
+        totalItems += students.length + 1; // +1 for header
+
+      // Show members dialog
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text('Members of ${classInfo.name}'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: totalItems,
+                  itemBuilder: (context, index) {
+                    int currentIndex = 0;
+
+                    // Main Tutor
+                    if (index == currentIndex) {
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFF4B3FA3),
+                          child: const Icon(Icons.school, color: Colors.white),
+                        ),
+                        title: Text(
+                          mainTutor == currentUserId
+                              ? 'You (Main Tutor)'
+                              : 'Main Tutor',
+                        ),
+                        subtitle: const Text('Tutor'),
+                      );
+                    }
+                    currentIndex++;
+
+                    // Other Tutors Section
+                    if (otherTutors.isNotEmpty) {
+                      if (index == currentIndex) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'Other Tutors',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        );
+                      }
+                      currentIndex++;
+
+                      for (int i = 0; i < otherTutors.length; i++) {
+                        if (index == currentIndex) {
+                          final memberId = otherTutors[i];
+                          final profile = profiles[memberId];
+                          final displayName = profile?.name ?? 'Unknown Tutor';
+                          final email = profile?.email ?? '';
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.blue.shade100,
+                              child: Icon(
+                                Icons.school,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                            title: Text(
+                              memberId == currentUserId ? 'You' : displayName,
+                            ),
+                            subtitle: Text(
+                              'Tutor${email.isNotEmpty ? ' • $email' : ''}',
+                            ),
+                          );
+                        }
+                        currentIndex++;
+                      }
+                    }
+
+                    // Students Section
+                    if (students.isNotEmpty) {
+                      if (index == currentIndex) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'Students',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        );
+                      }
+                      currentIndex++;
+
+                      for (int i = 0; i < students.length; i++) {
+                        if (index == currentIndex) {
+                          final memberId = students[i];
+                          final profile = profiles[memberId];
+                          final displayName =
+                              profile?.name ?? 'Unknown Student';
+                          final email = profile?.email ?? '';
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.green.shade100,
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                            title: Text(
+                              memberId == currentUserId ? 'You' : displayName,
+                            ),
+                            subtitle: Text(
+                              'Student${email.isNotEmpty ? ' • $email' : ''}',
+                            ),
+                          );
+                        }
+                        currentIndex++;
+                      }
+                    }
+
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+      );
+    } catch (e) {
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading members: $e')));
+    }
   }
 }

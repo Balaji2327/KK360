@@ -90,15 +90,14 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
               ),
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                SizedBox(height: h * 0.07),
                 const Text(
                   'Create Class',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
-
                     fontWeight: FontWeight.bold,
                   ),
                 ),

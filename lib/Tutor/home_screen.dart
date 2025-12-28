@@ -336,10 +336,17 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
               height: h * 0.065,
               width: h * 0.065,
               decoration: BoxDecoration(
-                color: Colors.green,
+                color: const Color(0xFFDFF7E8),
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.add, size: 30, color: Colors.white),
+              child: const Icon(Icons.add, size: 30, color: Colors.black),
             ),
           ),
         ),

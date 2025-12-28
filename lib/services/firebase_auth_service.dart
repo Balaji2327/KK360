@@ -200,6 +200,54 @@ class FirebaseAuthService {
     }
   }
 
+  // Get multiple user profiles by user IDs
+  Future<Map<String, UserProfile?>> getUserProfiles({
+    required String projectId,
+    required List<String> userIds,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return {};
+    final idToken = await user.getIdToken();
+    if (idToken == null) return {};
+
+    final profiles = <String, UserProfile?>{};
+
+    for (final userId in userIds) {
+      try {
+        final url = Uri.https(
+          'firestore.googleapis.com',
+          '/v1/projects/$projectId/databases/(default)/documents/users/$userId',
+        );
+
+        final resp = await http
+            .get(
+              url,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Accept': 'application/json',
+              },
+            )
+            .timeout(const Duration(seconds: 5));
+
+        if (resp.statusCode == 200) {
+          final body = jsonDecode(resp.body) as Map<String, dynamic>;
+          final fields = body['fields'] as Map<String, dynamic>?;
+          final name = fields?['name']?['stringValue'] as String?;
+          final email = fields?['email']?['stringValue'] as String?;
+          final role = fields?['role']?['stringValue'] as String?;
+          profiles[userId] = UserProfile(name: name, email: email, role: role);
+        } else {
+          profiles[userId] = null;
+        }
+      } catch (e) {
+        debugPrint('[Auth] Error fetching profile for $userId: $e');
+        profiles[userId] = null;
+      }
+    }
+
+    return profiles;
+  }
+
   // Return a best-effort display name for the currently signed-in user.
   // Priority: Firestore `name` field -> Firebase `displayName` -> Derived from email -> 'User'
   Future<String> getUserDisplayName({required String projectId}) async {
@@ -207,7 +255,7 @@ class FirebaseAuthService {
     final authUser = _auth.currentUser;
     final email = profile?.email ?? authUser?.email;
     final derived = _deriveNameFromEmail(email);
-    return profile?.name ?? authUser?.displayName ?? derived ?? 'User';
+    return profile?.name ?? derived ?? 'User';
   }
 
   String? _deriveNameFromEmail(String? email) {

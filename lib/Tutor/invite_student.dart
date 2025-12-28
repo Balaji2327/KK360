@@ -346,47 +346,6 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🧪 DIAGNOSTIC BUTTON - Remove after testing
-                  Container(
-                    width: w,
-                    margin: EdgeInsets.only(bottom: h * 0.02),
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        if (_emails.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Add an email first to test'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        final result = await _authService.testInviteCreation(
-                          projectId: 'kk360-69504',
-                          testEmail: _emails.first,
-                        );
-
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Test Result: $result'),
-                            duration: Duration(seconds: 5),
-                            backgroundColor:
-                                result.contains('✅')
-                                    ? Colors.green
-                                    : Colors.red,
-                          ),
-                        );
-                      },
-                      icon: Icon(Icons.bug_report),
-                      label: Text('🧪 Test Invite Creation'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-
                   // Show class selection if no initial class provided
                   if (widget.initialClassId == null && _classes.isNotEmpty)
                     Padding(

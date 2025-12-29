@@ -1206,7 +1206,13 @@ class FirebaseAuthService {
     final fields = <String, dynamic>{
       'name': {'stringValue': name},
       'tutorId': {'stringValue': user.uid},
-      'members': {'arrayValue': {}},
+      'members': {
+        'arrayValue': {
+          'values': [
+            {'stringValue': user.uid},
+          ],
+        },
+      },
       'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
     };
     if (course != null && course.isNotEmpty)

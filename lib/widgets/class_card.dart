@@ -455,9 +455,11 @@ class ClassCard extends StatelessWidget {
 
     try {
       final authService = FirebaseAuthService();
+      // Fetch profiles for members AND the owner (tutorId)
+      final allUserIds = {...classInfo.members, classInfo.tutorId}.toList();
       final profiles = await authService.getUserProfiles(
         projectId: 'kk360-69504',
-        userIds: classInfo.members,
+        userIds: allUserIds,
       );
 
       // Close loading dialog
@@ -477,7 +479,11 @@ class ClassCard extends StatelessWidget {
         final role = profile?.role ?? 'student';
         if (role == 'tutor' && memberId != mainTutor) {
           otherTutors.add(memberId);
-        } else if (role == 'student' || role != 'tutor') {
+        } else if (role == 'student' || (role != 'tutor' && role != 'admin')) {
+          // Add to students if student or unknown (but not main owner/admin usually)
+          // Adjust logic: if member is generic 'admin' but not owner, maybe list as tutor or separate?
+          // For now, assume 'admin' role members are treated like tutors or just students?
+          // Let's stick to existing logic:
           students.add(memberId);
         }
       }
@@ -503,16 +509,19 @@ class ClassCard extends StatelessWidget {
                   itemBuilder: (context, index) {
                     int currentIndex = 0;
 
-                    // Main Tutor
+                    // Main Tutor/Admin
                     if (index == currentIndex) {
-                      final isCurrentUserAdmin =
-                          mainTutor == currentUserId && userRole == 'admin';
+                      final ownerProfile = profiles[mainTutor];
+                      // Use profile role if available, otherwise check if current user is owner and admin
+                      final isOwnerAdmin =
+                          ownerProfile?.role == 'admin' ||
+                          (mainTutor == currentUserId && userRole == 'admin');
 
                       return ListTile(
                         leading: CircleAvatar(
                           backgroundColor: const Color(0xFF4B3FA3),
                           child: Icon(
-                            isCurrentUserAdmin
+                            isOwnerAdmin
                                 ? Icons.admin_panel_settings
                                 : Icons.school,
                             color: Colors.white,
@@ -520,16 +529,12 @@ class ClassCard extends StatelessWidget {
                         ),
                         title: Text(
                           mainTutor == currentUserId
-                              ? (userRole == 'admin'
+                              ? (isOwnerAdmin
                                   ? 'You (Admin)'
                                   : 'You (Main Tutor)')
-                              : 'Main Tutor',
+                              : (isOwnerAdmin ? 'Admin' : 'Main Tutor'),
                         ),
-                        subtitle: Text(
-                          mainTutor == currentUserId && userRole == 'admin'
-                              ? 'Admin'
-                              : 'Tutor',
-                        ),
+                        subtitle: Text(isOwnerAdmin ? 'Admin' : 'Tutor'),
                       );
                     }
                     currentIndex++;

@@ -462,6 +462,100 @@ class FirebaseAuthService {
     return _auth.currentUser != null;
   }
 
+  // Verify if an email exists in Firestore and has a valid role
+  Future<bool> verifyEmailAndRole(String email) async {
+    bool ensureSignedOut = false;
+    User? tempUser = _auth.currentUser;
+
+    // If not logged in, try to sign in anonymously to read Firestore
+    if (tempUser == null) {
+      try {
+        debugPrint(
+          '[Auth] verifyEmailAndRole: Signing in anonymously to check DB...',
+        );
+        final cred = await _auth.signInAnonymously();
+        tempUser = cred.user;
+        ensureSignedOut = true;
+      } catch (e) {
+        debugPrint('[Auth] verifyEmailAndRole: Anonymous sign in failed: $e');
+        // If we can't check DB, we can't verify role.
+        // Depending on requirements, we might return false or throw.
+        // Returning false blocks the reset.
+        return false;
+      }
+    }
+
+    if (tempUser == null) return false;
+
+    try {
+      final idToken = await tempUser.getIdToken();
+      if (idToken == null) return false;
+
+      // Query users collection for this email
+      final projectId = 'kk360-69504'; // Hardcoded for now, or pass it
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+      );
+
+      final q = {
+        'structuredQuery': {
+          'from': [
+            {'collectionId': 'users'},
+          ],
+          'where': {
+            'fieldFilter': {
+              'field': {'fieldPath': 'email'},
+              'op': 'EQUAL',
+              'value': {'stringValue': email},
+            },
+          },
+          'limit': 1,
+        },
+      };
+
+      final resp = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(q),
+      );
+
+      if (resp.statusCode != 200) {
+        debugPrint('[Auth] verifyEmailAndRole: Query failed: ${resp.body}');
+        return false;
+      }
+
+      final body = jsonDecode(resp.body) as List<dynamic>;
+      if (body.isEmpty) return false;
+
+      // Check if we found a document
+      final item = body.first;
+      if (item['document'] == null) {
+        debugPrint('[Auth] verifyEmailAndRole: No document found for email');
+        return false;
+      }
+
+      final fields = item['document']['fields'] as Map<String, dynamic>?;
+      final role = fields?['role']?['stringValue'] as String?;
+
+      debugPrint('[Auth] verifyEmailAndRole: Found role "$role" for $email');
+
+      // Valid roles: student, tutor, admin
+      return role == 'student' || role == 'tutor' || role == 'admin';
+    } catch (e) {
+      debugPrint('[Auth] verifyEmailAndRole: Error: $e');
+      return false;
+    } finally {
+      if (ensureSignedOut) {
+        debugPrint('[Auth] verifyEmailAndRole: Signing out anonymous user');
+        await _auth.signOut();
+      }
+    }
+  }
+
   // Reset password
   Future<void> resetPassword({required String email}) async {
     try {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/nav_helper.dart';
 
+import '../services/firebase_auth_service.dart';
+
 class ForgetPasswordScreen extends StatefulWidget {
   const ForgetPasswordScreen({super.key});
 
@@ -9,6 +11,63 @@ class ForgetPasswordScreen extends StatefulWidget {
 }
 
 class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _requestPasswordReset() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please enter your email")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Check if email exists in our records and has a valid role
+      final isValid = await _authService.verifyEmailAndRole(email);
+      if (!isValid) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "This email is not registered in our system or has no role assigned.",
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // 2. Send reset link
+      await _authService.resetPassword(email: email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Password reset email sent! Please check your inbox."),
+          backgroundColor: Colors.green,
+        ),
+      );
+      goBack(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -65,6 +124,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
 
                 // 🔹 UPDATED TextField (same size as Login Screen)
                 TextField(
+                  controller: _emailController,
                   style: TextStyle(fontSize: width * 0.035),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.person_outline),
@@ -93,15 +153,20 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                         borderRadius: BorderRadius.circular(35),
                       ),
                     ),
-                    onPressed: () {},
-                    child: Text(
-                      "Send Reset Link",
-                      style: TextStyle(
-                        fontSize: width * 0.045,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    onPressed: _isLoading ? null : _requestPasswordReset,
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                            : Text(
+                              "Send Reset Link",
+                              style: TextStyle(
+                                fontSize: width * 0.045,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                   ),
                 ),
 

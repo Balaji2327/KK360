@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/student_login.dart';
 import '../widgets/student_bottom_nav.dart';
@@ -30,217 +31,224 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
       bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
 
       // ---------------- BODY ----------------
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ---------------- PURPLE HEADER ----------------
-            Container(
-              width: w,
-              height: h * 0.15,
-              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              decoration: const BoxDecoration(
-                color: Color(0xFF4B3FA3),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
+      body: Column(
+        children: [
+          // ---------------- PURPLE HEADER ----------------
+          Container(
+            width: w,
+            height: h * 0.15,
+            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+            decoration: const BoxDecoration(
+              color: Color(0xFF4B3FA3),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: h * 0.085),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "More Features",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    // Logout button
+                    GestureDetector(
+                      onTap:
+                          isLoggingOut
+                              ? null
+                              : () async {
+                                final doLogout = await showDialog<bool>(
+                                  context: context,
+                                  builder:
+                                      (ctx) => AlertDialog(
+                                        title: const Text('Log out'),
+                                        content: const Text(
+                                          'Are you sure you want to log out?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => goBack(ctx, false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () => goBack(ctx, true),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: const Text('Log out'),
+                                          ),
+                                        ],
+                                      ),
+                                );
+
+                                if (doLogout != true) {
+                                  return;
+                                }
+
+                                setState(() {
+                                  isLoggingOut = true;
+                                });
+                                try {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  await _authService.signOut();
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Logged out')),
+                                  );
+                                  goReplace(
+                                    context,
+                                    const StudentLoginScreen(),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Logout failed: $e'),
+                                    ),
+                                  );
+                                } finally {
+                                  if (mounted) {
+                                    setState(() {
+                                      isLoggingOut = false;
+                                    });
+                                  }
+                                }
+                              },
+                      child: Container(
+                        height: h * 0.04,
+                        width: w * 0.25,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Center(
+                          child:
+                              isLoggingOut
+                                  ? SizedBox(
+                                    width: h * 0.02,
+                                    height: h * 0.02,
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Text(
+                                    "Log out",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: h * 0.085),
+                  SizedBox(height: h * 0.03),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "More Features",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      // Logout button
-                      GestureDetector(
-                        onTap:
-                            isLoggingOut
-                                ? null
-                                : () async {
-                                  final doLogout = await showDialog<bool>(
-                                    context: context,
-                                    builder:
-                                        (ctx) => AlertDialog(
-                                          title: const Text('Log out'),
-                                          content: const Text(
-                                            'Are you sure you want to log out?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () => goBack(ctx, false),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed:
-                                                  () => goBack(ctx, true),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.green,
-                                                foregroundColor: Colors.white,
-                                              ),
-                                              child: const Text('Log out'),
-                                            ),
-                                          ],
-                                        ),
-                                  );
-
-                                  if (doLogout != true) {
-                                    return;
-                                  }
-
-                                  setState(() {
-                                    isLoggingOut = true;
-                                  });
-                                  try {
-                                    final messenger = ScaffoldMessenger.of(
-                                      context,
-                                    );
-                                    await _authService.signOut();
-                                    if (!mounted) {
-                                      return;
-                                    }
-                                    messenger.showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Logged out'),
-                                      ),
-                                    );
-                                    goReplace(
-                                      context,
-                                      const StudentLoginScreen(),
-                                    );
-                                  } catch (e) {
-                                    if (!mounted) {
-                                      return;
-                                    }
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Logout failed: $e'),
-                                      ),
-                                    );
-                                  } finally {
-                                    if (mounted) {
-                                      setState(() {
-                                        isLoggingOut = false;
-                                      });
-                                    }
-                                  }
-                                },
-                        child: Container(
-                          height: h * 0.04,
-                          width: w * 0.25,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Center(
-                            child:
-                                isLoggingOut
-                                    ? SizedBox(
-                                      width: h * 0.02,
-                                      height: h * 0.02,
-                                      child: const CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                    : const Text(
-                                      "Log out",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                  // ---------------- PROFILE ----------------
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: h * 0.04,
+                          backgroundImage: const AssetImage(
+                            "assets/images/female.png",
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: h * 0.03),
-
-            // ---------------- PROFILE ----------------
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: h * 0.04,
-                    backgroundImage: const AssetImage(
-                      "assets/images/female.png",
+                        SizedBox(width: w * 0.03),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profileLoading ? 'Loading...' : userName,
+                              style: TextStyle(
+                                fontSize: w * 0.045,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              profileLoading ? '' : userEmail,
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: w * 0.032,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: w * 0.03),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        profileLoading ? 'Loading...' : userName,
-                        style: TextStyle(
-                          fontSize: w * 0.045,
-                          fontWeight: FontWeight.w600,
-                        ),
+
+                  SizedBox(height: h * 0.03),
+
+                  // ---------------- FEATURES TITLE ----------------
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                    child: Text(
+                      "Features",
+                      style: TextStyle(
+                        fontSize: w * 0.049,
+                        fontWeight: FontWeight.bold,
                       ),
-                      Text(
-                        profileLoading ? '' : userEmail,
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: w * 0.032,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+
+                  SizedBox(height: h * 0.02),
+
+                  // ---------------- FEATURE TILES ----------------
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const EditProfileScreen());
+                    },
+                    child: featureTile(w, h, Icons.person, "Edit Profile"),
+                  ),
+                  featureTile(w, h, Icons.check_circle, "Attendance"),
+                  featureTile(w, h, Icons.bar_chart, "Results"),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const ToDoListScreen());
+                    },
+                    child: featureTile(w, h, Icons.list_alt, "To Do List"),
+                  ),
+                  featureTile(w, h, Icons.settings, "Settings"),
+                  featureTile(w, h, Icons.history, "My Test History"),
+
+                  SizedBox(height: h * 0.12),
                 ],
               ),
             ),
-
-            SizedBox(height: h * 0.03),
-
-            // ---------------- FEATURES TITLE ----------------
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              child: Text(
-                "Features",
-                style: TextStyle(
-                  fontSize: w * 0.049,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            SizedBox(height: h * 0.02),
-
-            // ---------------- FEATURE TILES ----------------
-            GestureDetector(
-              onTap: () {
-                goPush(context, const EditProfileScreen());
-              },
-              child: featureTile(w, h, Icons.person, "Edit Profile"),
-            ),
-            featureTile(w, h, Icons.check_circle, "Attendance"),
-            featureTile(w, h, Icons.bar_chart, "Results"),
-            featureTile(w, h, Icons.list_alt, "To Do List"),
-            featureTile(w, h, Icons.settings, "Settings"),
-            featureTile(w, h, Icons.history, "My Test History"),
-
-            SizedBox(height: h * 0.12),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

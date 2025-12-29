@@ -116,7 +116,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                                       inviteId: invite.id,
                                     );
                                     if (mounted) {
-                                      Navigator.of(ctx).pop();
+                                      goBack(ctx);
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
@@ -155,7 +155,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                                       classId: invite.classId,
                                     );
                                     if (mounted) {
-                                      Navigator.of(ctx).pop();
+                                      goBack(ctx);
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
@@ -200,7 +200,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
+                onPressed: () => goBack(ctx),
                 child: const Text('Close'),
               ),
             ],

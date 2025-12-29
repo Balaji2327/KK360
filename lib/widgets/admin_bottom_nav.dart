@@ -3,6 +3,7 @@ import '../Admin/home_screen.dart';
 import '../Admin/meeting_control.dart';
 import '../Admin/controls_screen.dart';
 import '../Admin/add_people.dart';
+import 'nav_helper.dart';
 
 class AdminBottomNav extends StatefulWidget {
   final int currentIndex;
@@ -15,26 +16,6 @@ class AdminBottomNav extends StatefulWidget {
 
 class _AdminBottomNavState extends State<AdminBottomNav> {
   // ---------------- PAGE TRANSITION (SAME AS TUTOR) ----------------
-  PageRouteBuilder _createRoute(Widget page, bool forward) {
-    return PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 300),
-      reverseTransitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, animation, secondaryAnimation) => page,
-      transitionsBuilder: (_, animation, secondaryAnimation, child) {
-        final slide = Tween<Offset>(
-          begin: Offset(forward ? 1.0 : -1.0, 0.0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
-
-        final fade = CurvedAnimation(parent: animation, curve: Curves.easeIn);
-
-        return SlideTransition(
-          position: slide,
-          child: FadeTransition(opacity: fade, child: child),
-        );
-      },
-    );
-  }
 
   // ---------------- NAV TAP HANDLER ----------------
   void _onTap(BuildContext context, int index) {
@@ -59,7 +40,7 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
         break;
     }
 
-    Navigator.of(context).pushReplacement(_createRoute(page, forward));
+    goTab(context, page, isForward: forward);
   }
 
   // ---------------- SINGLE NAV ITEM ----------------

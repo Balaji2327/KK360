@@ -170,7 +170,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                                       inviteId: invite.id,
                                     );
                                     if (mounted) {
-                                      Navigator.of(ctx).pop();
+                                      goBack(ctx);
                                       _showSuccessSnackbar(
                                         'Invitation declined',
                                       );
@@ -201,7 +201,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                                       classId: invite.classId,
                                     );
                                     if (mounted) {
-                                      Navigator.of(ctx).pop();
+                                      goBack(ctx);
                                       _showSuccessSnackbar(
                                         'Joined ${invite.className}!',
                                       );
@@ -236,7 +236,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
+                onPressed: () => goBack(ctx),
                 child: const Text('Close'),
               ),
             ],

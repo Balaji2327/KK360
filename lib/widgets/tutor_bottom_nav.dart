@@ -3,6 +3,7 @@ import '../Tutor/home_screen.dart';
 import '../Tutor/meeting_control.dart';
 import '../Tutor/your_work.dart';
 import '../Tutor/add_people.dart';
+import 'nav_helper.dart';
 
 class TutorBottomNav extends StatefulWidget {
   final int currentIndex;
@@ -13,27 +14,6 @@ class TutorBottomNav extends StatefulWidget {
 }
 
 class _TutorBottomNavState extends State<TutorBottomNav> {
-  PageRouteBuilder _createRoute(Widget page, bool forward) {
-    return PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 300),
-      reverseTransitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final offsetAnim = Tween<Offset>(
-          begin: Offset(forward ? 1.0 : -1.0, 0.0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
-
-        final fade = CurvedAnimation(parent: animation, curve: Curves.easeIn);
-
-        return SlideTransition(
-          position: offsetAnim,
-          child: FadeTransition(opacity: fade, child: child),
-        );
-      },
-    );
-  }
-
   void _onTap(BuildContext context, int index) {
     if (index == widget.currentIndex) return;
 
@@ -56,7 +36,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
         break;
     }
 
-    Navigator.of(context).pushReplacement(_createRoute(page, forward));
+    goTab(context, page, isForward: forward);
   }
 
   Widget _item(IconData icon, String label, int index) {

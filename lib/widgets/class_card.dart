@@ -3,6 +3,7 @@ import '../services/firebase_auth_service.dart';
 import '../Tutor/invite_student.dart';
 import '../Tutor/invite_tutor.dart';
 import '../Student/course_screen.dart';
+import 'nav_helper.dart';
 
 class ClassCard extends StatelessWidget {
   final ClassInfo classInfo;
@@ -228,20 +229,10 @@ class ClassCard extends StatelessWidget {
 
     switch (action) {
       case 'add_student':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TutorInviteStudentsScreen(initialClassId: classId),
-          ),
-        );
+        goPush(context, TutorInviteStudentsScreen(initialClassId: classId));
         break;
       case 'add_tutor':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TutorInviteTutorsScreen(initialClassId: classId),
-          ),
-        );
+        goPush(context, TutorInviteTutorsScreen(initialClassId: classId));
         break;
       case 'edit':
         _showEditDialog(context);
@@ -285,10 +276,7 @@ class ClassCard extends StatelessWidget {
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel'),
-              ),
+              TextButton(onPressed: () => goBack(ctx), child: Text('Cancel')),
               ElevatedButton(
                 onPressed: () async {
                   try {
@@ -299,7 +287,7 @@ class ClassCard extends StatelessWidget {
                       name: nameController.text.trim(),
                       course: courseController.text.trim(),
                     );
-                    Navigator.pop(ctx);
+                    goBack(ctx);
                     onClassUpdated?.call();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Class updated successfully')),
@@ -330,10 +318,7 @@ class ClassCard extends StatelessWidget {
               'Are you sure you want to delete "${classInfo.name}"? This cannot be undone.',
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel'),
-              ),
+              TextButton(onPressed: () => goBack(ctx), child: Text('Cancel')),
               ElevatedButton(
                 onPressed: () async {
                   try {
@@ -342,7 +327,7 @@ class ClassCard extends StatelessWidget {
                       projectId: 'kk360-69504',
                       classId: classInfo.id,
                     );
-                    Navigator.pop(ctx);
+                    goBack(ctx);
                     onClassDeleted?.call();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Class deleted successfully')),
@@ -377,10 +362,7 @@ class ClassCard extends StatelessWidget {
               'Are you sure you want to leave "${classInfo.name}"?',
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel'),
-              ),
+              TextButton(onPressed: () => goBack(ctx), child: Text('Cancel')),
               ElevatedButton(
                 onPressed: () async {
                   try {
@@ -390,7 +372,7 @@ class ClassCard extends StatelessWidget {
                       classId: classInfo.id,
                       memberUid: currentUserId,
                     );
-                    Navigator.pop(ctx);
+                    goBack(ctx);
                     // Trigger update to remove class from list
                     onClassUpdated?.call();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -424,15 +406,9 @@ class ClassCard extends StatelessWidget {
             : classInfo.id;
 
     // Navigate to the course screen with this specific class selected
-    Navigator.push(
+    goPush(
       context,
-      MaterialPageRoute(
-        builder:
-            (_) => CoursesScreen(
-              initialClassId: classId,
-              initialClassName: classInfo.name,
-            ),
-      ),
+      CoursesScreen(initialClassId: classId, initialClassName: classInfo.name),
     );
   }
 
@@ -453,7 +429,7 @@ class ClassCard extends StatelessWidget {
 
       // Close loading dialog
       if (context.mounted) {
-        Navigator.of(context).pop();
+        goBack(context);
       }
 
       if (!context.mounted) return;
@@ -604,7 +580,7 @@ class ClassCard extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => goBack(context),
                   child: const Text('Close'),
                 ),
               ],
@@ -613,7 +589,7 @@ class ClassCard extends StatelessWidget {
     } catch (e) {
       // Close loading dialog
       if (context.mounted) {
-        Navigator.of(context).pop();
+        goBack(context);
       }
 
       if (!context.mounted) return;

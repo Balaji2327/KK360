@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
+import '../widgets/nav_helper.dart';
 
 class CreateMaterialScreen extends StatefulWidget {
   const CreateMaterialScreen({super.key});
@@ -52,7 +53,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop();
+                goBack(ctx);
               },
               child: const Text("Cancel"),
             ),
@@ -71,7 +72,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                     _savedPoints = null;
                   });
                 }
-                Navigator.of(ctx).pop();
+                goBack(ctx);
               },
               child: const Text("Save", style: TextStyle(color: Colors.white)),
             ),
@@ -135,7 +136,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.of(context).maybePop(),
+                    onTap: () => goBack(context),
                     child: const Icon(
                       Icons.close,
                       color: Colors.white,

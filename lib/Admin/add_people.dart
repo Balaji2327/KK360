@@ -79,13 +79,11 @@ class _AdminAddPeopleScreenState extends State<AdminAddPeopleScreen> {
                                         ),
                                         actions: [
                                           TextButton(
-                                            onPressed:
-                                                () => Navigator.pop(ctx, false),
+                                            onPressed: () => goBack(ctx, false),
                                             child: const Text('Cancel'),
                                           ),
                                           ElevatedButton(
-                                            onPressed:
-                                                () => Navigator.pop(ctx, true),
+                                            onPressed: () => goBack(ctx, true),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.green,
                                               foregroundColor: Colors.white,
@@ -107,7 +105,6 @@ class _AdminAddPeopleScreenState extends State<AdminAddPeopleScreen> {
                                   final messenger = ScaffoldMessenger.of(
                                     context,
                                   );
-                                  final navigator = Navigator.of(context);
                                   await _authService.signOut();
                                   if (!mounted) {
                                     return;
@@ -115,11 +112,7 @@ class _AdminAddPeopleScreenState extends State<AdminAddPeopleScreen> {
                                   messenger.showSnackBar(
                                     const SnackBar(content: Text('Logged out')),
                                   );
-                                  navigator.pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (_) => const AdminLoginScreen(),
-                                    ),
-                                  );
+                                  goReplace(context, const AdminLoginScreen());
                                 } catch (e) {
                                   if (!mounted) {
                                     return;

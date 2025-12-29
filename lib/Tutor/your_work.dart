@@ -434,7 +434,7 @@ class _WorksScreenState extends State<WorksScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx),
+                onPressed: () => goBack(ctx),
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
@@ -444,7 +444,7 @@ class _WorksScreenState extends State<WorksScreen> {
                       projectId: 'kk360-69504',
                       assignmentId: assignment.id,
                     );
-                    Navigator.pop(ctx);
+                    goBack(ctx);
                     _refreshAssignments();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -510,7 +510,7 @@ class _CreateSheetContent extends StatelessWidget {
   }
 
   void _onItemTap(BuildContext context, String action) {
-    Navigator.pop(context); // close sheet
+    goBack(context); // close sheet
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text("Tapped: $action")));
@@ -570,10 +570,7 @@ class _CreateSheetContent extends StatelessWidget {
                 onTap: () {
                   goBack(context); // close sheet first
                   // then push your existing assignment page
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => CreateAssignmentScreen()),
-                  ).then((_) {
+                  goPush(context, CreateAssignmentScreen()).then((_) {
                     // Refresh assignments when returning from create screen
                     onAssignmentCreated();
                   });

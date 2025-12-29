@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
+import '../widgets/nav_helper.dart';
 import '../widgets/student_bottom_nav.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -110,7 +111,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => goBack(context),
         ),
       ),
       body:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
+import '../widgets/nav_helper.dart';
 
 class CreateAssignmentScreen extends StatefulWidget {
   const CreateAssignmentScreen({super.key});
@@ -87,7 +88,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop();
+                goBack(ctx);
               },
               child: const Text("Cancel"),
             ),
@@ -106,7 +107,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     _savedPoints = null;
                   });
                 }
-                Navigator.of(ctx).pop();
+                goBack(ctx);
               },
               child: const Text("Save", style: TextStyle(color: Colors.white)),
             ),
@@ -186,7 +187,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.of(context).maybePop(),
+                    onTap: () => goBack(context),
                     child: const Icon(
                       Icons.close,
                       color: Colors.white,
@@ -236,7 +237,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                               content: Text('Assignment assigned'),
                             ),
                           );
-                          Navigator.of(context).maybePop();
+                          goBack(context);
                         }
                       } catch (e) {
                         if (mounted)

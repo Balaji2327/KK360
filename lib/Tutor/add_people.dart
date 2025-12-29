@@ -71,13 +71,11 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                                         ),
                                         actions: [
                                           TextButton(
-                                            onPressed:
-                                                () => Navigator.pop(ctx, false),
+                                            onPressed: () => goBack(ctx, false),
                                             child: const Text('Cancel'),
                                           ),
                                           ElevatedButton(
-                                            onPressed:
-                                                () => Navigator.pop(ctx, true),
+                                            onPressed: () => goBack(ctx, true),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.green,
                                               foregroundColor: Colors.white,
@@ -99,7 +97,6 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                                   final messenger = ScaffoldMessenger.of(
                                     context,
                                   );
-                                  final navigator = Navigator.of(context);
                                   await _authService.signOut();
                                   if (!mounted) {
                                     return;
@@ -107,11 +104,7 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
                                   messenger.showSnackBar(
                                     const SnackBar(content: Text('Logged out')),
                                   );
-                                  navigator.pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (_) => const TutorLoginScreen(),
-                                    ),
-                                  );
+                                  goReplace(context, const TutorLoginScreen());
                                 } catch (e) {
                                   if (!mounted) {
                                     return;

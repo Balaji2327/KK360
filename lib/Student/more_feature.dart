@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/student_login.dart';
 import '../widgets/student_bottom_nav.dart';
+import '../widgets/nav_helper.dart';
 import 'edit_profile.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
@@ -79,14 +80,12 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                                           actions: [
                                             TextButton(
                                               onPressed:
-                                                  () =>
-                                                      Navigator.pop(ctx, false),
+                                                  () => goBack(ctx, false),
                                               child: const Text('Cancel'),
                                             ),
                                             ElevatedButton(
                                               onPressed:
-                                                  () =>
-                                                      Navigator.pop(ctx, true),
+                                                  () => goBack(ctx, true),
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.green,
                                                 foregroundColor: Colors.white,
@@ -108,7 +107,6 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                                     final messenger = ScaffoldMessenger.of(
                                       context,
                                     );
-                                    final navigator = Navigator.of(context);
                                     await _authService.signOut();
                                     if (!mounted) {
                                       return;
@@ -118,11 +116,9 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                                         content: Text('Logged out'),
                                       ),
                                     );
-                                    navigator.pushReplacement(
-                                      MaterialPageRoute(
-                                        builder:
-                                            (_) => const StudentLoginScreen(),
-                                      ),
+                                    goReplace(
+                                      context,
+                                      const StudentLoginScreen(),
                                     );
                                   } catch (e) {
                                     if (!mounted) {
@@ -232,10 +228,7 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
             // ---------------- FEATURE TILES ----------------
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                );
+                goPush(context, const EditProfileScreen());
               },
               child: featureTile(w, h, Icons.person, "Edit Profile"),
             ),

@@ -4,6 +4,7 @@ import 'create_class.dart';
 // import 'invite_tutor.dart';
 import '../widgets/tutor_bottom_nav.dart';
 import '../widgets/class_card.dart';
+import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 import '../nav_observer.dart';
 
@@ -249,10 +250,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
           child: GestureDetector(
             onTap: () async {
               // Open Create Class Page
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CreateClassScreen()),
-              );
+              final result = await goPush(context, const CreateClassScreen());
 
               // Handle new class result (CreateClassScreen returns a map with id/name/course)
               if (result is Map) {

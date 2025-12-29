@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
+import '../widgets/nav_helper.dart';
 
 class CreateClassScreen extends StatefulWidget {
   const CreateClassScreen({super.key});
@@ -53,7 +54,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
       );
 
       // Return created class info so caller can update UI immediately
-      Navigator.pop(context, {'id': docId, 'name': name, 'course': course});
+      goBack(context, {'id': docId, 'name': name, 'course': course});
     } catch (e) {
       debugPrint('[CreateClass] Failed to create class: $e');
       if (!mounted) return;

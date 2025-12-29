@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
+import '../Admin/invite_admin.dart';
 import '../Tutor/invite_student.dart';
 import '../Tutor/invite_tutor.dart';
 import '../Student/course_screen.dart';
@@ -89,6 +90,17 @@ class ClassCard extends StatelessWidget {
                               ],
                             ),
                           ),
+                          if (userRole == 'admin')
+                            const PopupMenuItem(
+                              value: 'add_admin',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.admin_panel_settings, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Invite Admins'),
+                                ],
+                              ),
+                            ),
                           const PopupMenuItem(
                             value: 'edit',
                             child: Row(
@@ -238,6 +250,9 @@ class ClassCard extends StatelessWidget {
         break;
       case 'add_tutor':
         goPush(context, TutorInviteTutorsScreen(initialClassId: classId));
+        break;
+      case 'add_admin':
+        goPush(context, AdminInviteAdminsScreen(initialClassId: classId));
         break;
       case 'edit':
         _showEditDialog(context);

@@ -3,6 +3,7 @@ import '../services/firebase_auth_service.dart';
 import '../Tutor/invite_student.dart';
 import '../Tutor/invite_tutor.dart';
 import '../Student/course_screen.dart';
+import '../Tutor/your_work.dart';
 import 'nav_helper.dart';
 
 class ClassCard extends StatelessWidget {
@@ -33,7 +34,9 @@ class ClassCard extends StatelessWidget {
                 ? classInfo.course
                 : 'Untitled Class');
 
-    final isOwner = userRole == 'tutor' && classInfo.tutorId == currentUserId;
+    final isOwner =
+        (userRole == 'tutor' || userRole == 'admin') &&
+        classInfo.tutorId == currentUserId;
 
     return Padding(
       padding: EdgeInsets.only(bottom: h * 0.02),
@@ -171,7 +174,9 @@ class ClassCard extends StatelessWidget {
                 ),
                 SizedBox(width: 6),
                 Text(
-                  userRole == 'tutor' ? 'You are the tutor' : 'Student',
+                  userRole == 'tutor'
+                      ? 'You are the tutor'
+                      : (userRole == 'admin' ? 'You are the admin' : 'Student'),
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
@@ -399,17 +404,30 @@ class ClassCard extends StatelessWidget {
   }
 
   void _navigateToClasswork(BuildContext context) {
-    // Extract just the document ID from the class ID (in case it's a full path)
+    // Admin has no classwork view, so do nothing
+    if (userRole == 'admin') {
+      return;
+    }
+
+    // Extract just the document ID from the class ID
     final classId =
         classInfo.id.contains('/')
             ? classInfo.id.split('/').last
             : classInfo.id;
 
-    // Navigate to the course screen with this specific class selected
-    goPush(
-      context,
-      CoursesScreen(initialClassId: classId, initialClassName: classInfo.name),
-    );
+    if (userRole == 'tutor') {
+      // Navigate to Tutor works screen
+      goPush(context, const WorksScreen());
+    } else {
+      // Navigate to Student course screen
+      goPush(
+        context,
+        CoursesScreen(
+          initialClassId: classId,
+          initialClassName: classInfo.name,
+        ),
+      );
+    }
   }
 
   void _navigateToMembers(BuildContext context) async {
@@ -472,17 +490,31 @@ class ClassCard extends StatelessWidget {
 
                     // Main Tutor
                     if (index == currentIndex) {
+                      final isCurrentUserAdmin =
+                          mainTutor == currentUserId && userRole == 'admin';
+
                       return ListTile(
                         leading: CircleAvatar(
                           backgroundColor: const Color(0xFF4B3FA3),
-                          child: const Icon(Icons.school, color: Colors.white),
+                          child: Icon(
+                            isCurrentUserAdmin
+                                ? Icons.admin_panel_settings
+                                : Icons.school,
+                            color: Colors.white,
+                          ),
                         ),
                         title: Text(
                           mainTutor == currentUserId
-                              ? 'You (Main Tutor)'
+                              ? (userRole == 'admin'
+                                  ? 'You (Admin)'
+                                  : 'You (Main Tutor)')
                               : 'Main Tutor',
                         ),
-                        subtitle: const Text('Tutor'),
+                        subtitle: Text(
+                          mainTutor == currentUserId && userRole == 'admin'
+                              ? 'Admin'
+                              : 'Tutor',
+                        ),
                       );
                     }
                     currentIndex++;

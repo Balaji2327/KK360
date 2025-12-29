@@ -103,158 +103,204 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffF4F5F7),
       bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF4B3FA3),
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(color: Colors.white),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => goBack(context),
-        ),
-      ),
+
+      // 1. Removed the standard AppBar
       body:
           profileLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
-                padding: EdgeInsets.all(w * 0.06),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Username Section
-                      const Text(
-                        'Username',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                // Removed padding from here so the header touches the edges
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 2. Added Custom Header (From MoreFeaturesScreen)
+                    Container(
+                      width: w,
+                      height: h * 0.15,
+                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4B3FA3),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(30),
+                          bottomRight: Radius.circular(30),
                         ),
                       ),
-                      SizedBox(height: h * 0.01),
-                      TextFormField(
-                        initialValue: newUsername,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your username',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            height: h * 0.085,
+                          ), // Top spacing matching More Features
+                          Row(
+                            children: [
+                              // Back Button logic added to custom header
+                              GestureDetector(
+                                onTap: () => goBack(context),
+                                child: const Icon(
+                                  Icons.arrow_back,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                              SizedBox(
+                                width: w * 0.04,
+                              ), // Spacing between arrow and text
+                              const Text(
+                                "Edit Profile",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        onChanged: (value) => newUsername = value,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Username cannot be empty';
-                          }
-                          return null;
-                        },
+                        ],
                       ),
+                    ),
 
-                      SizedBox(height: h * 0.03),
-
-                      // Password Section
-                      const Text(
-                        'Change Password',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: h * 0.01),
-
-                      // Current Password
-                      TextFormField(
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'Current password',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        onChanged: (value) => currentPassword = value,
-                      ),
-
-                      SizedBox(height: h * 0.02),
-
-                      // New Password
-                      TextFormField(
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'New password',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        onChanged: (value) => newPassword = value,
-                        validator: (value) {
-                          if (value != null &&
-                              value.isNotEmpty &&
-                              value.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      SizedBox(height: h * 0.02),
-
-                      // Confirm New Password
-                      TextFormField(
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'Confirm new password',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        onChanged: (value) => confirmPassword = value,
-                        validator: (value) {
-                          if (value != newPassword) {
-                            return 'Passwords do not match';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      SizedBox(height: h * 0.04),
-
-                      // Save Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: h * 0.06,
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : _updateProfile,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4B3FA3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                    // 3. Form Container (Added padding here instead)
+                    Padding(
+                      padding: EdgeInsets.all(w * 0.06),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Username Section
+                            const Text(
+                              'Username',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          child:
-                              isLoading
-                                  ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
-                                  : const Text(
-                                    'Save Changes',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            SizedBox(height: h * 0.01),
+                            TextFormField(
+                              initialValue: newUsername,
+                              decoration: InputDecoration(
+                                hintText: 'Enter your username',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              onChanged: (value) => newUsername = value,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Username cannot be empty';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            SizedBox(height: h * 0.03),
+
+                            // Password Section
+                            const Text(
+                              'Change Password',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: h * 0.01),
+
+                            // Current Password
+                            TextFormField(
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                hintText: 'Current password',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              onChanged: (value) => currentPassword = value,
+                            ),
+
+                            SizedBox(height: h * 0.02),
+
+                            // New Password
+                            TextFormField(
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                hintText: 'New password',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              onChanged: (value) => newPassword = value,
+                              validator: (value) {
+                                if (value != null &&
+                                    value.isNotEmpty &&
+                                    value.length < 6) {
+                                  return 'Password must be at least 6 characters';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            SizedBox(height: h * 0.02),
+
+                            // Confirm New Password
+                            TextFormField(
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                hintText: 'Confirm new password',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              onChanged: (value) => confirmPassword = value,
+                              validator: (value) {
+                                if (value != newPassword) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            SizedBox(height: h * 0.04),
+
+                            // Save Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: h * 0.06,
+                              child: ElevatedButton(
+                                onPressed: isLoading ? null : _updateProfile,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4B3FA3),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
+                                ),
+                                child:
+                                    isLoading
+                                        ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                        : const Text(
+                                          'Save Changes',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
     );

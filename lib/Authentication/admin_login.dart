@@ -232,26 +232,49 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               SizedBox(height: h * 0.015),
 
               // 🔹 Google Login
-              Container(
-                width: w * 0.7,
-                height: h * 0.055,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(35),
-                  border: Border.all(color: Colors.black38),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset("assets/images/google.png", height: h * 0.025),
-                    SizedBox(width: w * 0.02),
-                    const Text(
-                      "Continue with Google",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              GestureDetector(
+                onTap: isLoading ? null : _handleGoogleLogin,
+                child: Container(
+                  width: w * 0.7,
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(35),
+                    border: Border.all(color: Colors.black38),
+                    color: isLoading ? Colors.grey.shade200 : Colors.white,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!isLoading) ...[
+                        Image.asset(
+                          "assets/images/google.png",
+                          height: h * 0.025,
+                        ),
+                        SizedBox(width: w * 0.02),
+                        const Text(
+                          "Continue with Google",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          "Signing in...",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -268,6 +291,30 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     super.initState();
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() => isLoading = true);
+
+    try {
+      await _authService.signInAdminWithGoogle(projectId: 'kk360-69504');
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google Sign-In successful!')),
+      );
+
+      if (mounted) {
+        goPush(context, AdminStreamScreen());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   @override

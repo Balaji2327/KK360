@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Sign up with email and password
   Future<UserCredential> signUpWithEmail({
@@ -132,6 +134,183 @@ class FirebaseAuthService {
     roleDisplayName: 'Admin',
   );
 
+  // Google Sign-In with role verification
+  Future<UserCredential> signInWithGoogle({
+    required String projectId,
+    required String requiredRole,
+    required String roleDisplayName,
+  }) async {
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw 'Google Sign-In was cancelled';
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user == null) throw 'Google Sign-In failed';
+
+      debugPrint(
+        '[Auth] Google Sign-In successful for user: ${user.uid} (${user.email})',
+      );
+
+      // Check if user exists in Firestore and verify role
+      final idToken = await user.getIdToken();
+      if (idToken == null) {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        throw 'Could not verify your account.';
+      }
+
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents/users/${user.uid}',
+      );
+
+      debugPrint('[Auth] Checking Google user role via Firestore: $url');
+
+      final resp = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint(
+        '[Auth] Firestore response for Google user: ${resp.statusCode}',
+      );
+
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final role = body['fields']?['role']?['stringValue'] as String?;
+        final email = body['fields']?['email']?['stringValue'] as String?;
+
+        debugPrint('[Auth] Google user role: $role, stored email: $email');
+
+        if (role == requiredRole) {
+          // Verify that the stored email matches the Google account email
+          if (email != null &&
+              email.toLowerCase() == user.email?.toLowerCase()) {
+            return userCredential;
+          } else {
+            await _auth.signOut();
+            await _googleSignIn.signOut();
+            throw 'Email mismatch. Please use the registered email address.';
+          }
+        } else {
+          await _auth.signOut();
+          await _googleSignIn.signOut();
+          throw 'This account is registered as a $role. Please login with a $roleDisplayName account.';
+        }
+      } else if (resp.statusCode == 404) {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        throw 'Your Google account is not registered in our system. Please contact admin or register first.';
+      } else if (resp.statusCode == 401 || resp.statusCode == 403) {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        throw 'Unable to verify your account. Check Firestore rules or permissions.';
+      } else {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        throw 'Failed to verify role (error ${resp.statusCode}).';
+      }
+    } on FirebaseAuthException catch (e) {
+      await _googleSignIn.signOut();
+      throw _handleAuthException(e);
+    } catch (e) {
+      await _googleSignIn.signOut();
+      rethrow;
+    }
+  }
+
+  // Google Sign-In wrapper methods for specific roles
+  Future<UserCredential> signInStudentWithGoogle({required String projectId}) =>
+      signInWithGoogle(
+        projectId: projectId,
+        requiredRole: 'student',
+        roleDisplayName: 'Student',
+      );
+
+  Future<UserCredential> signInTutorWithGoogle({required String projectId}) =>
+      signInWithGoogle(
+        projectId: projectId,
+        requiredRole: 'tutor',
+        roleDisplayName: 'Tutor',
+      );
+
+  Future<UserCredential> signInAdminWithGoogle({required String projectId}) =>
+      signInWithGoogle(
+        projectId: projectId,
+        requiredRole: 'admin',
+        roleDisplayName: 'Admin',
+      );
+
+  // Create user profile in Firestore (for new Google Sign-In users)
+  Future<void> createUserProfile({
+    required String projectId,
+    required String uid,
+    required String email,
+    required String role,
+    String? name,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/users/$uid',
+    );
+
+    final fields = {
+      'email': {'stringValue': email},
+      'role': {'stringValue': role},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+
+    if (name != null && name.isNotEmpty) {
+      fields['name'] = {'stringValue': name};
+    }
+
+    debugPrint('[Auth] Creating user profile for $email with role $role');
+
+    final resp = await http
+        .patch(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'fields': fields}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create user profile (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] Successfully created user profile');
+  }
+
   // Sign out
   Future<void> signOut() async {
     try {
@@ -143,9 +322,14 @@ class FirebaseAuthService {
         debugPrint('[Auth] Signing out user ${user.uid} (cache preserved)');
       }
 
-      await _auth.signOut();
+      // Sign out from both Firebase and Google
+      await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
+    } catch (e) {
+      // Handle Google Sign-In errors gracefully
+      debugPrint('[Auth] Error during sign out: $e');
+      await _auth.signOut(); // Ensure Firebase sign out at minimum
     }
   }
 

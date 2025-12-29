@@ -1,6 +1,6 @@
 name: kk_360
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
+  google_sign_in: ^6.2.1
   http: ^1.1.0
   shared_preferences: ^2.0.15
 
@@ -60,7 +61,7 @@ flutter_icons:
   ios: true
   # I changed this to use 'logo.jpg' since that is in your assets list
   image_path: "assets/images/app_icon.png"
-  
+
   # This creates the "Circle" icon on Android (Adaptive Icon)
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/app_icon.png"

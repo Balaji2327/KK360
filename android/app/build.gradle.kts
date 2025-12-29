@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.example.kk_360"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973" 
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -25,7 +25,11 @@ android {
         applicationId = "com.example.kk_360"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        
+        // --- CHANGE MADE HERE ---
+        minSdk = 23 
+        // ------------------------
+        
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

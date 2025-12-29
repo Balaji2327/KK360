@@ -81,11 +81,39 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleLogin() async {
+    setState(() => isLoading = true);
+
+    try {
+      await authService.signInStudentWithGoogle(projectId: 'kk360-69504');
+      _showSuccessSnackbar('Google Sign-In successful!');
+
+      // Check for pending invites after successful login
+      final user = authService.getCurrentUser();
+      if (user?.email != null) {
+        await _checkPendingInvites();
+      }
+
+      if (mounted) {
+        goPush(context, const StudentHomeScreen());
+      }
+    } catch (e) {
+      _showErrorSnackbar(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
   Future<void> _checkPendingInvites() async {
     try {
+      final user = authService.getCurrentUser();
+      final email = user?.email ?? emailController.text.trim();
+
       final invites = await authService.getPendingInvites(
         projectId: 'kk360-69504',
-        userEmail: emailController.text.trim(),
+        userEmail: email,
       );
 
       if (invites.isNotEmpty && mounted) {
@@ -330,7 +358,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
               SizedBox(height: h * 0.01),
 
-              // ⭐ Login Button (Navigation Added)
+              // Login Button
               GestureDetector(
                 onTap: isLoading ? null : _handleLogin,
                 child: Container(
@@ -387,7 +415,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                       ),
                     ),
                   ),
-
                   GestureDetector(
                     onTap:
                         isLoading
@@ -414,26 +441,49 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               SizedBox(height: h * 0.015),
 
               // Google Login Button
-              Container(
-                width: 0.7 * w,
-                height: h * 0.055,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(35),
-                  border: Border.all(color: Colors.black38),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset("assets/images/google.png", height: h * 0.025),
-                    SizedBox(width: w * 0.02),
-                    const Text(
-                      "Continue with Google",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              GestureDetector(
+                onTap: isLoading ? null : _handleGoogleLogin,
+                child: Container(
+                  width: 0.7 * w,
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(35),
+                    border: Border.all(color: Colors.black38),
+                    color: isLoading ? Colors.grey.shade200 : Colors.white,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!isLoading) ...[
+                        Image.asset(
+                          "assets/images/google.png",
+                          height: h * 0.025,
+                        ),
+                        SizedBox(width: w * 0.02),
+                        const Text(
+                          "Continue with Google",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          "Signing in...",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
 

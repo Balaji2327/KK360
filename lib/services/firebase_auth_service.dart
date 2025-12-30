@@ -584,6 +584,8 @@ class FirebaseAuthService {
         return 'Too many login attempts. Please try again later.';
       case 'operation-not-allowed':
         return 'Email/password sign-in is not enabled.';
+      case 'invalid-credential':
+        return 'Invalid email or password. If you used Google Sign-In to create your account, please use the "Continue with Google" button.';
       default:
         return 'Authentication error: ${e.message}';
     }

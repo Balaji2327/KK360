@@ -157,9 +157,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF4F5F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ⭐ NEW COMMON NAVIGATION BAR
       bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
@@ -179,6 +180,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       padding: EdgeInsets.symmetric(vertical: h * 0.02),
                       child: Text(
                         'No assignments yet for ${_selectedClassDisplayName()}',
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
                       ),
                     ),
                   ...assignmentList.map(
@@ -202,6 +206,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   // ---------------- HEADER ----------------
   Widget headerLayout(double h, double w) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: w,
       height: h * 0.18,
@@ -272,7 +278,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
           Container(
             height: h * 0.055,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               borderRadius: BorderRadius.circular(25),
             ),
             padding: EdgeInsets.symmetric(horizontal: w * 0.04),
@@ -283,6 +289,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       : DropdownButton<String>(
                         value: _selectedClassId,
                         isExpanded: true,
+                        dropdownColor:
+                            isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                          fontSize: 14,
+                        ),
                         items:
                             _myClasses
                                 .map(
@@ -327,17 +339,22 @@ class AssignmentTile extends StatelessWidget {
     final submitted = status == "Submitted";
     final missing = status == "Missing";
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: EdgeInsets.symmetric(vertical: h * 0.012, horizontal: w * 0.045),
       child: Row(
         children: [
           CircleAvatar(
             radius: h * 0.027,
-            backgroundColor: const Color(0xffD7F5D5),
+            backgroundColor:
+                isDark
+                    ? Colors.green.withOpacity(0.2)
+                    : const Color(0xffD7F5D5),
             child: Icon(
               Icons.check_circle,
               size: h * 0.032,
-              color: Colors.black,
+              color: isDark ? Colors.greenAccent : Colors.black,
             ),
           ),
           SizedBox(width: w * 0.04),
@@ -350,11 +367,15 @@ class AssignmentTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: h * 0.018,
                     fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: h * 0.013, color: Colors.black54),
+                  style: TextStyle(
+                    fontSize: h * 0.013,
+                    color: isDark ? Colors.white54 : Colors.black54,
+                  ),
                 ),
               ],
             ),
@@ -369,7 +390,7 @@ class AssignmentTile extends StatelessWidget {
                       ? Colors.green
                       : missing
                       ? Colors.red
-                      : Colors.black54,
+                      : (isDark ? Colors.white54 : Colors.black54),
             ),
           ),
         ],

@@ -99,9 +99,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF4F5F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
 
       // 1. Removed the standard AppBar
@@ -168,23 +169,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Username Section
-                            const Text(
+                            Text(
                               'Username',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                             ),
                             SizedBox(height: h * 0.01),
                             TextFormField(
                               initialValue: newUsername,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Enter your username',
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor:
+                                    isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white,
                               ),
                               onChanged: (value) => newUsername = value,
                               validator: (value) {
@@ -198,11 +209,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             SizedBox(height: h * 0.03),
 
                             // Password Section
-                            const Text(
+                            Text(
                               'Change Password',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                             ),
                             SizedBox(height: h * 0.01),
@@ -210,13 +222,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             // Current Password
                             TextFormField(
                               obscureText: true,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Current password',
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor:
+                                    isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white,
                               ),
                               onChanged: (value) => currentPassword = value,
                             ),
@@ -226,13 +247,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             // New Password
                             TextFormField(
                               obscureText: true,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'New password',
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor:
+                                    isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white,
                               ),
                               onChanged: (value) => newPassword = value,
                               validator: (value) {
@@ -250,13 +280,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             // Confirm New Password
                             TextFormField(
                               obscureText: true,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Confirm new password',
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor:
+                                    isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white,
                               ),
                               onChanged: (value) => confirmPassword = value,
                               validator: (value) {

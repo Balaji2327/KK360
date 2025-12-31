@@ -261,9 +261,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // =================== FIXED HEADER + SCROLLABLE BODY ===================
       body: Column(
@@ -307,17 +308,23 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 Container(
                   height: h * 0.055,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(25),
                   ),
                   padding: EdgeInsets.symmetric(horizontal: w * 0.04),
                   child: Row(
-                    children: const [
-                      Icon(Icons.search, color: Colors.grey),
+                    children: [
+                      Icon(
+                        Icons.search,
+                        color: isDark ? Colors.white54 : Colors.grey,
+                      ),
                       SizedBox(width: 10),
                       Text(
                         "Search for anything",
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                        style: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -461,11 +468,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     // =================== MY CLASSES SECTION ===================
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: const Text(
+                      child: Text(
                         "My Classes",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ),
@@ -489,10 +497,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           width: w,
                           padding: EdgeInsets.all(w * 0.06),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color:
+                                isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(
-                              color: Colors.grey.shade300,
+                              color:
+                                  isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade300,
                               width: 1,
                             ),
                           ),
@@ -501,7 +515,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                               Icon(
                                 Icons.school_outlined,
                                 size: 48,
-                                color: Colors.grey.shade400,
+                                color:
+                                    isDark
+                                        ? Colors.white54
+                                        : Colors.grey.shade400,
                               ),
                               SizedBox(height: h * 0.02),
                               Text(
@@ -509,7 +526,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade600,
+                                  color:
+                                      isDark
+                                          ? Colors.white70
+                                          : Colors.grey.shade600,
                                 ),
                               ),
                               SizedBox(height: h * 0.01),
@@ -518,7 +538,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade500,
+                                  color:
+                                      isDark
+                                          ? Colors.white54
+                                          : Colors.grey.shade500,
                                 ),
                               ),
                             ],
@@ -547,11 +570,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     // =================== Alerts Title ===================
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: const Text(
+                      child: Text(
                         "Alerts of the day",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                         textAlign: TextAlign.start,
                       ),
@@ -572,10 +596,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           width: w,
                           padding: EdgeInsets.all(w * 0.04),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
+                            color:
+                                isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.grey.shade50,
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(
-                              color: Colors.grey.shade200,
+                              color:
+                                  isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade200,
                               width: 1,
                             ),
                           ),
@@ -583,7 +613,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             child: Text(
                               'No alerts yet',
                               style: TextStyle(
-                                color: Colors.grey.shade500,
+                                color:
+                                    isDark
+                                        ? Colors.white54
+                                        : Colors.grey.shade500,
                                 fontSize: 14,
                               ),
                             ),
@@ -610,15 +643,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     // Show a sample alert if there are classes
     if (_classes.isEmpty) return const SizedBox();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: w,
       padding: EdgeInsets.all(w * 0.04),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withAlpha(51),
+            color: Colors.grey.withAlpha(isDark ? 0 : 51),
             blurRadius: 6,
             spreadRadius: 2,
             offset: const Offset(0, 3),
@@ -649,18 +684,28 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
                     Text(
                       _classes.isNotEmpty
                           ? _classes.first.name
                           : "Your Classes",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white70 : Colors.grey,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Text("Today", style: TextStyle(fontSize: 11, color: Colors.grey)),
+              Text(
+                "Today",
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? Colors.white54 : Colors.grey,
+                ),
+              ),
             ],
           ),
 
@@ -669,7 +714,11 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           Center(
             child: Text(
               "Welcome to your class!",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black,
+              ),
             ),
           ),
 
@@ -680,7 +729,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             style: TextStyle(
               fontSize: 13,
               height: 1.4,
-              color: Colors.grey.shade700,
+              color: isDark ? Colors.white70 : Colors.grey.shade700,
             ),
             textAlign: TextAlign.center,
           ),

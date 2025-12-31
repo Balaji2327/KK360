@@ -5,6 +5,7 @@ import '../Authentication/student_login.dart';
 import '../widgets/student_bottom_nav.dart';
 import '../widgets/nav_helper.dart';
 import 'edit_profile.dart';
+import 'settings_screen.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
   const MoreFeaturesScreen({super.key});
@@ -24,8 +25,10 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xffF4F5F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ⭐ COMMON NAVIGATION BAR
       bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
@@ -194,12 +197,13 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                               style: TextStyle(
                                 fontSize: w * 0.045,
                                 fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                             ),
                             Text(
                               profileLoading ? '' : userEmail,
                               style: TextStyle(
-                                color: Colors.black54,
+                                color: isDark ? Colors.white70 : Colors.black54,
                                 fontSize: w * 0.032,
                               ),
                             ),
@@ -219,6 +223,7 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                       style: TextStyle(
                         fontSize: w * 0.049,
                         fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
                   ),
@@ -240,7 +245,12 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.list_alt, "To Do List"),
                   ),
-                  featureTile(w, h, Icons.settings, "Settings"),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const SettingsScreen());
+                    },
+                    child: featureTile(w, h, Icons.settings, "Settings"),
+                  ),
                   featureTile(w, h, Icons.history, "My Test History"),
 
                   SizedBox(height: h * 0.12),
@@ -261,16 +271,20 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
     String text, {
     bool underline = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tileColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: w * 0.06, vertical: h * 0.008),
       padding: EdgeInsets.symmetric(horizontal: w * 0.04),
       height: h * 0.07,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: tileColor,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -287,10 +301,14 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                 fontSize: w * 0.04,
                 decoration:
                     underline ? TextDecoration.underline : TextDecoration.none,
+                color: textColor,
               ),
             ),
           ),
-          const Icon(Icons.chevron_right),
+          Icon(
+            Icons.chevron_right,
+            color: isDark ? Colors.white54 : Colors.grey,
+          ),
         ],
       ),
     );

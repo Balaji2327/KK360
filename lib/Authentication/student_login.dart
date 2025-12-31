@@ -248,9 +248,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: w * 0.06),
@@ -272,9 +273,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
               SizedBox(height: h * 0.006),
 
-              const Text(
+              Text(
                 "Welcome back! Select method to Log in",
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white70 : Colors.grey,
+                ),
               ),
 
               SizedBox(height: h * 0.02),
@@ -448,8 +452,15 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   height: h * 0.055,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(35),
-                    border: Border.all(color: Colors.black38),
-                    color: isLoading ? Colors.grey.shade200 : Colors.white,
+                    border: Border.all(
+                      color: isDark ? Colors.white54 : Colors.black38,
+                    ),
+                    color:
+                        isLoading
+                            ? (isDark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200)
+                            : (isDark ? Colors.grey.shade900 : Colors.white),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -460,11 +471,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                           height: h * 0.025,
                         ),
                         SizedBox(width: w * 0.02),
-                        const Text(
+                        Text(
                           "Continue with Google",
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black,
                           ),
                         ),
                       ] else ...[

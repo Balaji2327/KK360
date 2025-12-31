@@ -129,9 +129,10 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF4F5F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
 
       // Using index 4 to keep "More" active or maybe 4 is appropriate since it is under 'More'
@@ -191,14 +192,18 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
                           Icon(
                             Icons.assignment_turned_in_outlined,
                             size: 80,
-                            color: Colors.grey.shade400,
+                            color:
+                                isDark ? Colors.white24 : Colors.grey.shade400,
                           ),
                           SizedBox(height: 16),
                           Text(
                             "No tasks yet!",
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.grey.shade600,
+                              color:
+                                  isDark
+                                      ? Colors.white54
+                                      : Colors.grey.shade600,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -216,11 +221,14 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color:
+                                isDark ? const Color(0xFF1E1E1E) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withOpacity(
+                                  isDark ? 0.2 : 0.05,
+                                ),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -248,7 +256,13 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
                                         ? TextDecoration.lineThrough
                                         : null,
                                 color:
-                                    task.isDone ? Colors.grey : Colors.black87,
+                                    task.isDone
+                                        ? (isDark
+                                            ? Colors.white38
+                                            : Colors.grey)
+                                        : (isDark
+                                            ? Colors.white
+                                            : Colors.black87),
                               ),
                             ),
                             trailing: IconButton(

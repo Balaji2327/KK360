@@ -50,16 +50,17 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       width: w,
       height: 85,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withAlpha(isDark ? 80 : 20),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -142,6 +143,9 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveColor = isDark ? Colors.white54 : Colors.black54;
+
     // implicit animations for smooth active state changes
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -156,7 +160,7 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
             child: Icon(
               icon,
               size: 28,
-              color: isActive ? const Color(0xFF4B3FA3) : Colors.black54,
+              color: isActive ? const Color(0xFF4B3FA3) : inactiveColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -165,7 +169,7 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 11,
-              color: isActive ? const Color(0xFF4B3FA3) : Colors.black54,
+              color: isActive ? const Color(0xFF4B3FA3) : inactiveColor,
               fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
             ),
             child: Text(label),

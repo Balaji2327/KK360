@@ -73,9 +73,10 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
     final size = MediaQuery.of(context).size;
     final height = size.height;
     final width = size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -104,6 +105,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                   style: TextStyle(
                     fontSize: width * 0.065,
                     fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
 
@@ -114,7 +116,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                   "No Problem! Enter your email or username below and we will send you an email with instructions to reset your password.",
                   style: TextStyle(
                     fontSize: width * 0.035,
-                    color: Colors.black54,
+                    color: isDark ? Colors.white54 : Colors.black54,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -125,17 +127,35 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                 // 🔹 UPDATED TextField (same size as Login Screen)
                 TextField(
                   controller: _emailController,
-                  style: TextStyle(fontSize: width * 0.035),
+                  style: TextStyle(
+                    fontSize: width * 0.035,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.person_outline),
+                    prefixIcon: Icon(
+                      Icons.person_outline,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
                     hintText: "Your username or email",
-                    hintStyle: TextStyle(fontSize: width * 0.035),
+                    hintStyle: TextStyle(
+                      fontSize: width * 0.035,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 10,
                       horizontal: 15,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white54 : Colors.grey,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
                     ),
                   ),
                 ),
@@ -182,7 +202,10 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                     children: [
                       Text(
                         "Back to ",
-                        style: TextStyle(fontSize: width * 0.04),
+                        style: TextStyle(
+                          fontSize: width * 0.04,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
                       ),
                       Text(
                         "Login",
@@ -190,6 +213,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                           fontSize: width * 0.045,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ],

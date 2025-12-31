@@ -13,9 +13,10 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: SingleChildScrollView(
         child: Column(
@@ -80,9 +81,13 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
             // Ask your tutor text
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              child: const Text(
+              child: Text(
                 "Ask your tutor for the class code, then\nenter it here.",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
             ),
 
@@ -95,12 +100,18 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
                 height: h * 0.055,
                 padding: EdgeInsets.symmetric(horizontal: w * 0.04),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
+                  border: Border.all(
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const TextField(
+                child: TextField(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: "Enter class code",
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
                     border: InputBorder.none,
                   ),
                 ),
@@ -112,9 +123,13 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
             // To sign in text
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              child: const Text(
+              child: Text(
                 "To sign in with a class code",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
             ),
 
@@ -123,9 +138,12 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
             // Bullet point
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              child: const Text(
+              child: Text(
                 "• Use a class code with 6–8 letters or numbers, and\n  spaces or symbols",
-                style: TextStyle(fontSize: 13),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
               ),
             ),
 

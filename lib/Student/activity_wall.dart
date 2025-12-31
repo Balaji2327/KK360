@@ -13,9 +13,10 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ⭐ NEW COMMON NAV BAR
       bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
@@ -62,17 +63,23 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                 Container(
                   height: h * 0.055,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(25),
                   ),
                   padding: EdgeInsets.symmetric(horizontal: w * 0.04),
                   child: Row(
-                    children: const [
-                      Icon(Icons.search, color: Colors.grey),
+                    children: [
+                      Icon(
+                        Icons.search,
+                        color: isDark ? Colors.white54 : Colors.grey,
+                      ),
                       SizedBox(width: 10),
                       Text(
                         "Search for anything",
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                        style: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -143,15 +150,17 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
     required String end,
     required String buttonText,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: w,
       padding: EdgeInsets.all(w * 0.04),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withAlpha(38),
+            color: Colors.grey.withAlpha(isDark ? 0 : 38),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -173,21 +182,28 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                 children: [
                   Text(
                     teacher,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                   Text(
                     subject,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
                   ),
                 ],
               ),
               const Spacer(),
               Text(
                 date,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? Colors.white54 : Colors.grey,
+                ),
               ),
             ],
           ),
@@ -195,20 +211,32 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
           Center(
             child: Text(
               unit,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
             ),
           ),
           SizedBox(height: h * 0.012),
           Text(
             description,
-            style: const TextStyle(fontSize: 13, height: 1.4),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: isDark ? Colors.white70 : Colors.black,
+            ),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: h * 0.02),
           Center(
             child: Text(
               "$start\n$end",
-              style: const TextStyle(fontSize: 12, height: 1.5),
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: isDark ? Colors.white70 : Colors.black,
+              ),
               textAlign: TextAlign.center,
             ),
           ),

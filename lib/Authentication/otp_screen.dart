@@ -19,9 +19,10 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -36,16 +37,23 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
 
                 SizedBox(height: h * 0.02),
 
-                const Text(
+                Text(
                   "Log In via OTP?",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
                 ),
 
                 SizedBox(height: h * 0.006),
 
-                const Text(
+                Text(
                   "Welcome back! Enter phone to receive OTP",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
                 ),
 
                 SizedBox(height: h * 0.02),
@@ -54,17 +62,36 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
                 TextField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(fontSize: 14),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.chat_bubble_outline, size: 20),
+                    prefixIcon: Icon(
+                      Icons.chat_bubble_outline,
+                      size: 20,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
                     hintText: "10 digit phone number",
-                    hintStyle: const TextStyle(fontSize: 14),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 10,
                       horizontal: 15,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white54 : Colors.grey,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
                     ),
                   ),
                 ),
@@ -98,11 +125,14 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
 
                 SizedBox(height: h * 0.02),
 
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "Enter 4 digit code",
-                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
                   ),
                 ),
 
@@ -117,7 +147,9 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
                       width: w * 0.14,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.black54),
+                        border: Border.all(
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
                       ),
                       child: Center(
                         child: TextField(
@@ -125,7 +157,10 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
                           textAlign: TextAlign.center,
                           maxLength: 1,
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(fontSize: 18),
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
                           decoration: const InputDecoration(
                             counterText: "",
                             border: InputBorder.none,
@@ -197,13 +232,20 @@ class _OtpLoginScreenState extends State<OtpLoginScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("Back to ", style: TextStyle(fontSize: w * 0.04)),
+                      Text(
+                        "Back to ",
+                        style: TextStyle(
+                          fontSize: w * 0.04,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
                       Text(
                         "Login",
                         style: TextStyle(
                           fontSize: w * 0.045,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ],

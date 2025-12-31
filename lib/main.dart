@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'Authentication/role_selection.dart';
 import 'nav_observer.dart';
+import 'theme_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,20 +22,41 @@ class KK360App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'KK 360',
-      navigatorObservers: [routeObserver],
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'Poppins', // 👈 Set your custom font family name here
-        // textTheme: const TextTheme(
-        //   bodyLarge: TextStyle(),
-        //   bodyMedium: TextStyle(),
-        //   bodySmall: TextStyle(),
-        // ),
-      ),
-      home: const RoleSelectionScreen(),
+    return AnimatedBuilder(
+      animation: themeManager,
+      builder: (context, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'KK 360',
+          navigatorObservers: [routeObserver],
+          themeMode: themeManager.themeMode,
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            fontFamily: 'Poppins',
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF4B3FA3),
+              brightness: Brightness.light,
+            ),
+            scaffoldBackgroundColor: const Color(0xffF4F5F7),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            fontFamily: 'Poppins',
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF4B3FA3),
+              brightness: Brightness.dark,
+            ),
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF1F1F1F),
+              foregroundColor: Colors.white,
+            ),
+          ),
+          home: const RoleSelectionScreen(),
+        );
+      },
     );
   }
 }

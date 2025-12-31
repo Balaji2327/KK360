@@ -7,6 +7,7 @@ import '../widgets/class_card.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 import '../nav_observer.dart';
+import '../theme_manager.dart';
 
 class TutorStreamScreen extends StatefulWidget {
   const TutorStreamScreen({super.key});
@@ -32,6 +33,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
   @override
   void initState() {
     super.initState();
+    _initTheme();
     _loadUserProfile();
     _loadClasses();
     _loadPendingInvites();
@@ -44,6 +46,13 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
         _loadPendingInvites();
       }
     });
+  }
+
+  void _initTheme() {
+    final user = _authService.getCurrentUser();
+    if (user != null) {
+      themeManager.setUserId(user.uid);
+    }
   }
 
   @override

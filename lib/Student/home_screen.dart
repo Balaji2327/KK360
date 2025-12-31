@@ -4,6 +4,8 @@ import '../widgets/student_bottom_nav.dart';
 import '../widgets/class_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../theme_manager.dart';
+
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
 
@@ -28,9 +30,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _initTheme();
     _loadUserProfile();
     _loadClasses();
     _loadPendingInvites();
+  }
+
+  void _initTheme() {
+    final user = _authService.getCurrentUser();
+    if (user != null) {
+      themeManager.setUserId(user.uid);
+    }
   }
 
   Future<void> _loadUserProfile() async {

@@ -81,7 +81,7 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                   SizedBox(height: h * 0.006),
                   Text(
                     profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                    style: TextStyle(fontSize: h * 0.012, color: Colors.white),
                   ),
                 ],
               ),

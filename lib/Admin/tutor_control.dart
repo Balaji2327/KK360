@@ -115,7 +115,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
 
                   Text(
                     profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                    style: TextStyle(fontSize: h * 0.012, color: Colors.white),
                   ),
                 ],
               ),

@@ -5,6 +5,7 @@ import 'activity_wall.dart';
 import '../widgets/student_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
+import 'assignment_page.dart';
 
 class CoursesScreen extends StatefulWidget {
   final String? initialClassId;
@@ -172,28 +173,66 @@ class _CoursesScreenState extends State<CoursesScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  SizedBox(height: h * 0.015),
-                  if (assignmentsLoading)
-                    const Center(child: CircularProgressIndicator()),
-                  if (!assignmentsLoading && assignmentList.isEmpty)
+                  SizedBox(height: h * 0.02),
+                  if (_selectedClassId != null) ...[
                     Padding(
-                      padding: EdgeInsets.symmetric(vertical: h * 0.02),
-                      child: Text(
-                        'No assignments yet for ${_selectedClassDisplayName()}',
-                        style: TextStyle(
-                          color: isDark ? Colors.white70 : Colors.black87,
+                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Classwork",
+                            style: TextStyle(
+                              fontSize: w * 0.049,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: h * 0.02),
+                          GestureDetector(
+                            onTap: () => goPush(
+                              context,
+                              StudentAssignmentPage(
+                                classId: _selectedClassId!,
+                                className: _selectedClassDisplayName(),
+                              ),
+                            ),
+                            child: featureTile(w, h, Icons.assignment_outlined, "Assignments"),
+                          ),
+                          GestureDetector(
+                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Topics coming soon')),
+                            ),
+                            child: featureTile(w, h, Icons.topic_outlined, "Topics"),
+                          ),
+                          GestureDetector(
+                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Tests coming soon')),
+                            ),
+                            child: featureTile(w, h, Icons.note_alt_outlined, "Tests"),
+                          ),
+                          GestureDetector(
+                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Materials coming soon')),
+                            ),
+                            child: featureTile(w, h, Icons.insert_drive_file_outlined, "Materials"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: h * 0.1),
+                        child: Text(
+                          'Please select a class to view classwork',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
                         ),
                       ),
                     ),
-                  ...assignmentList.map(
-                    (item) => AssignmentTile(
-                      title: item.title,
-                      subtitle: _assignmentSubtitle(item),
-                      status: '',
-                      h: h,
-                      w: w,
-                    ),
-                  ),
+                  ],
                   SizedBox(height: h * 0.12),
                 ],
               ),
@@ -314,6 +353,43 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Feature Tile Widget
+  Widget featureTile(double w, double h, IconData icon, String text) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: w * 0.00, vertical: h * 0.008),
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+      height: h * 0.07,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF4B3FA3)),
+          SizedBox(width: w * 0.04),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: w * 0.04,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
         ],
       ),
     );

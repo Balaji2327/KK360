@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
 import 'create_assignment.dart';
 import 'create_material.dart';
+import 'assignment_page.dart';
+import 'topic_page.dart';
+import 'test_page.dart';
+import 'tutor_material_page.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
@@ -18,14 +22,10 @@ class _WorksScreenState extends State<WorksScreen> {
   String userEmail = '';
   bool profileLoading = true;
 
-  List<AssignmentInfo> _myAssignments = [];
-  bool _assignmentsLoading = false;
-
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
-    _loadMyAssignments();
   }
 
   Future<void> _loadUserProfile() async {
@@ -41,49 +41,6 @@ class _WorksScreenState extends State<WorksScreen> {
     });
   }
 
-  Future<void> _loadMyAssignments() async {
-    setState(() => _assignmentsLoading = true);
-    try {
-      final assignments = await _authService.getAssignmentsForTutor(
-        projectId: 'kk360-69504',
-      );
-      if (!mounted) return;
-      setState(() {
-        _myAssignments = assignments;
-        _assignmentsLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _assignmentsLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load assignments: $e')));
-    }
-  }
-
-  Future<void> _refreshAssignments() async {
-    await _loadMyAssignments();
-  }
-
-  void _showCreateSheet(BuildContext context) {
-    // compute heightFactor based on device height to avoid overflow
-    final h = MediaQuery.of(context).size.height;
-    final heightFactor = (h < 700) ? 0.58 : 0.52;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      barrierColor: Colors.black54,
-      builder: (_) {
-        return FractionallySizedBox(
-          heightFactor: heightFactor,
-          child: _CreateSheetContent(onAssignmentCreated: _refreshAssignments),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -92,29 +49,6 @@ class _WorksScreenState extends State<WorksScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
-        child: GestureDetector(
-          onTap: () => _showCreateSheet(context),
-          child: Container(
-            height: h * 0.065,
-            width: h * 0.065,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDFF7E8),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(15),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.add, size: 30, color: Colors.black),
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       body: Column(
         children: [
           // header (same as meeting control)
@@ -136,7 +70,7 @@ class _WorksScreenState extends State<WorksScreen> {
                 children: [
                   SizedBox(height: h * 0.05),
                   Text(
-                    "Your Works",
+                    "Classwork",
                     style: TextStyle(
                       fontSize: h * 0.03,
                       fontWeight: FontWeight.bold,
@@ -155,21 +89,53 @@ class _WorksScreenState extends State<WorksScreen> {
 
           SizedBox(height: h * 0.0005),
 
+          // Create options
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: h * 0.02),
+                Text(
+                  "Create",
+                  style: TextStyle(
+                    fontSize: w * 0.049,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: h * 0.02),
+                GestureDetector(
+                  onTap: () => goPush(context, AssignmentPage()),
+                  child: featureTile(w, h, Icons.assignment_outlined, "Assignment"),
+                ),
+                GestureDetector(
+                  onTap: () => goPush(context, TopicPage()),
+                  child: featureTile(w, h, Icons.topic_outlined, "Topic"),
+                ),
+                GestureDetector(
+                  onTap: () => goPush(context, TestPage()),
+                  child: featureTile(w, h, Icons.note_alt_outlined, "Test"),
+                ),
+                GestureDetector(
+                  onTap: () => goPush(context, TutorMaterialPage()),
+                  child: featureTile(w, h, Icons.insert_drive_file_outlined, "Material"),
+                ),
+                SizedBox(height: h * 0.03),
+              ],
+            ),
+          ),
+
           // content
           Expanded(
-            child:
-                _assignmentsLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _myAssignments.isEmpty
-                    ? _buildEmptyState(h, w)
-                    : _buildAssignmentsList(h, w),
+            child: _buildClassworkContent(h, w),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(double h, double w) {
+  Widget _buildClassworkContent(double h, double w) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -183,7 +149,7 @@ class _WorksScreenState extends State<WorksScreen> {
           ),
           SizedBox(height: h * 0.02),
           Text(
-            "This is where you'll assign work",
+            "Manage your classwork",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: h * 0.0185, fontWeight: FontWeight.w700),
           ),
@@ -191,7 +157,7 @@ class _WorksScreenState extends State<WorksScreen> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: w * 0.12),
             child: Text(
-              "You can add assignments and other work\nfor the class, then organize it into topics",
+              "Select a category above to view and manage\nyour assignments, topics, tests, and materials",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: h * 0.0145,
@@ -206,268 +172,42 @@ class _WorksScreenState extends State<WorksScreen> {
     );
   }
 
-  Widget _buildAssignmentsList(double h, double w) {
-    return RefreshIndicator(
-      onRefresh: _refreshAssignments,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: h * 0.02),
-        itemCount: _myAssignments.length,
-        itemBuilder: (context, index) {
-          final assignment = _myAssignments[index];
-          return _buildAssignmentCard(assignment, h, w);
-        },
-      ),
-    );
-  }
-
-  Widget _buildAssignmentCard(AssignmentInfo assignment, double h, double w) {
-    const appColor = Color(0xFF4B3FA3);
-
+  // Feature Tile Widget
+  Widget featureTile(double w, double h, IconData icon, String text) {
     return Container(
-      margin: EdgeInsets.only(bottom: h * 0.015),
+      margin: EdgeInsets.symmetric(horizontal: w * 0.00, vertical: h * 0.008),
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+      height: h * 0.07,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: const BoxDecoration(
-            border: Border(left: BorderSide(color: appColor, width: 6)),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: h * 0.02,
-              horizontal: w * 0.04,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title and menu
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        assignment.title,
-                        style: TextStyle(
-                          fontSize: h * 0.02,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF333333),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: Icon(Icons.more_vert, color: Colors.grey.shade500),
-                      onSelected:
-                          (value) => _handleAssignmentAction(assignment, value),
-                      itemBuilder:
-                          (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Edit'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.delete,
-                                    size: 18,
-                                    color: Colors.red,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Delete',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                    ),
-                  ],
-                ),
-
-                if (assignment.course.isNotEmpty) ...[
-                  SizedBox(height: h * 0.005),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: appColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      assignment.course,
-                      style: TextStyle(
-                        fontSize: h * 0.014,
-                        color: appColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-
-                if (assignment.description.isNotEmpty) ...[
-                  SizedBox(height: h * 0.012),
-                  Text(
-                    assignment.description,
-                    style: TextStyle(
-                      fontSize: h * 0.015,
-                      color: Colors.grey.shade700,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-
-                SizedBox(height: h * 0.02),
-                const Divider(height: 1),
-                SizedBox(height: h * 0.015),
-
-                // Assignment details
-                Row(
-                  children: [
-                    if (assignment.points.isNotEmpty) ...[
-                      Icon(
-                        Icons.verified_outlined, // Changed icon
-                        size: 18,
-                        color: appColor,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        '${assignment.points} pts',
-                        style: TextStyle(
-                          fontSize: h * 0.014,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade800,
-                        ),
-                      ),
-                      SizedBox(width: 20),
-                    ],
-
-                    Icon(
-                      Icons.calendar_today_outlined, // Changed icon
-                      size: 16,
-                      color: appColor,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      assignment.endDate != null
-                          ? 'Due ${_formatDate(assignment.endDate!)}'
-                          : 'Posted ${_formatDate(assignment.createdAt ?? DateTime.now())}',
-                      style: TextStyle(
-                        fontSize: h * 0.014,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF4B3FA3)),
+          SizedBox(width: w * 0.04),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: w * 0.04,
+                color: Colors.black,
+              ),
             ),
           ),
-        ),
+          Icon(
+            Icons.chevron_right,
+            color: Colors.grey,
+          ),
+        ],
       ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Today';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-
-  void _handleAssignmentAction(AssignmentInfo assignment, String action) {
-    switch (action) {
-      case 'edit':
-        // TODO: Navigate to edit assignment screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Edit assignment: ${assignment.title}')),
-        );
-        break;
-      case 'delete':
-        _showDeleteAssignmentDialog(assignment);
-        break;
-    }
-  }
-
-  void _showDeleteAssignmentDialog(AssignmentInfo assignment) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Delete Assignment'),
-            content: Text(
-              'Are you sure you want to delete "${assignment.title}"? This cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => goBack(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  try {
-                    await _authService.deleteAssignment(
-                      projectId: 'kk360-69504',
-                      assignmentId: assignment.id,
-                    );
-                    goBack(ctx);
-                    _refreshAssignments();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Assignment deleted successfully'),
-                      ),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error deleting assignment: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
     );
   }
 }

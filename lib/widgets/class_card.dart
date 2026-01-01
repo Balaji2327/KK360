@@ -500,7 +500,7 @@ class ClassCard extends StatelessWidget {
         context: context,
         builder:
             (context) => AlertDialog(
-              title: Text('Members of ${classInfo.name}'),
+              title: Text('Members of ${classInfo.name}', style: TextStyle(fontSize: 16)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -533,8 +533,9 @@ class ClassCard extends StatelessWidget {
                                   ? 'You (Admin)'
                                   : 'You (Main Tutor)')
                               : (isOwnerAdmin ? 'Admin' : 'Main Tutor'),
+                          style: TextStyle(fontSize: 14),
                         ),
-                        subtitle: Text(isOwnerAdmin ? 'Admin' : 'Tutor'),
+                        subtitle: Text(isOwnerAdmin ? 'Admin' : 'Tutor', style: TextStyle(fontSize: 12)),
                       );
                     }
                     currentIndex++;
@@ -548,6 +549,7 @@ class ClassCard extends StatelessWidget {
                             'Other Tutors',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
+                              fontSize: 14,
                               color: Colors.grey.shade700,
                             ),
                           ),
@@ -572,9 +574,11 @@ class ClassCard extends StatelessWidget {
                             ),
                             title: Text(
                               memberId == currentUserId ? 'You' : displayName,
+                              style: TextStyle(fontSize: 14),
                             ),
                             subtitle: Text(
                               'Tutor${email.isNotEmpty ? ' • $email' : ''}',
+                              style: TextStyle(fontSize: 12),
                             ),
                           );
                         }
@@ -591,6 +595,7 @@ class ClassCard extends StatelessWidget {
                             'Students',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
+                              fontSize: 14,
                               color: Colors.grey.shade700,
                             ),
                           ),
@@ -616,9 +621,11 @@ class ClassCard extends StatelessWidget {
                             ),
                             title: Text(
                               memberId == currentUserId ? 'You' : displayName,
+                              style: TextStyle(fontSize: 14),
                             ),
                             subtitle: Text(
                               'Student${email.isNotEmpty ? ' • $email' : ''}',
+                              style: TextStyle(fontSize: 12),
                             ),
                           );
                         }

@@ -4,7 +4,6 @@ import '../services/firebase_auth_service.dart';
 import '../Authentication/student_login.dart';
 import '../widgets/student_bottom_nav.dart';
 import '../widgets/nav_helper.dart';
-import 'edit_profile.dart';
 import 'settings_screen.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
@@ -20,6 +19,160 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
   String userName = 'Guest';
   String userEmail = '';
   bool profileLoading = true;
+
+  void _showChangeUsernameDialog() {
+    final TextEditingController usernameController = TextEditingController(text: userName);
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change Username'),
+          content: TextField(
+            controller: usernameController,
+            decoration: const InputDecoration(
+              hintText: 'Enter new username',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newUsername = usernameController.text.trim();
+                if (newUsername.isNotEmpty && newUsername != userName) {
+                  try {
+                    await _authService.updateUserProfile(
+                      projectId: 'kk360-69504',
+                      name: newUsername,
+                    );
+                    setState(() => userName = newUsername);
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Username updated successfully')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error updating username: $e')),
+                    );
+                  }
+                } else {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change Password', style: TextStyle(fontSize: 16)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: currentPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Current password',
+                    hintStyle: TextStyle(fontSize: 14),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: newPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    hintText: 'New password',
+                    hintStyle: TextStyle(fontSize: 14),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Confirm new password',
+                    hintStyle: TextStyle(fontSize: 14),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel', style: TextStyle(fontSize: 14)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final currentPassword = currentPasswordController.text;
+                final newPassword = newPasswordController.text;
+                final confirmPassword = confirmPasswordController.text;
+
+                if (newPassword.isEmpty || newPassword.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Password must be at least 6 characters')),
+                  );
+                  return;
+                }
+
+                if (newPassword != confirmPassword) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Passwords do not match')),
+                  );
+                  return;
+                }
+
+                try {
+                  final user = _authService.getCurrentUser();
+                  if (user != null && user.email != null) {
+                    // Reauthenticate
+                    await _authService.signInWithEmail(
+                      email: user.email!,
+                      password: currentPassword,
+                    );
+
+                    // Update password
+                    await user.updatePassword(newPassword);
+
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Password updated successfully')),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating password: $e')),
+                  );
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -233,7 +386,35 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                   // ---------------- FEATURE TILES ----------------
                   GestureDetector(
                     onTap: () {
-                      goPush(context, const EditProfileScreen());
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Edit Profile'),
+                            content: const Text('Choose what you want to edit:'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _showChangeUsernameDialog();
+                                },
+                                child: const Text('Change Username'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _showChangePasswordDialog();
+                                },
+                                child: const Text('Change Password'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cancel'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     },
                     child: featureTile(w, h, Icons.person, "Edit Profile"),
                   ),

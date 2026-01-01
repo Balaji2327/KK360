@@ -21,7 +21,10 @@ class _TestPageState extends State<TestPage> {
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
         child: GestureDetector(
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Create Test coming soon'))),
+          onTap:
+              () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Create Test coming soon')),
+              ),
           child: Container(
             height: h * 0.065,
             width: h * 0.065,
@@ -82,9 +85,7 @@ class _TestPageState extends State<TestPage> {
           SizedBox(height: h * 0.0005),
 
           // content
-          Expanded(
-            child: _buildEmptyState(h, w),
-          ),
+          Expanded(child: _buildEmptyState(h, w)),
         ],
       ),
     );

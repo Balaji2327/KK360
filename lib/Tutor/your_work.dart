@@ -107,7 +107,12 @@ class _WorksScreenState extends State<WorksScreen> {
                 SizedBox(height: h * 0.02),
                 GestureDetector(
                   onTap: () => goPush(context, AssignmentPage()),
-                  child: featureTile(w, h, Icons.assignment_outlined, "Assignment"),
+                  child: featureTile(
+                    w,
+                    h,
+                    Icons.assignment_outlined,
+                    "Assignment",
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => goPush(context, TopicPage()),
@@ -119,7 +124,12 @@ class _WorksScreenState extends State<WorksScreen> {
                 ),
                 GestureDetector(
                   onTap: () => goPush(context, TutorMaterialPage()),
-                  child: featureTile(w, h, Icons.insert_drive_file_outlined, "Material"),
+                  child: featureTile(
+                    w,
+                    h,
+                    Icons.insert_drive_file_outlined,
+                    "Material",
+                  ),
                 ),
                 SizedBox(height: h * 0.03),
               ],
@@ -127,9 +137,7 @@ class _WorksScreenState extends State<WorksScreen> {
           ),
 
           // content
-          Expanded(
-            child: _buildClassworkContent(h, w),
-          ),
+          Expanded(child: _buildClassworkContent(h, w)),
         ],
       ),
     );
@@ -196,16 +204,10 @@ class _WorksScreenState extends State<WorksScreen> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: w * 0.04,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: w * 0.04, color: Colors.black),
             ),
           ),
-          Icon(
-            Icons.chevron_right,
-            color: Colors.grey,
-          ),
+          Icon(Icons.chevron_right, color: Colors.grey),
         ],
       ),
     );

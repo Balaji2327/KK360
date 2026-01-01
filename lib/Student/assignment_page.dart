@@ -248,11 +248,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                 Row(
                   children: [
                     if (assignment.points.isNotEmpty) ...[
-                      Icon(
-                        Icons.verified_outlined,
-                        size: 18,
-                        color: appColor,
-                      ),
+                      Icon(Icons.verified_outlined, size: 18, color: appColor),
                       SizedBox(width: 6),
                       Text(
                         '${assignment.points} pts',

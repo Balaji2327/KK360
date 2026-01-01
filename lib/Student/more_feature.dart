@@ -21,8 +21,10 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
   bool profileLoading = true;
 
   void _showChangeUsernameDialog() {
-    final TextEditingController usernameController = TextEditingController(text: userName);
-    
+    final TextEditingController usernameController = TextEditingController(
+      text: userName,
+    );
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -52,7 +54,9 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                     setState(() => userName = newUsername);
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Username updated successfully')),
+                      const SnackBar(
+                        content: Text('Username updated successfully'),
+                      ),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -72,10 +76,12 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
   }
 
   void _showChangePasswordDialog() {
-    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController currentPasswordController =
+        TextEditingController();
     final TextEditingController newPasswordController = TextEditingController();
-    final TextEditingController confirmPasswordController = TextEditingController();
-    
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -130,7 +136,9 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
 
                 if (newPassword.isEmpty || newPassword.length < 6) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password must be at least 6 characters')),
+                    const SnackBar(
+                      content: Text('Password must be at least 6 characters'),
+                    ),
                   );
                   return;
                 }
@@ -156,7 +164,9 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
 
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Password updated successfully')),
+                      const SnackBar(
+                        content: Text('Password updated successfully'),
+                      ),
                     );
                   }
                 } catch (e) {
@@ -391,7 +401,9 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                         builder: (BuildContext context) {
                           return AlertDialog(
                             title: const Text('Edit Profile'),
-                            content: const Text('Choose what you want to edit:'),
+                            content: const Text(
+                              'Choose what you want to edit:',
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () {

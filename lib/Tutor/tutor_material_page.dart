@@ -83,9 +83,7 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
           SizedBox(height: h * 0.0005),
 
           // content
-          Expanded(
-            child: _buildEmptyState(h, w),
-          ),
+          Expanded(child: _buildEmptyState(h, w)),
         ],
       ),
     );

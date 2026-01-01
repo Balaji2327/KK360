@@ -190,32 +190,65 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           ),
                           SizedBox(height: h * 0.02),
                           GestureDetector(
-                            onTap: () => goPush(
-                              context,
-                              StudentAssignmentPage(
-                                classId: _selectedClassId!,
-                                className: _selectedClassDisplayName(),
-                              ),
+                            onTap:
+                                () => goPush(
+                                  context,
+                                  StudentAssignmentPage(
+                                    classId: _selectedClassId!,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.assignment_outlined,
+                              "Assignments",
                             ),
-                            child: featureTile(w, h, Icons.assignment_outlined, "Assignments"),
                           ),
                           GestureDetector(
-                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Topics coming soon')),
+                            onTap:
+                                () =>
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Topics coming soon'),
+                                      ),
+                                    ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.topic_outlined,
+                              "Topics",
                             ),
-                            child: featureTile(w, h, Icons.topic_outlined, "Topics"),
                           ),
                           GestureDetector(
-                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Tests coming soon')),
+                            onTap:
+                                () =>
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Tests coming soon'),
+                                      ),
+                                    ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.note_alt_outlined,
+                              "Tests",
                             ),
-                            child: featureTile(w, h, Icons.note_alt_outlined, "Tests"),
                           ),
                           GestureDetector(
-                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Materials coming soon')),
+                            onTap:
+                                () =>
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Materials coming soon'),
+                                      ),
+                                    ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.insert_drive_file_outlined,
+                              "Materials",
                             ),
-                            child: featureTile(w, h, Icons.insert_drive_file_outlined, "Materials"),
                           ),
                         ],
                       ),

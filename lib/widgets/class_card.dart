@@ -500,7 +500,10 @@ class ClassCard extends StatelessWidget {
         context: context,
         builder:
             (context) => AlertDialog(
-              title: Text('Members of ${classInfo.name}', style: TextStyle(fontSize: 16)),
+              title: Text(
+                'Members of ${classInfo.name}',
+                style: TextStyle(fontSize: 16),
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -535,7 +538,10 @@ class ClassCard extends StatelessWidget {
                               : (isOwnerAdmin ? 'Admin' : 'Main Tutor'),
                           style: TextStyle(fontSize: 14),
                         ),
-                        subtitle: Text(isOwnerAdmin ? 'Admin' : 'Tutor', style: TextStyle(fontSize: 12)),
+                        subtitle: Text(
+                          isOwnerAdmin ? 'Admin' : 'Tutor',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       );
                     }
                     currentIndex++;

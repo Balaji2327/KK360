@@ -75,7 +75,11 @@ class _AssignmentPageState extends State<AssignmentPage> {
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
         child: GestureDetector(
-          onTap: () => goPush(context, CreateAssignmentScreen()).then((_) => _refreshAssignments()),
+          onTap:
+              () => goPush(
+                context,
+                CreateAssignmentScreen(),
+              ).then((_) => _refreshAssignments()),
           child: Container(
             height: h * 0.065,
             width: h * 0.065,
@@ -331,11 +335,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                 Row(
                   children: [
                     if (assignment.points.isNotEmpty) ...[
-                      Icon(
-                        Icons.verified_outlined,
-                        size: 18,
-                        color: appColor,
-                      ),
+                      Icon(Icons.verified_outlined, size: 18, color: appColor),
                       SizedBox(width: 6),
                       Text(
                         '${assignment.points} pts',

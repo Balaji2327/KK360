@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_bottom_nav.dart';
+import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
+import 'student_control.dart';
+import 'tutor_control.dart';
+import 'admin_control.dart';
 
 class AdminControlSelectionScreen extends StatefulWidget {
   const AdminControlSelectionScreen({super.key});
@@ -83,7 +87,7 @@ class _AdminControlSelectionScreenState
 
                   Text(
                     profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                    style: TextStyle(fontSize: h * 0.012, color: Colors.white),
                   ),
                 ],
               ),
@@ -110,7 +114,9 @@ class _AdminControlSelectionScreenState
                   h: h,
                   icon: Icons.school_outlined,
                   title: "Student Control",
-                  onTap: () {},
+                  onTap: () {
+                    goPush(context, const StudentControlScreen());
+                  },
                 ),
 
                 SizedBox(height: h * 0.02),
@@ -120,7 +126,9 @@ class _AdminControlSelectionScreenState
                   h: h,
                   icon: Icons.person_outline,
                   title: "Tutor Control",
-                  onTap: () {},
+                  onTap: () {
+                    goPush(context, const TutorControlScreen());
+                  },
                 ),
 
                 SizedBox(height: h * 0.02),
@@ -128,9 +136,11 @@ class _AdminControlSelectionScreenState
                 _controlTile(
                   w: w,
                   h: h,
-                  icon: Icons.class_outlined,
-                  title: "Class Control",
-                  onTap: () {},
+                  icon: Icons.admin_panel_settings_outlined,
+                  title: "Admin Control",
+                  onTap: () {
+                    goPush(context, const AdminControlScreen());
+                  },
                 ),
               ],
             ),

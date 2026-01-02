@@ -1,0 +1,527 @@
+import 'package:flutter/material.dart';
+import 'todo_list.dart';
+import '../services/firebase_auth_service.dart';
+import '../Authentication/tutor_login.dart';
+import '../widgets/tutor_bottom_nav.dart';
+import '../widgets/nav_helper.dart';
+import 'settings_screen.dart';
+
+class TutorMoreFeaturesScreen extends StatefulWidget {
+  const TutorMoreFeaturesScreen({super.key});
+
+  @override
+  State<TutorMoreFeaturesScreen> createState() =>
+      _TutorMoreFeaturesScreenState();
+}
+
+class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  bool isLoggingOut = false;
+  String userName = 'Guest';
+  String userEmail = '';
+  bool profileLoading = true;
+
+  void _showChangeUsernameDialog() {
+    final TextEditingController usernameController = TextEditingController(
+      text: userName,
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change Username'),
+          content: TextField(
+            controller: usernameController,
+            decoration: const InputDecoration(
+              hintText: 'Enter new username',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newUsername = usernameController.text.trim();
+                if (newUsername.isNotEmpty && newUsername != userName) {
+                  try {
+                    await _authService.updateUserProfile(
+                      projectId: 'kk360-69504',
+                      name: newUsername,
+                    );
+                    setState(() => userName = newUsername);
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Username updated successfully'),
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error updating username: $e')),
+                    );
+                  }
+                } else {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final TextEditingController currentPasswordController =
+        TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change Password', style: TextStyle(fontSize: 16)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: currentPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Current password',
+                    hintStyle: TextStyle(fontSize: 14),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: newPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    hintText: 'New password',
+                    hintStyle: TextStyle(fontSize: 14),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Confirm new password',
+                    hintStyle: TextStyle(fontSize: 14),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel', style: TextStyle(fontSize: 14)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final currentPassword = currentPasswordController.text;
+                final newPassword = newPasswordController.text;
+                final confirmPassword = confirmPasswordController.text;
+
+                if (newPassword.isEmpty || newPassword.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password must be at least 6 characters'),
+                    ),
+                  );
+                  return;
+                }
+
+                if (newPassword != confirmPassword) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Passwords do not match')),
+                  );
+                  return;
+                }
+
+                try {
+                  final user = _authService.getCurrentUser();
+                  if (user != null && user.email != null) {
+                    // Reauthenticate
+                    await _authService.signInWithEmail(
+                      email: user.email!,
+                      password: currentPassword,
+                    );
+
+                    // Update password
+                    await user.updatePassword(newPassword);
+
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Password updated successfully'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating password: $e')),
+                  );
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    final w = MediaQuery.of(context).size.width;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+
+      // ⭐ TUTOR NAVIGATION BAR
+      bottomNavigationBar: const TutorBottomNav(currentIndex: 3),
+
+      // ---------------- BODY ----------------
+      body: Column(
+        children: [
+          // ---------------- PURPLE HEADER ----------------
+          Container(
+            width: w,
+            height: h * 0.15,
+            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+            decoration: const BoxDecoration(
+              color: Color(0xFF4B3FA3),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: h * 0.085),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "More Features",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    // Logout button
+                    GestureDetector(
+                      onTap:
+                          isLoggingOut
+                              ? null
+                              : () async {
+                                final doLogout = await showDialog<bool>(
+                                  context: context,
+                                  builder:
+                                      (ctx) => AlertDialog(
+                                        title: const Text('Log out'),
+                                        content: const Text(
+                                          'Are you sure you want to log out?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => goBack(ctx, false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () => goBack(ctx, true),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: const Text('Log out'),
+                                          ),
+                                        ],
+                                      ),
+                                );
+
+                                if (doLogout != true) {
+                                  return;
+                                }
+
+                                setState(() {
+                                  isLoggingOut = true;
+                                });
+                                try {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  await _authService.signOut();
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Logged out')),
+                                  );
+                                  goReplace(context, const TutorLoginScreen());
+                                } catch (e) {
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Logout failed: $e'),
+                                    ),
+                                  );
+                                } finally {
+                                  if (mounted) {
+                                    setState(() {
+                                      isLoggingOut = false;
+                                    });
+                                  }
+                                }
+                              },
+                      child: Container(
+                        height: h * 0.04,
+                        width: w * 0.25,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Center(
+                          child:
+                              isLoggingOut
+                                  ? SizedBox(
+                                    width: h * 0.02,
+                                    height: h * 0.02,
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Text(
+                                    "Log out",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: h * 0.03),
+
+                  // ---------------- PROFILE ----------------
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: h * 0.04,
+                          backgroundImage: const AssetImage(
+                            "assets/images/female.png",
+                          ),
+                        ),
+                        SizedBox(width: w * 0.03),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profileLoading ? 'Loading...' : userName,
+                              style: TextStyle(
+                                fontSize: w * 0.045,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            Text(
+                              profileLoading ? '' : userEmail,
+                              style: TextStyle(
+                                color: isDark ? Colors.white70 : Colors.black54,
+                                fontSize: w * 0.032,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: h * 0.03),
+
+                  // ---------------- FEATURES TITLE ----------------
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                    child: Text(
+                      "Features",
+                      style: TextStyle(
+                        fontSize: w * 0.049,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: h * 0.02),
+
+                  // ---------------- FEATURE TILES ----------------
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Edit Profile'),
+                            content: const Text(
+                              'Choose what you want to edit:',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _showChangeUsernameDialog();
+                                },
+                                child: const Text('Change Username'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _showChangePasswordDialog();
+                                },
+                                child: const Text('Change Password'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cancel'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    child: featureTile(w, h, Icons.person, "Edit Profile"),
+                  ),
+                  featureTile(w, h, Icons.check_circle, "Attendance"),
+                  featureTile(w, h, Icons.bar_chart, "Results"),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const TutorToDoListScreen());
+                    },
+                    child: featureTile(w, h, Icons.list_alt, "To Do List"),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const TutorSettingsScreen());
+                    },
+                    child: featureTile(w, h, Icons.settings, "Settings"),
+                  ),
+                  featureTile(w, h, Icons.history, "My Teaching History"),
+                  featureTile(w, h, Icons.analytics, "Class Analytics"),
+
+                  SizedBox(height: h * 0.12),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- Feature Tile ----------------
+  Widget featureTile(
+    double w,
+    double h,
+    IconData icon,
+    String text, {
+    bool underline = false,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tileColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: w * 0.06, vertical: h * 0.008),
+      padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+      height: h * 0.07,
+      decoration: BoxDecoration(
+        color: tileColor,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF4B3FA3)),
+          SizedBox(width: w * 0.04),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: w * 0.04,
+                decoration:
+                    underline ? TextDecoration.underline : TextDecoration.none,
+                color: textColor,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.chevron_right,
+            color: isDark ? Colors.white54 : Colors.grey,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
+  }
+}

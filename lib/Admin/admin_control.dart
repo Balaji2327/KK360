@@ -14,14 +14,23 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   bool profileLoading = true;
   String userName = 'User';
   String userEmail = '';
-  List<UserProfile> _admins = [];
+  List<Map<String, String>> _admins = [];
+  List<Map<String, String>> _filteredAdmins = [];
   bool _adminsLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
     _loadAdmins();
+    _searchController.addListener(_filterAdmins);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserProfile() async {
@@ -40,26 +49,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   Future<void> _loadAdmins() async {
     setState(() => _adminsLoading = true);
     try {
-      // This is a placeholder - you'll need to implement getAllUsersByRole in your service
-      // For now, we'll show a sample structure
+      // Start with empty list - admins will be added via popup
       setState(() {
-        _admins = [
-          UserProfile(
-            name: 'Super Admin',
-            email: 'admin@kk360.com',
-            role: 'admin',
-          ),
-          UserProfile(
-            name: 'System Admin',
-            email: 'system@kk360.com',
-            role: 'admin',
-          ),
-          UserProfile(
-            name: 'Content Admin',
-            email: 'content@kk360.com',
-            role: 'admin',
-          ),
-        ];
+        _filteredAdmins = List.from(_admins);
         _adminsLoading = false;
       });
     } catch (e) {
@@ -68,13 +60,24 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     }
   }
 
+  void _filterAdmins() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredAdmins =
+          _admins.where((admin) {
+            return admin['id']!.toLowerCase().contains(query) ||
+                admin['name']!.toLowerCase().contains(query);
+          }).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       bottomNavigationBar: const AdminBottomNav(currentIndex: 2),
 
       body: Column(
@@ -98,17 +101,13 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                 children: [
                   SizedBox(height: h * 0.05),
 
-                  Row(
-                    children: [
-                      Text(
-                        "Admin Control",
-                        style: TextStyle(
-                          fontSize: h * 0.03,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    "Admin Control",
+                    style: TextStyle(
+                      fontSize: h * 0.03,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
 
                   SizedBox(height: h * 0.006),
@@ -124,115 +123,108 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
 
           SizedBox(height: h * 0.02),
 
-          // Control Actions
+          // Search Bar and Add Button
           Padding(
             padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                const Text(
-                  "Admin Management Actions",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                Expanded(
+                  child: Container(
+                    height: h * 0.06,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search for anything',
+                        hintStyle: TextStyle(color: Colors.grey.shade600),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Colors.grey.shade600,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-
-                SizedBox(height: h * 0.02),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.admin_panel_settings,
-                        title: "Add Admin",
-                        color: Colors.red,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Add Admin functionality'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(width: w * 0.04),
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.security,
-                        title: "Permissions",
-                        color: Colors.indigo,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Manage Permissions functionality'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: h * 0.02),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.analytics,
-                        title: "System Stats",
-                        color: Colors.teal,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('System Statistics functionality'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(width: w * 0.04),
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.settings,
-                        title: "System Config",
-                        color: Colors.grey,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'System Configuration functionality',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: h * 0.03),
-
-                const Text(
-                  "All Administrators",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                SizedBox(width: w * 0.04),
+                Container(
+                  height: h * 0.05,
+                  width: h * 0.05,
+                  decoration: BoxDecoration(
                     color: Colors.black87,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: GestureDetector(
+                    onTap: () => _showAddAdminDialog(context),
+                    child: const Icon(
+                      Icons.admin_panel_settings,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ),
 
-                SizedBox(height: h * 0.01),
+          SizedBox(height: h * 0.02),
+
+          // Table Header
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: w * 0.06),
+            padding: EdgeInsets.symmetric(
+              vertical: h * 0.015,
+              horizontal: w * 0.04,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(10),
+                topRight: Radius.circular(10),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'ADMIN ID',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'NAME',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'DETAILS',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -242,20 +234,30 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
             child:
                 _adminsLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _admins.isEmpty
+                    : _filteredAdmins.isEmpty
                     ? const Center(
                       child: Text(
                         'No administrators found',
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     )
-                    : ListView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      itemCount: _admins.length,
-                      itemBuilder: (context, index) {
-                        final admin = _admins[index];
-                        return _adminTile(w, h, admin);
-                      },
+                    : Container(
+                      margin: EdgeInsets.symmetric(horizontal: w * 0.06),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(10),
+                          bottomRight: Radius.circular(10),
+                        ),
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: _filteredAdmins.length,
+                        itemBuilder: (context, index) {
+                          final admin = _filteredAdmins[index];
+                          return _adminRow(w, h, admin, index);
+                        },
+                      ),
                     ),
           ),
         ],
@@ -263,195 +265,391 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     );
   }
 
-  Widget _actionCard({
-    required double w,
-    required double h,
-    required IconData icon,
-    required String title,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: h * 0.12,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: color, width: 1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 30, color: color),
-            SizedBox(height: h * 0.01),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _adminTile(double w, double h, UserProfile admin) {
+  Widget _adminRow(double w, double h, Map<String, String> admin, int index) {
     return Container(
-      margin: EdgeInsets.only(bottom: h * 0.015),
-      padding: EdgeInsets.all(w * 0.04),
+      padding: EdgeInsets.symmetric(vertical: h * 0.015, horizontal: w * 0.04),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: Colors.red,
+          Expanded(
+            flex: 2,
             child: Text(
-              admin.name?.substring(0, 1).toUpperCase() ?? 'A',
+              admin['id']!,
               style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
               ),
             ),
           ),
-          SizedBox(width: w * 0.04),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      admin.name ?? 'Unknown Admin',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(width: w * 0.02),
-                    Icon(
-                      Icons.admin_panel_settings,
-                      size: 16,
-                      color: Colors.red,
-                    ),
-                  ],
-                ),
-                SizedBox(height: h * 0.005),
-                Text(
-                  admin.email ?? 'No email',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                SizedBox(height: h * 0.005),
-                Container(
+            flex: 2,
+            child: Text(
+              admin['name']!,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: GestureDetector(
+                onTap: () => _showAdminDetails(context, admin),
+                child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
+                    horizontal: 12,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'Super User',
+                    'View',
                     style: TextStyle(
+                      color: Colors.white,
                       fontSize: 12,
-                      color: Colors.red,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddAdminDialog(BuildContext context) {
+    final TextEditingController adminIdController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Add New Admin',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF4B3FA3),
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: adminIdController,
+                  decoration: const InputDecoration(
+                    labelText: 'Admin ID',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.badge),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter admin ID';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter email';
+                    }
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: confirmPasswordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm password';
+                    }
+                    if (value != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'permissions':
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  // Add new admin to the list
+                  final newAdmin = {
+                    'id': adminIdController.text,
+                    'name': emailController.text.split('@')[0].toUpperCase(),
+                    'email': emailController.text,
+                    'password': passwordController.text,
+                    'dateAdded': DateTime.now().toString().split(' ')[0],
+                  };
+
+                  setState(() {
+                    _admins.add(newAdmin);
+                    _filteredAdmins = List.from(_admins);
+                  });
+
+                  Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Manage ${admin.name} permissions')),
+                    SnackBar(
+                      content: Text(
+                        'Admin ${adminIdController.text} (${emailController.text}) added successfully!',
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
                   );
-                  break;
-                case 'activity':
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('View ${admin.name} activity')),
-                  );
-                  break;
-                case 'suspend':
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Suspend ${admin.name}')),
-                  );
-                  break;
-                case 'remove':
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Remove ${admin.name}')),
-                  );
-                  break;
-              }
-            },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'permissions',
-                    child: Row(
-                      children: [
-                        Icon(Icons.security, color: Colors.indigo),
-                        SizedBox(width: 8),
-                        Text('Permissions'),
-                      ],
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Add Admin'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAdminDetails(BuildContext context, Map<String, String> admin) {
+    bool isPasswordVisible = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Admin Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF4B3FA3),
+                      ),
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'activity',
-                    child: Row(
-                      children: [
-                        Icon(Icons.analytics, color: Colors.teal),
-                        SizedBox(width: 8),
-                        Text('Activity Log'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'suspend',
-                    child: Row(
-                      children: [
-                        Icon(Icons.block, color: Colors.orange),
-                        SizedBox(width: 8),
-                        Text('Suspend'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'remove',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Remove'),
-                      ],
-                    ),
+                  GestureDetector(
+                    onTap: () => _deleteAdmin(context, admin),
+                    child: Icon(Icons.delete, color: Colors.red, size: 24),
                   ),
                 ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailRow('Admin ID:', admin['id'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Name:', admin['name'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Email:', admin['email'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildPasswordRow(
+                    'Password:',
+                    admin['password'] ?? 'N/A',
+                    isPasswordVisible,
+                    () =>
+                        setState(() => isPasswordVisible = !isPasswordVisible),
+                  ),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Date Added:', admin['dateAdded'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Status:', 'Active'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Close'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Edit functionality coming soon'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF4B3FA3),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('Edit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
           ),
-        ],
-      ),
+        ),
+        Expanded(child: Text(value, style: TextStyle(color: Colors.black87))),
+      ],
+    );
+  }
+
+  Widget _buildPasswordRow(
+    String label,
+    String password,
+    bool isVisible,
+    VoidCallback onToggle,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  isVisible ? password : '••••••••',
+                  style: TextStyle(color: Colors.black87),
+                ),
+              ),
+              GestureDetector(
+                onTap: onToggle,
+                child: Icon(
+                  isVisible ? Icons.visibility_off : Icons.visibility,
+                  size: 18,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _deleteAdmin(BuildContext context, Map<String, String> admin) {
+    Navigator.of(context).pop(); // Close details dialog first
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Delete Admin',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          ),
+          content: Text(
+            'Are you sure you want to delete admin ${admin['name']} (${admin['id']})?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _admins.removeWhere((a) => a['id'] == admin['id']);
+                  _filteredAdmins = List.from(_admins);
+                });
+
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Admin ${admin['name']} deleted successfully',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              },
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

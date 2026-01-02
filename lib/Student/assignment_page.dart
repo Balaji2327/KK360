@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../widgets/student_bottom_nav.dart';
-import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
 class StudentAssignmentPage extends StatefulWidget {

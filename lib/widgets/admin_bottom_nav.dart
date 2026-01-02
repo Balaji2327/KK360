@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../Admin/home_screen.dart';
 import '../Admin/meeting_control.dart';
 import '../Admin/controls_screen.dart';
-import '../Admin/add_people.dart';
+import '../Admin/more_feature.dart';
 import 'nav_helper.dart';
 
 class AdminBottomNav extends StatefulWidget {
@@ -36,7 +36,7 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
         break;
       case 3:
       default:
-        page = const AdminAddPeopleScreen();
+        page = const AdminMoreFeaturesScreen();
         break;
     }
 

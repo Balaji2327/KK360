@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
-import 'create_assignment.dart';
-import 'create_material.dart';
 import 'assignment_page.dart';
 import 'topic_page.dart';
 import 'test_page.dart';
@@ -70,7 +68,7 @@ class _WorksScreenState extends State<WorksScreen> {
                 children: [
                   SizedBox(height: h * 0.05),
                   Text(
-                    "Classwork",
+                    "Your works",
                     style: TextStyle(
                       fontSize: h * 0.03,
                       fontWeight: FontWeight.bold,
@@ -144,40 +142,7 @@ class _WorksScreenState extends State<WorksScreen> {
   }
 
   Widget _buildClassworkContent(double h, double w) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          SizedBox(height: h * 0.08),
-          SizedBox(
-            height: h * 0.28,
-            child: Center(
-              child: Image.asset("assets/images/work.png", fit: BoxFit.contain),
-            ),
-          ),
-          SizedBox(height: h * 0.02),
-          Text(
-            "Manage your classwork",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: h * 0.0185, fontWeight: FontWeight.w700),
-          ),
-          SizedBox(height: h * 0.015),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.12),
-            child: Text(
-              "Select a category above to view and manage\nyour assignments, topics, tests, and materials",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: h * 0.0145,
-                color: Colors.black87,
-                height: 1.5,
-              ),
-            ),
-          ),
-          SizedBox(height: h * 0.18),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   // Feature Tile Widget
@@ -191,7 +156,7 @@ class _WorksScreenState extends State<WorksScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -209,171 +174,6 @@ class _WorksScreenState extends State<WorksScreen> {
           ),
           Icon(Icons.chevron_right, color: Colors.grey),
         ],
-      ),
-    );
-  }
-}
-
-class _CreateSheetContent extends StatelessWidget {
-  final VoidCallback onAssignmentCreated;
-
-  const _CreateSheetContent({required this.onAssignmentCreated});
-
-  // generic sheet item row
-  Widget _sheetItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final h = MediaQuery.of(context).size.height;
-    final w = MediaQuery.of(context).size.width;
-    final iconSize = h * 0.026 + 6; // responsive
-    final textStyle = TextStyle(
-      color: Colors.white,
-      fontSize: h * 0.0175,
-      fontWeight: FontWeight.w300,
-    );
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: h * 0.012),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: iconSize),
-            SizedBox(width: w * 0.04),
-            Expanded(child: Text(label, style: textStyle)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _onItemTap(BuildContext context, String action) {
-    goBack(context); // close sheet
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Tapped: $action")));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final h = MediaQuery.of(context).size.height;
-    final w = MediaQuery.of(context).size.width;
-    final horizontal = w * 0.06;
-
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontal,
-          vertical: h * 0.02,
-        ),
-        decoration: const BoxDecoration(
-          color: Color(0xFF4A4F4D),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(18),
-            topRight: Radius.circular(18),
-          ),
-        ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              // drag handle
-              Container(
-                width: w * 0.18,
-                height: h * 0.0065,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              SizedBox(height: h * 0.015),
-
-              // Centered CREATE title
-              Text(
-                "Create",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: h * 0.022,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: h * 0.015),
-
-              // NAVIGATE to your separate Assignment screen when tapped:
-              _sheetItem(
-                context,
-                icon: Icons.assignment_outlined,
-                label: "Assignment",
-                onTap: () {
-                  goBack(context); // close sheet first
-                  // then push your existing assignment page
-                  goPush(context, CreateAssignmentScreen()).then((_) {
-                    // Refresh assignments when returning from create screen
-                    onAssignmentCreated();
-                  });
-                },
-              ),
-
-              _sheetItem(
-                context,
-                icon: Icons.topic_outlined,
-                label: "Topic",
-                onTap: () => _onItemTap(context, 'Topic'),
-              ),
-              _sheetItem(
-                context,
-                icon: Icons.note_alt_outlined,
-                label: "Test",
-                onTap: () => _onItemTap(context, 'Test'),
-              ),
-              _sheetItem(
-                context,
-                icon: Icons.insert_drive_file_outlined,
-                label: "Material",
-                onTap: () {
-                  goBack(context); // close sheet first
-                  // then push your existing assignment page
-                  goPush(context, CreateMaterialScreen());
-                },
-              ),
-
-              SizedBox(height: h * 0.01),
-              const Divider(color: Colors.white24, height: 1),
-              SizedBox(height: h * 0.015),
-
-              // Centered FOLLOW UP title
-              Text(
-                "Follow Up",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: h * 0.022,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: h * 0.015),
-
-              _sheetItem(
-                context,
-                icon: Icons.replay_outlined,
-                label: "Reassign Test",
-                onTap: () => _onItemTap(context, 'Reassign Test'),
-              ),
-              _sheetItem(
-                context,
-                icon: Icons.insights_outlined,
-                label: "Results",
-                onTap: () => _onItemTap(context, 'Results'),
-              ),
-
-              SizedBox(height: h * 0.02),
-            ],
-          ),
-        ),
       ),
     );
   }

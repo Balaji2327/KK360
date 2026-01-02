@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../Tutor/home_screen.dart';
 import '../Tutor/meeting_control.dart';
 import '../Tutor/your_work.dart';
-import '../Tutor/add_people.dart';
+import '../Tutor/more_feature.dart';
 import 'nav_helper.dart';
 
 class TutorBottomNav extends StatefulWidget {
@@ -32,7 +32,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
         break;
       case 3:
       default:
-        page = const AddPeopleScreen();
+        page = const TutorMoreFeaturesScreen();
         break;
     }
 
@@ -99,7 +99,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
           _item(Icons.home_outlined, "Home", 0),
           _item(Icons.group_outlined, "Join meet", 1),
           _item(Icons.menu_book_outlined, "Classwork", 2),
-          _item(Icons.people_alt_outlined, "People", 3),
+          _item(Icons.more_horiz_outlined, "More", 3),
         ],
       ),
     );

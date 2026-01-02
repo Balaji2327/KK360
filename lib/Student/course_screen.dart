@@ -135,20 +135,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
   }
 
-  String _assignmentSubtitle(AssignmentInfo item) {
-    if (item.endDate != null) {
-      final dt = item.endDate!.toLocal();
-      return 'Due ${dt.day}/${dt.month}/${dt.year}';
-    }
-
-    if (item.createdAt != null) {
-      final dt = item.createdAt!.toLocal();
-      return 'Posted ${dt.day}/${dt.month}/${dt.year}';
-    }
-
-    return '';
-  }
-
   String _selectedClassDisplayName() {
     final found = _myClasses.where((c) => c.id == _selectedClassId);
     return found.isNotEmpty ? found.first.name : 'this class';

@@ -14,14 +14,23 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
   bool profileLoading = true;
   String userName = 'User';
   String userEmail = '';
-  List<UserProfile> _tutors = [];
+  List<Map<String, String>> _tutors = [];
+  List<Map<String, String>> _filteredTutors = [];
   bool _tutorsLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
     _loadTutors();
+    _searchController.addListener(_filterTutors);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserProfile() async {
@@ -40,26 +49,9 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
   Future<void> _loadTutors() async {
     setState(() => _tutorsLoading = true);
     try {
-      // This is a placeholder - you'll need to implement getAllUsersByRole in your service
-      // For now, we'll show a sample structure
+      // Start with empty list - tutors will be added via popup
       setState(() {
-        _tutors = [
-          UserProfile(
-            name: 'Dr. Sarah Wilson',
-            email: 'sarah@tutor.com',
-            role: 'tutor',
-          ),
-          UserProfile(
-            name: 'Prof. David Brown',
-            email: 'david@tutor.com',
-            role: 'tutor',
-          ),
-          UserProfile(
-            name: 'Ms. Emily Davis',
-            email: 'emily@tutor.com',
-            role: 'tutor',
-          ),
-        ];
+        _filteredTutors = List.from(_tutors);
         _tutorsLoading = false;
       });
     } catch (e) {
@@ -68,13 +60,24 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     }
   }
 
+  void _filterTutors() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredTutors =
+          _tutors.where((tutor) {
+            return tutor['id']!.toLowerCase().contains(query) ||
+                tutor['name']!.toLowerCase().contains(query);
+          }).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       bottomNavigationBar: const AdminBottomNav(currentIndex: 2),
 
       body: Column(
@@ -98,17 +101,13 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                 children: [
                   SizedBox(height: h * 0.05),
 
-                  Row(
-                    children: [
-                      Text(
-                        "Tutor Control",
-                        style: TextStyle(
-                          fontSize: h * 0.03,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    "Tutor Control",
+                    style: TextStyle(
+                      fontSize: h * 0.03,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
 
                   SizedBox(height: h * 0.006),
@@ -124,113 +123,108 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
 
           SizedBox(height: h * 0.02),
 
-          // Control Actions
+          // Search Bar and Add Button
           Padding(
             padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                const Text(
-                  "Tutor Management Actions",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                Expanded(
+                  child: Container(
+                    height: h * 0.06,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search for anything',
+                        hintStyle: TextStyle(color: Colors.grey.shade600),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Colors.grey.shade600,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-
-                SizedBox(height: h * 0.02),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.person_add,
-                        title: "Add Tutor",
-                        color: Colors.green,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Add Tutor functionality'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(width: w * 0.04),
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.verified,
-                        title: "Verify Tutor",
-                        color: Colors.blue,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Verify Tutor functionality'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: h * 0.02),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.assignment,
-                        title: "View Classes",
-                        color: Colors.purple,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('View Tutor Classes functionality'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(width: w * 0.04),
-                    Expanded(
-                      child: _actionCard(
-                        w: w,
-                        h: h,
-                        icon: Icons.block,
-                        title: "Suspend Tutor",
-                        color: Colors.orange,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Suspend Tutor functionality'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: h * 0.03),
-
-                const Text(
-                  "All Tutors",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                SizedBox(width: w * 0.04),
+                Container(
+                  height: h * 0.05,
+                  width: h * 0.05,
+                  decoration: BoxDecoration(
                     color: Colors.black87,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: GestureDetector(
+                    onTap: () => _showAddTutorDialog(context),
+                    child: const Icon(
+                      Icons.person_add,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ),
 
-                SizedBox(height: h * 0.01),
+          SizedBox(height: h * 0.02),
+
+          // Table Header
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: w * 0.06),
+            padding: EdgeInsets.symmetric(
+              vertical: h * 0.015,
+              horizontal: w * 0.04,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(10),
+                topRight: Radius.circular(10),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'TUTOR ID',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'NAME',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'DETAILS',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -240,20 +234,30 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
             child:
                 _tutorsLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _tutors.isEmpty
+                    : _filteredTutors.isEmpty
                     ? const Center(
                       child: Text(
                         'No tutors found',
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     )
-                    : ListView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      itemCount: _tutors.length,
-                      itemBuilder: (context, index) {
-                        final tutor = _tutors[index];
-                        return _tutorTile(w, h, tutor);
-                      },
+                    : Container(
+                      margin: EdgeInsets.symmetric(horizontal: w * 0.06),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(10),
+                          bottomRight: Radius.circular(10),
+                        ),
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: _filteredTutors.length,
+                        itemBuilder: (context, index) {
+                          final tutor = _filteredTutors[index];
+                          return _tutorRow(w, h, tutor, index);
+                        },
+                      ),
                     ),
           ),
         ],
@@ -261,191 +265,391 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     );
   }
 
-  Widget _actionCard({
-    required double w,
-    required double h,
-    required IconData icon,
-    required String title,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: h * 0.12,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: color, width: 1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 30, color: color),
-            SizedBox(height: h * 0.01),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _tutorTile(double w, double h, UserProfile tutor) {
+  Widget _tutorRow(double w, double h, Map<String, String> tutor, int index) {
     return Container(
-      margin: EdgeInsets.only(bottom: h * 0.015),
-      padding: EdgeInsets.all(w * 0.04),
+      padding: EdgeInsets.symmetric(vertical: h * 0.015, horizontal: w * 0.04),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: Colors.green,
+          Expanded(
+            flex: 2,
             child: Text(
-              tutor.name?.substring(0, 1).toUpperCase() ?? 'T',
+              tutor['id']!,
               style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
               ),
             ),
           ),
-          SizedBox(width: w * 0.04),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      tutor.name ?? 'Unknown Tutor',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(width: w * 0.02),
-                    Icon(Icons.verified, size: 16, color: Colors.blue),
-                  ],
-                ),
-                SizedBox(height: h * 0.005),
-                Text(
-                  tutor.email ?? 'No email',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                SizedBox(height: h * 0.005),
-                Container(
+            flex: 2,
+            child: Text(
+              tutor['name']!,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: GestureDetector(
+                onTap: () => _showTutorDetails(context, tutor),
+                child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
+                    horizontal: 12,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'Active',
+                    'View',
                     style: TextStyle(
+                      color: Colors.white,
                       fontSize: 12,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddTutorDialog(BuildContext context) {
+    final TextEditingController tutorIdController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Add New Tutor',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF4B3FA3),
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: tutorIdController,
+                  decoration: const InputDecoration(
+                    labelText: 'Tutor ID',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.badge),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter tutor ID';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter email';
+                    }
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: confirmPasswordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm password';
+                    }
+                    if (value != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'verify':
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  // Add new tutor to the list
+                  final newTutor = {
+                    'id': tutorIdController.text,
+                    'name': emailController.text.split('@')[0].toUpperCase(),
+                    'email': emailController.text,
+                    'password': passwordController.text,
+                    'dateAdded': DateTime.now().toString().split(' ')[0],
+                  };
+
+                  setState(() {
+                    _tutors.add(newTutor);
+                    _filteredTutors = List.from(_tutors);
+                  });
+
+                  Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Verify ${tutor.name}')),
+                    SnackBar(
+                      content: Text(
+                        'Tutor ${tutorIdController.text} (${emailController.text}) added successfully!',
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
                   );
-                  break;
-                case 'classes':
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('View ${tutor.name} classes')),
-                  );
-                  break;
-                case 'suspend':
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Suspend ${tutor.name}')),
-                  );
-                  break;
-                case 'remove':
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Remove ${tutor.name}')),
-                  );
-                  break;
-              }
-            },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'verify',
-                    child: Row(
-                      children: [
-                        Icon(Icons.verified, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text('Verify'),
-                      ],
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Add Tutor'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showTutorDetails(BuildContext context, Map<String, String> tutor) {
+    bool isPasswordVisible = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Tutor Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF4B3FA3),
+                      ),
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'classes',
-                    child: Row(
-                      children: [
-                        Icon(Icons.assignment, color: Colors.purple),
-                        SizedBox(width: 8),
-                        Text('View Classes'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'suspend',
-                    child: Row(
-                      children: [
-                        Icon(Icons.block, color: Colors.orange),
-                        SizedBox(width: 8),
-                        Text('Suspend'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'remove',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Remove'),
-                      ],
-                    ),
+                  GestureDetector(
+                    onTap: () => _deleteTutor(context, tutor),
+                    child: Icon(Icons.delete, color: Colors.red, size: 24),
                   ),
                 ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailRow('Tutor ID:', tutor['id'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Name:', tutor['name'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Email:', tutor['email'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildPasswordRow(
+                    'Password:',
+                    tutor['password'] ?? 'N/A',
+                    isPasswordVisible,
+                    () =>
+                        setState(() => isPasswordVisible = !isPasswordVisible),
+                  ),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Date Added:', tutor['dateAdded'] ?? 'N/A'),
+                  SizedBox(height: 12),
+                  _buildDetailRow('Status:', 'Active'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Close'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Edit functionality coming soon'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF4B3FA3),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('Edit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
           ),
-        ],
-      ),
+        ),
+        Expanded(child: Text(value, style: TextStyle(color: Colors.black87))),
+      ],
+    );
+  }
+
+  Widget _buildPasswordRow(
+    String label,
+    String password,
+    bool isVisible,
+    VoidCallback onToggle,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  isVisible ? password : '••••••••',
+                  style: TextStyle(color: Colors.black87),
+                ),
+              ),
+              GestureDetector(
+                onTap: onToggle,
+                child: Icon(
+                  isVisible ? Icons.visibility_off : Icons.visibility,
+                  size: 18,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _deleteTutor(BuildContext context, Map<String, String> tutor) {
+    Navigator.of(context).pop(); // Close details dialog first
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Delete Tutor',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          ),
+          content: Text(
+            'Are you sure you want to delete tutor ${tutor['name']} (${tutor['id']})?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _tutors.removeWhere((t) => t['id'] == tutor['id']);
+                  _filteredTutors = List.from(_tutors);
+                });
+
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Tutor ${tutor['name']} deleted successfully',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              },
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

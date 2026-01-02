@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
-import '../widgets/nav_helper.dart';
+import '../services/firebase_auth_service.dart';
 
 class TopicPage extends StatefulWidget {
   const TopicPage({super.key});
@@ -10,6 +10,30 @@ class TopicPage extends StatefulWidget {
 }
 
 class _TopicPageState extends State<TopicPage> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  String userName = 'User';
+  String userEmail = '';
+  bool profileLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    setState(() {
+      userName = displayName;
+      userEmail = profile?.email ?? authUser?.email ?? '';
+      profileLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -73,9 +97,9 @@ class _TopicPageState extends State<TopicPage> {
                     ),
                   ),
                   SizedBox(height: h * 0.006),
-                  const Text(
-                    'Manage your topics',
-                    style: TextStyle(fontSize: 14, color: Colors.white),
+                  Text(
+                    profileLoading ? 'Loading...' : '$userName | $userEmail',
+                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
                   ),
                 ],
               ),

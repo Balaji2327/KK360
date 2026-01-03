@@ -49,8 +49,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   Future<void> _loadAdmins() async {
     setState(() => _adminsLoading = true);
     try {
-      // Start with empty list - admins will be added via popup
+      final admins = await _authService.getAllAdmins(projectId: 'kk360-69504');
       setState(() {
+        _admins = admins;
         _filteredAdmins = List.from(_admins);
         _adminsLoading = false;
       });
@@ -348,8 +349,132 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     );
   }
 
+  void _showEditAdminDialog(BuildContext context, Map<String, String> admin) {
+    final TextEditingController nameController = TextEditingController(
+      text: admin['name'],
+    );
+    final TextEditingController adminIdController = TextEditingController(
+      text: admin['id'],
+    );
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Edit Admin',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : const Color(0xFF4B3FA3),
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: adminIdController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    labelText: 'Admin ID',
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator:
+                      (value) => value!.isEmpty ? 'Enter Admin ID' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: nameController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) => value!.isEmpty ? 'Enter Name' : null,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (ctx) =>
+                            const Center(child: CircularProgressIndicator()),
+                  );
+
+                  try {
+                    await _authService.updateUserAccount(
+                      uid: admin['uid'] ?? admin['id']!,
+                      projectId: 'kk360-69504',
+                      updates: {
+                        'name': nameController.text.trim(),
+                        'adminId': adminIdController.text.trim(),
+                      },
+                    );
+
+                    navigator.pop(); // Close loading
+                    navigator.pop(); // Close edit dialog
+                    await _loadAdmins();
+
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Admin updated successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    if (navigator.canPop()) navigator.pop();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showAddAdminDialog(BuildContext context) {
     final TextEditingController adminIdController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
     final TextEditingController emailController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
     final TextEditingController confirmPasswordController =
@@ -369,149 +494,192 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
               color: Color(0xFF4B3FA3),
             ),
           ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: adminIdController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Admin ID',
-                    labelStyle: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.grey[700],
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: adminIdController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                     ),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
+                    decoration: InputDecoration(
+                      labelText: 'Admin ID',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.grey[700],
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.badge,
+                        color: isDark ? Colors.white70 : Colors.grey[700],
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
-                      ),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.badge,
-                      color: isDark ? Colors.white70 : Colors.grey[700],
-                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter admin ID';
+                      }
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter admin ID';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: emailController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.grey[700],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: nameController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                     ),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.grey[700],
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.person,
+                        color: isDark ? Colors.white70 : Colors.grey[700],
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
-                      ),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.email,
-                      color: isDark ? Colors.white70 : Colors.grey[700],
-                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter name';
+                      }
+                      return null;
+                    },
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter email';
-                    }
-                    if (!RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    ).hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: passwordController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    labelStyle: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.grey[700],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: emailController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                     ),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.grey[700],
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.email,
+                        color: isDark ? Colors.white70 : Colors.grey[700],
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
-                      ),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.lock,
-                      color: isDark ? Colors.white70 : Colors.grey[700],
-                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter email';
+                      }
+                      if (!RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      ).hasMatch(value)) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
                   ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: confirmPasswordController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Confirm Password',
-                    labelStyle: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.grey[700],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: passwordController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                     ),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.grey[700],
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.lock,
+                        color: isDark ? Colors.white70 : Colors.grey[700],
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey,
-                      ),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.lock_outline,
-                      color: isDark ? Colors.white70 : Colors.grey[700],
-                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
                   ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please confirm password';
-                    }
-                    if (value != passwordController.text) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: confirmPasswordController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.grey[700],
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.lock_outline,
+                        color: isDark ? Colors.white70 : Colors.grey[700],
+                      ),
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please confirm password';
+                      }
+                      if (value != passwordController.text) {
+                        return 'Passwords do not match';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -525,31 +693,52 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (formKey.currentState!.validate()) {
-                  // Add new admin to the list
-                  final newAdmin = {
-                    'id': adminIdController.text,
-                    'name': emailController.text.split('@')[0].toUpperCase(),
-                    'email': emailController.text,
-                    'password': passwordController.text,
-                    'dateAdded': DateTime.now().toString().split(' ')[0],
-                  };
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
 
-                  setState(() {
-                    _admins.add(newAdmin);
-                    _filteredAdmins = List.from(_admins);
-                  });
-
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Admin ${adminIdController.text} (${emailController.text}) added successfully!',
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
+                  // Show loading
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (ctx) =>
+                            const Center(child: CircularProgressIndicator()),
                   );
+
+                  try {
+                    await _authService.createAdminAccount(
+                      email: emailController.text.trim(),
+                      password: passwordController.text,
+                      name: nameController.text.trim(),
+                      adminId: adminIdController.text.trim(),
+                      projectId: 'kk360-69504',
+                    );
+
+                    navigator.pop(); // Close loading
+                    navigator.pop(); // Close add dialog
+
+                    // Refresh list
+                    await _loadAdmins();
+
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Admin ${adminIdController.text} added successfully!',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    if (navigator.canPop()) navigator.pop(); // Close loading
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Error adding admin: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -637,12 +826,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Edit functionality coming soon'),
-                        backgroundColor: Colors.blue,
-                      ),
-                    );
+                    _showEditAdminDialog(context, admin);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4B3FA3),
@@ -742,7 +926,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
           ),
           content: Text(
-            'Are you sure you want to delete admin ${admin['name']} (${admin['id']})?',
+            'Are you sure you want to delete admin ${admin['name']} (${admin['id']})?\n\nThis will permanently delete their account.',
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
           ),
           actions: [
@@ -756,23 +940,51 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  _admins.removeWhere((a) => a['id'] == admin['id']);
-                  _filteredAdmins = List.from(_admins);
-                });
+              onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
 
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Admin ${admin['name']} deleted successfully',
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder:
+                      (ctx) => const Center(child: CircularProgressIndicator()),
                 );
+
+                try {
+                  await _authService.deleteAdminAccount(
+                    uid: admin['uid'] ?? admin['id']!, // Using UID
+                    email: admin['email']!,
+                    password: admin['password'] ?? '',
+                    projectId: 'kk360-69504',
+                  );
+
+                  navigator.pop(); // Close loading
+                  navigator.pop(); // Close delete dialog
+
+                  // Refresh list
+                  await _loadAdmins();
+
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Admin ${admin['name']} deleted successfully',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } catch (e) {
+                  if (navigator.canPop()) navigator.pop(); // Close loading
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting admin: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
-              child: Text('Delete', style: TextStyle(color: Colors.red)),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ],
         );

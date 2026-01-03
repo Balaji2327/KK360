@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
@@ -261,6 +263,580 @@ class FirebaseAuthService {
         requiredRole: 'admin',
         roleDisplayName: 'Admin',
       );
+
+  // Create a student account (Admin only)
+  // Uses a secondary Firebase App to avoid signing out the current admin
+  Future<void> createStudentAccount({
+    required String email,
+    required String password,
+    required String name,
+    required String studentId,
+    required String projectId,
+  }) async {
+    FirebaseApp? secondaryApp;
+    try {
+      debugPrint('[Auth] Initializing secondary app for user creation...');
+      // Use a unique name to avoid 'duplicate app' errors if previous cleanup failed
+      final appName =
+          'secondaryUserCreationApp_${DateTime.now().millisecondsSinceEpoch}';
+      secondaryApp = await Firebase.initializeApp(
+        name: appName,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+
+      debugPrint('[Auth] Creating user in Firebase Auth...');
+      final userCredential = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = userCredential.user;
+      if (user == null) throw 'Failed to create user.';
+
+      debugPrint('[Auth] User created: ${user.uid} ($email)');
+
+      // Update display name
+      //  await user.updateDisplayName(name); // Optional, good practice
+
+      // Create Firestore document
+      // Note: We use the *admin's* auth token (implicit via standard calling or explicit http)
+      // OR we just use REST API which we are using heavily here.
+      // But wait, the standard Firestore SDK would use the primary app's auth (Admin), which has write permission.
+      // The REST API calls in this file use `_auth.currentUser` which is the Admin.
+      // So we can use the existing `createUserProfile` or write a new one that doesn't rely on `_auth.currentUser` being the *new* user.
+
+      // We need to write to `users/{new_user_uid}`.
+      // Since we are Admin, we should have permission to write to any user doc (assuming rules allow).
+      // Let's use the REST API logic but targetting the NEW user's UID.
+
+      final adminUser = _auth.currentUser;
+      if (adminUser == null) throw 'Admin not authenticated.';
+      final idToken = await adminUser.getIdToken();
+      if (idToken == null) throw 'Admin not authenticated.';
+
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents/users/${user.uid}',
+      );
+
+      final fields = {
+        'name': {'stringValue': name},
+        'email': {'stringValue': email},
+        'role': {'stringValue': 'student'}, // Enforce role
+        'studentId': {'stringValue': studentId}, // Custom field
+        'password': {
+          'stringValue': password,
+        }, // Storing password as per existing UI requirement
+        'createdAt': {
+          'timestampValue': DateTime.now().toUtc().toIso8601String(),
+        },
+        'createdBy': {'stringValue': adminUser.uid},
+      };
+
+      debugPrint('[Auth] Creating student profile in Firestore: ${user.uid}');
+
+      final resp = await http
+          .patch(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': fields}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to create student profile (status ${resp.statusCode}): ${resp.body}';
+      }
+
+      debugPrint('[Auth] Student account created successfully.');
+    } catch (e) {
+      debugPrint('[Auth] Error creating student account: $e');
+      rethrow;
+    } finally {
+      if (secondaryApp != null) {
+        debugPrint('[Auth] Deleting secondary app...');
+        await secondaryApp.delete();
+      }
+    }
+  }
+
+  // Create a tutor account (Admin only)
+  Future<void> createTutorAccount({
+    required String email,
+    required String password,
+    required String name,
+    required String tutorId,
+    required String projectId,
+  }) async {
+    FirebaseApp? secondaryApp;
+    try {
+      debugPrint('[Auth] Initializing secondary app for tutor creation...');
+      final appName =
+          'secondaryTutorCreationApp_${DateTime.now().millisecondsSinceEpoch}';
+      secondaryApp = await Firebase.initializeApp(
+        name: appName,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final userCredential = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = userCredential.user;
+      if (user == null) throw 'Failed to create tutor user.';
+
+      final adminUser = _auth.currentUser;
+      if (adminUser == null) throw 'Admin not authenticated.';
+      final idToken = await adminUser.getIdToken();
+      if (idToken == null) throw 'Admin not authenticated.';
+
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents/users/${user.uid}',
+      );
+
+      final fields = {
+        'name': {'stringValue': name},
+        'email': {'stringValue': email},
+        'role': {'stringValue': 'tutor'},
+        'tutorId': {'stringValue': tutorId},
+        'password': {'stringValue': password},
+        'createdAt': {
+          'timestampValue': DateTime.now().toUtc().toIso8601String(),
+        },
+        'createdBy': {'stringValue': adminUser.uid},
+      };
+
+      final resp = await http
+          .patch(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': fields}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to create tutor profile: ${resp.body}';
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error creating tutor account: $e');
+      rethrow;
+    } finally {
+      if (secondaryApp != null) {
+        await secondaryApp.delete();
+      }
+    }
+  }
+
+  // Create an admin account (Admin only)
+  Future<void> createAdminAccount({
+    required String email,
+    required String password,
+    required String name,
+    required String adminId,
+    required String projectId,
+  }) async {
+    FirebaseApp? secondaryApp;
+    try {
+      debugPrint('[Auth] Initializing secondary app for admin creation...');
+      final appName =
+          'secondaryAdminCreationApp_${DateTime.now().millisecondsSinceEpoch}';
+      secondaryApp = await Firebase.initializeApp(
+        name: appName,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final userCredential = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = userCredential.user;
+      if (user == null) throw 'Failed to create admin user.';
+
+      final adminUser = _auth.currentUser;
+      if (adminUser == null) throw 'Admin not authenticated.';
+      final idToken = await adminUser.getIdToken();
+      if (idToken == null) throw 'Admin not authenticated.';
+
+      final url = Uri.https(
+        'firestore.googleapis.com',
+        '/v1/projects/$projectId/databases/(default)/documents/users/${user.uid}',
+      );
+
+      final fields = {
+        'name': {'stringValue': name},
+        'email': {'stringValue': email},
+        'role': {'stringValue': 'admin'},
+        'adminId': {'stringValue': adminId},
+        'password': {'stringValue': password},
+        'createdAt': {
+          'timestampValue': DateTime.now().toUtc().toIso8601String(),
+        },
+        'createdBy': {'stringValue': adminUser.uid},
+      };
+
+      final resp = await http
+          .patch(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': fields}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to create admin profile: ${resp.body}';
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error creating admin account: $e');
+      rethrow;
+    } finally {
+      if (secondaryApp != null) {
+        await secondaryApp.delete();
+      }
+    }
+  }
+
+  // Update user profile in Firestore (Admin only)
+  Future<void> updateUserAccount({
+    required String uid,
+    required String projectId,
+    required Map<String, dynamic> updates, // key: value (String)
+  }) async {
+    final adminUser = _auth.currentUser;
+    if (adminUser == null) throw 'Admin not authenticated.';
+    final idToken = await adminUser.getIdToken();
+    if (idToken == null) throw 'Admin not authenticated.';
+
+    // Prepare fields for Firestore REST API
+    final fields = <String, dynamic>{};
+    final maskPaths = <String>[];
+
+    updates.forEach((key, value) {
+      fields[key] = {'stringValue': value};
+      maskPaths.add(key);
+    });
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/users/$uid',
+      {'updateMask.fieldPaths': maskPaths},
+    );
+
+    try {
+      final resp = await http
+          .patch(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': fields}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to update profile: ${resp.body}';
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error updating profile: $e');
+      rethrow;
+    }
+  }
+
+  // Delete a student account (Admin only)
+  Future<void> deleteStudentAccount({
+    required String uid,
+    required String email,
+    required String password,
+    required String projectId,
+  }) async {
+    FirebaseApp? secondaryApp;
+    try {
+      debugPrint('[Auth] Deleting student account: $email ($uid)');
+
+      // 1. Delete Firestore Document (First, so even if Auth deletion fails, they can't login conceptually)
+      await _deleteFirestoreUser(projectId: projectId, uid: uid);
+
+      // 2. Delete Authenticated User (Requires password)
+      if (password.isNotEmpty && password != 'N/A') {
+        debugPrint('[Auth] Signing in as student to delete Auth account...');
+        final appName = 'deletionApp_${DateTime.now().millisecondsSinceEpoch}';
+        secondaryApp = await Firebase.initializeApp(
+          name: appName,
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+
+        final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+        final userCredential = await secondaryAuth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        final user = userCredential.user;
+        if (user != null) {
+          await user.delete();
+          debugPrint('[Auth] Auth account deleted successfully.');
+        }
+      } else {
+        debugPrint(
+          '[Auth] Password not available. Skipping Auth account deletion. User blocked via Firestore removal.',
+        );
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error deleting student account: $e');
+      // If we failed to delete Auth but deleted Firestore, that's partial success for the app logic.
+      // But we rethrow so UI knows there was an issue.
+      rethrow;
+    } finally {
+      if (secondaryApp != null) {
+        try {
+          await secondaryApp.delete();
+        } catch (_) {}
+      }
+    }
+  }
+
+  // Delete a tutor account
+  Future<void> deleteTutorAccount({
+    required String uid,
+    required String email,
+    required String password,
+    required String projectId,
+  }) async {
+    await deleteStudentAccount(
+      uid: uid,
+      email: email,
+      password: password,
+      projectId: projectId,
+    );
+  }
+
+  // Delete an admin account
+  Future<void> deleteAdminAccount({
+    required String uid,
+    required String email,
+    required String password,
+    required String projectId,
+  }) async {
+    await deleteStudentAccount(
+      uid: uid,
+      email: email,
+      password: password,
+      projectId: projectId,
+    );
+  }
+
+  Future<void> _deleteFirestoreUser({
+    required String projectId,
+    required String uid,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Admin not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Admin not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/users/$uid',
+    );
+
+    final resp = await http.delete(
+      url,
+      headers: {'Authorization': 'Bearer $idToken'},
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to delete Firestore profile: ${resp.body}';
+    }
+    debugPrint('[Auth] Firestore profile deleted.');
+  }
+
+  // Fetch all students (users with role 'student')
+  Future<List<Map<String, String>>> getAllStudents({
+    required String projectId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'users'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'role'},
+            'op': 'EQUAL',
+            'value': {'stringValue': 'student'},
+          },
+        },
+      },
+    };
+
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(q),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to fetch students: ${resp.body}';
+      }
+
+      final body = jsonDecode(resp.body) as List<dynamic>;
+      final students = <Map<String, String>>[];
+
+      for (final item in body) {
+        final doc = item['document'];
+        if (doc == null) continue;
+
+        final fields = doc['fields'] as Map<String, dynamic>?;
+        if (fields == null) continue;
+
+        // Document name format: "projects/{projectId}/databases/(default)/documents/users/{uid}"
+        final docName = doc['name'] as String?;
+        final uid = docName != null ? docName.split('/').last : '';
+
+        students.add({
+          'uid': uid, // Actual User/Doc UID
+          'id': fields['studentId']?['stringValue'] ?? '',
+          'name': fields['name']?['stringValue'] ?? '',
+          'email': fields['email']?['stringValue'] ?? '',
+          'password': fields['password']?['stringValue'] ?? '',
+          'dateAdded':
+              fields['createdAt']?['timestampValue']?.split('T')[0] ?? '',
+        });
+      }
+      return students;
+    } catch (e) {
+      debugPrint('[Auth] Error fetching students: $e');
+      rethrow;
+    }
+  }
+
+  // Fetch all tutors
+  Future<List<Map<String, String>>> getAllTutors({
+    required String projectId,
+  }) async {
+    return _getAllUsersByRole(
+      projectId: projectId,
+      role: 'tutor',
+      idField: 'tutorId',
+    );
+  }
+
+  // Fetch all admins
+  Future<List<Map<String, String>>> getAllAdmins({
+    required String projectId,
+  }) async {
+    return _getAllUsersByRole(
+      projectId: projectId,
+      role: 'admin',
+      idField: 'adminId',
+    );
+  }
+
+  Future<List<Map<String, String>>> _getAllUsersByRole({
+    required String projectId,
+    required String role,
+    required String idField,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'users'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'role'},
+            'op': 'EQUAL',
+            'value': {'stringValue': role},
+          },
+        },
+      },
+    };
+
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(q),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to fetch $role: ${resp.body}';
+      }
+
+      final body = jsonDecode(resp.body) as List<dynamic>;
+      final users = <Map<String, String>>[];
+
+      for (final item in body) {
+        final doc = item['document'];
+        if (doc == null) continue;
+        final fields = doc['fields'] as Map<String, dynamic>?;
+        if (fields == null) continue;
+
+        final docName = doc['name'] as String?;
+        final uid = docName != null ? docName.split('/').last : '';
+
+        users.add({
+          'uid': uid,
+          'id': fields[idField]?['stringValue'] ?? '',
+          'name': fields['name']?['stringValue'] ?? '',
+          'email': fields['email']?['stringValue'] ?? '',
+          'password': fields['password']?['stringValue'] ?? '',
+          'dateAdded':
+              fields['createdAt']?['timestampValue']?.split('T')[0] ?? '',
+        });
+      }
+      return users;
+    } catch (e) {
+      debugPrint('[Auth] Error fetching $role: $e');
+      rethrow;
+    }
+  }
 
   // Create user profile in Firestore (for new Google Sign-In users)
   Future<void> createUserProfile({

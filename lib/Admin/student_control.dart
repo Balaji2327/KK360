@@ -49,8 +49,11 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
   Future<void> _loadStudents() async {
     setState(() => _studentsLoading = true);
     try {
-      // Start with empty list - students will be added via popup
+      final students = await _authService.getAllStudents(
+        projectId: 'kk360-69504',
+      );
       setState(() {
+        _students = students;
         _filteredStudents = List.from(_students);
         _studentsLoading = false;
       });
@@ -345,6 +348,132 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
     );
   }
 
+  void _showEditStudentDialog(
+    BuildContext context,
+    Map<String, String> student,
+  ) {
+    final TextEditingController nameController = TextEditingController(
+      text: student['name'],
+    );
+    final TextEditingController studentIdController = TextEditingController(
+      text: student['id'],
+    );
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Edit Student',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : const Color(0xFF4B3FA3),
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: studentIdController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    labelText: 'Student ID',
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator:
+                      (value) => value!.isEmpty ? 'Enter Student ID' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: nameController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) => value!.isEmpty ? 'Enter Name' : null,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (ctx) =>
+                            const Center(child: CircularProgressIndicator()),
+                  );
+
+                  try {
+                    await _authService.updateUserAccount(
+                      uid: student['uid'] ?? student['id']!,
+                      projectId: 'kk360-69504',
+                      updates: {
+                        'name': nameController.text.trim(),
+                        'studentId': studentIdController.text.trim(),
+                      },
+                    );
+
+                    navigator.pop(); // Close loading
+                    navigator.pop(); // Close edit dialog
+                    await _loadStudents();
+
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Student updated successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    if (navigator.canPop()) navigator.pop();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showAddStudentDialog(BuildContext context) {
     final TextEditingController studentIdController = TextEditingController();
     final TextEditingController emailController = TextEditingController();
@@ -506,31 +635,56 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (formKey.currentState!.validate()) {
-                  // Add new student to the list
-                  final newStudent = {
-                    'id': studentIdController.text,
-                    'name': emailController.text.split('@')[0].toUpperCase(),
-                    'email': emailController.text,
-                    'password': passwordController.text,
-                    'dateAdded': DateTime.now().toString().split(' ')[0],
-                  };
-
-                  setState(() {
-                    _students.add(newStudent);
-                    _filteredStudents = List.from(_students);
-                  });
-
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Student ${studentIdController.text} (${emailController.text}) added successfully!',
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
+                  // Show loading dialog
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (context) =>
+                            const Center(child: CircularProgressIndicator()),
                   );
+
+                  try {
+                    await _authService.createStudentAccount(
+                      email: emailController.text.trim(),
+                      password: passwordController.text,
+                      name:
+                          emailController.text
+                              .split('@')[0]
+                              .toUpperCase(), // Simple name derivation
+                      studentId: studentIdController.text.trim(),
+                      projectId: 'kk360-69504',
+                    );
+
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop(); // Close loading
+                    Navigator.of(context).pop(); // Close add dialog
+
+                    // Refresh list
+                    await _loadStudents();
+
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Student ${studentIdController.text} created successfully!',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop(); // Close loading
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error creating student: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -621,13 +775,8 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Edit functionality coming soon'),
-                        backgroundColor: Colors.blue,
-                      ),
-                    );
+                    Navigator.of(context).pop(); // Close details
+                    _showEditStudentDialog(context, student);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4B3FA3),
@@ -722,12 +871,12 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-          title: Text(
+          title: const Text(
             'Delete Student',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
           ),
           content: Text(
-            'Are you sure you want to delete student ${student['name']} (${student['id']})?',
+            'Are you sure you want to delete student ${student['name']} (${student['id']})?\n\nThis will permanently delete their account and they will not be able to login again.',
             style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
           ),
           actions: [
@@ -741,21 +890,51 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  _students.removeWhere((s) => s['id'] == student['id']);
-                  _filteredStudents = List.from(_students);
-                });
+              onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
 
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Student ${student['name']} deleted successfully',
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder:
+                      (ctx) => const Center(child: CircularProgressIndicator()),
                 );
+
+                try {
+                  await _authService.deleteStudentAccount(
+                    uid:
+                        student['uid'] ??
+                        student['id']!, // Use UID if available, fallback to ID (though ID is likely wrong for deletion, UID should be present now)
+                    email: student['email']!,
+                    password: student['password'] ?? '',
+                    projectId: 'kk360-69504',
+                  );
+
+                  navigator.pop(); // Close loading
+                  navigator.pop(); // Close delete dialog
+
+                  // Refresh list
+                  await _loadStudents();
+
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Student ${student['name']} deleted successfully',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } catch (e) {
+                  if (navigator.canPop()) navigator.pop(); // Close loading
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting student: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),

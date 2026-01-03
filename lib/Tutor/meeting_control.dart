@@ -42,9 +42,10 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ---------------- BOTTOM NAVIGATION BAR ----------------
       bottomNavigationBar: const TutorBottomNav(currentIndex: 1),
@@ -131,8 +132,10 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                           },
                           child: headerButton(
                             "Join a meeting",
-                            Colors.grey.shade300,
-                            Colors.black,
+                            isDark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade300,
+                            isDark ? Colors.white : Colors.black,
                           ),
                         ),
                       ),
@@ -157,6 +160,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                     style: TextStyle(
                       fontSize: h * 0.025,
                       fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
 
@@ -169,7 +173,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: h * 0.016,
-                        color: Colors.black87,
+                        color: isDark ? Colors.white70 : Colors.black87,
                       ),
                     ),
                   ),

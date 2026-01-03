@@ -38,9 +38,10 @@ class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ---------------- BOTTOM NAVIGATION BAR ----------------
       bottomNavigationBar: const TutorBottomNav(currentIndex: 1),
@@ -122,7 +123,7 @@ class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
               "Enter a meeting nickname or the code provided by the meeting organizer",
               style: TextStyle(
                 fontSize: h * 0.0165,
-                color: Colors.black87,
+                color: isDark ? Colors.white70 : Colors.black87,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -138,46 +139,24 @@ class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
               height: h * 0.055,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.black54),
+                border: Border.all(
+                  color: isDark ? Colors.white24 : Colors.black54,
+                ),
               ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "Example : mymeeting or abc-mnop-xyz",
-                  style: TextStyle(fontSize: h * 0.016, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: h * 0.016,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
                 ),
               ),
             ),
           ),
 
           SizedBox(height: h * 0.015),
-
-          // ---------------- Rejoin row ----------------
-          // Padding(
-          //   padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-          //   child: Container(
-          //     padding: EdgeInsets.symmetric(
-          //       horizontal: w * 0.03,
-          //       vertical: h * 0.008,
-          //     ),
-          //     decoration: BoxDecoration(
-          //       color: Colors.grey.shade200,
-          //       borderRadius: BorderRadius.circular(8),
-          //     ),
-          //     child: Row(
-          //       mainAxisSize: MainAxisSize.min,
-          //       children: [
-          //         const Icon(Icons.video_camera_front, size: 18),
-          //         SizedBox(width: w * 0.015),
-          //         Text(
-          //           'Rejoin “876545867675”',
-          //           style: TextStyle(fontSize: h * 0.015),
-          //           textAlign: TextAlign.start,
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
         ],
       ),
     );

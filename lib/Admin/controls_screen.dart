@@ -44,9 +44,10 @@ class _AdminControlSelectionScreenState
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ================= ADMIN BOTTOM NAV =================
       bottomNavigationBar: const AdminBottomNav(currentIndex: 2),
@@ -102,9 +103,12 @@ class _AdminControlSelectionScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Select which one control you have to go",
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
                 ),
 
                 SizedBox(height: h * 0.03),
@@ -114,6 +118,7 @@ class _AdminControlSelectionScreenState
                   h: h,
                   icon: Icons.school_outlined,
                   title: "Student Control",
+                  isDark: isDark,
                   onTap: () {
                     goPush(context, const StudentControlScreen());
                   },
@@ -126,6 +131,7 @@ class _AdminControlSelectionScreenState
                   h: h,
                   icon: Icons.person_outline,
                   title: "Tutor Control",
+                  isDark: isDark,
                   onTap: () {
                     goPush(context, const TutorControlScreen());
                   },
@@ -138,6 +144,7 @@ class _AdminControlSelectionScreenState
                   h: h,
                   icon: Icons.admin_panel_settings_outlined,
                   title: "Admin Control",
+                  isDark: isDark,
                   onTap: () {
                     goPush(context, const AdminControlScreen());
                   },
@@ -157,6 +164,7 @@ class _AdminControlSelectionScreenState
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -165,16 +173,28 @@ class _AdminControlSelectionScreenState
         height: h * 0.07,
         padding: EdgeInsets.symmetric(horizontal: w * 0.05),
         decoration: BoxDecoration(
+          color: isDark ? Colors.grey[900] : Colors.white,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: Colors.green),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: Colors.black87),
+            Icon(icon, size: 22, color: isDark ? Colors.white : Colors.black87),
             SizedBox(width: w * 0.04),
             Text(
               title,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
             ),
           ],
         ),

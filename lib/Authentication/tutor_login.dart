@@ -213,8 +213,10 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: w * 0.06),
@@ -229,16 +231,23 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
               SizedBox(height: h * 0.02),
 
               // 🔹 Title
-              const Text(
+              Text(
                 "Log in as Tutor",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
 
               SizedBox(height: h * 0.006),
 
-              const Text(
+              Text(
                 "Welcome back! Select method to Log in",
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white70 : Colors.grey,
+                ),
               ),
 
               SizedBox(height: h * 0.02),
@@ -248,17 +257,33 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 enabled: !isLoading,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.person_outline, size: 20),
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    size: 20,
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
                   hintText: "Your username or email",
-                  hintStyle: const TextStyle(fontSize: 14),
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     vertical: 10,
                     horizontal: 15,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -270,17 +295,28 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                 controller: _passwordController,
                 obscureText: !isPasswordVisible,
                 enabled: !isLoading,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  prefixIcon: Icon(
+                    Icons.lock_outline,
+                    size: 20,
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
                   hintText: "Your password",
-                  hintStyle: const TextStyle(fontSize: 14),
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       isPasswordVisible
                           ? Icons.visibility
                           : Icons.visibility_off,
                       size: 20,
+                      color: isDark ? Colors.white70 : Colors.grey,
                     ),
                     onPressed: () {
                       setState(() {
@@ -294,6 +330,12 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -311,7 +353,13 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                       });
                     },
                   ),
-                  const Text("Remember Me", style: TextStyle(fontSize: 13)),
+                  Text(
+                    "Remember Me",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
                 ],
               ),
 
@@ -433,7 +481,13 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
 
               SizedBox(height: h * 0.02),
 
-              const Text("or", style: TextStyle(fontSize: 14)),
+              Text(
+                "or",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
 
               SizedBox(height: h * 0.015),
 
@@ -445,8 +499,15 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                   height: h * 0.055,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(35),
-                    border: Border.all(color: Colors.black38),
-                    color: isLoading ? Colors.grey.shade200 : Colors.white,
+                    border: Border.all(
+                      color: isDark ? Colors.white54 : Colors.black38,
+                    ),
+                    color:
+                        isLoading
+                            ? (isDark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200)
+                            : (isDark ? Colors.grey.shade900 : Colors.white),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -457,11 +518,12 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                           height: h * 0.025,
                         ),
                         SizedBox(width: w * 0.02),
-                        const Text(
+                        Text(
                           "Continue with Google",
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black,
                           ),
                         ),
                       ] else ...[
@@ -489,9 +551,12 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
               // 🔹 Student login button
               Column(
                 children: [
-                  const Text(
+                  Text(
                     "Are you a Student?",
-                    style: TextStyle(fontSize: 13),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                   ),
                   const SizedBox(height: 3),
 

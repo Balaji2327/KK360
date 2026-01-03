@@ -38,9 +38,10 @@ class _TestPageState extends State<TestPage> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
@@ -53,7 +54,7 @@ class _TestPageState extends State<TestPage> {
             height: h * 0.065,
             width: h * 0.065,
             decoration: BoxDecoration(
-              color: const Color(0xFFDFF7E8),
+              color: isDark ? Colors.green : const Color(0xFFDFF7E8),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -63,7 +64,11 @@ class _TestPageState extends State<TestPage> {
                 ),
               ],
             ),
-            child: const Icon(Icons.add, size: 30, color: Colors.black),
+            child: Icon(
+              Icons.add,
+              size: 30,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
         ),
       ),
@@ -109,13 +114,13 @@ class _TestPageState extends State<TestPage> {
           SizedBox(height: h * 0.0005),
 
           // content
-          Expanded(child: _buildEmptyState(h, w)),
+          Expanded(child: _buildEmptyState(h, w, isDark)),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(double h, double w) {
+  Widget _buildEmptyState(double h, double w, bool isDark) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -131,7 +136,11 @@ class _TestPageState extends State<TestPage> {
           Text(
             "No tests yet",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: h * 0.0185, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: h * 0.0185,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
           SizedBox(height: h * 0.015),
           Padding(
@@ -141,7 +150,7 @@ class _TestPageState extends State<TestPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: h * 0.0145,
-                color: Colors.black87,
+                color: isDark ? Colors.white70 : Colors.black87,
                 height: 1.5,
               ),
             ),

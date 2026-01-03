@@ -180,13 +180,15 @@ class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
   }
 
   Widget _settingSectionTitle(String title) {
+    // Determine colors based on theme
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(left: 8, bottom: 10, top: 10),
       child: Text(
         title,
-        style: const TextStyle(
-          color: Color(0xFF4B3FA3),
+        style: TextStyle(
+          color: isDark ? Colors.white70 : const Color(0xFF4B3FA3),
           fontWeight: FontWeight.bold,
           fontSize: 16,
         ),
@@ -199,6 +201,8 @@ class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tileColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
+    final iconColor =
+        isDark ? const Color(0xFF8F85FF) : const Color(0xFF4B3FA3);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -214,7 +218,7 @@ class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
         ],
       ),
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF4B3FA3)),
+        leading: Icon(icon, color: iconColor),
         title: Text(
           title,
           style: TextStyle(fontWeight: FontWeight.w500, color: textColor),
@@ -240,6 +244,8 @@ class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tileColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
+    final accentColor =
+        isDark ? const Color(0xFF8F85FF) : const Color(0xFF4B3FA3);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -255,8 +261,8 @@ class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
         ],
       ),
       child: SwitchListTile(
-        activeColor: const Color(0xFF4B3FA3),
-        secondary: Icon(icon, color: const Color(0xFF4B3FA3)),
+        activeColor: accentColor,
+        secondary: Icon(icon, color: accentColor),
         title: Text(
           title,
           style: TextStyle(fontWeight: FontWeight.w500, color: textColor),

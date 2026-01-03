@@ -41,6 +41,12 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
 
   Widget _item(IconData icon, String label, int index) {
     bool active = index == widget.currentIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Colors
+    final activeColor =
+        isDark ? const Color(0xFF8F85FF) : const Color(0xFF4B3FA3);
+    final inactiveColor = isDark ? Colors.white54 : Colors.black54;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -55,7 +61,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
             child: Icon(
               icon,
               size: 28, // same as student bar
-              color: active ? const Color(0xFF4B3FA3) : Colors.black54,
+              color: active ? activeColor : inactiveColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -64,7 +70,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 11,
-              color: active ? const Color(0xFF4B3FA3) : Colors.black54,
+              color: active ? activeColor : inactiveColor,
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
             ),
             child: Text(label),
@@ -78,16 +84,17 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       width: w,
       height: h * 0.10,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

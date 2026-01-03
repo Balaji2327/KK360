@@ -89,39 +89,59 @@ class _TutorToDoListScreenState extends State<TutorToDoListScreen> {
   void _showAddDialog() {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Add New Task'),
-            content: TextField(
-              controller: _taskController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Enter task details',
-                border: OutlineInputBorder(),
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Add New Task',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
+          content: TextField(
+            controller: _taskController,
+            autofocus: true,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            decoration: InputDecoration(
+              hintText: 'Enter task details',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white54 : Colors.grey,
               ),
-              onSubmitted: (_) {
+              border: const OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white24 : Colors.grey,
+                ),
+              ),
+            ),
+            onSubmitted: (_) {
+              _addTask();
+              Navigator.pop(ctx);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
                 _addTask();
                 Navigator.pop(ctx);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Add'),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  _addTask();
-                  Navigator.pop(ctx);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4B3FA3),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Add'),
-              ),
-            ],
-          ),
+          ],
+        );
+      },
     );
   }
 

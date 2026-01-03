@@ -75,8 +75,10 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     final size = MediaQuery.of(context).size;
     final h = size.height;
     final w = size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           Container(
@@ -114,17 +116,39 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                   SizedBox(height: h * 0.02),
                   TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Class name',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.grey,
+                      ),
                       border: OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(height: h * 0.02),
                   TextField(
                     controller: _courseController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Course (optional)',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.grey,
+                      ),
                       border: OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.grey,
+                        ),
+                      ),
                     ),
                   ),
                   const Spacer(),

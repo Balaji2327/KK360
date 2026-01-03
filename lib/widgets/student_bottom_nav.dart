@@ -95,11 +95,14 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
                 height: 64,
                 width: 64,
                 decoration: BoxDecoration(
-                  color: const Color(0xffDFF7E8), // light green
+                  color:
+                      isDark
+                          ? const Color(0xFF004D40)
+                          : const Color(0xffDFF7E8), // light green
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha(31),
+                      color: Colors.black.withValues(alpha: 0.12),
                       blurRadius: 10,
                       offset: const Offset(0, 6),
                     ),
@@ -109,8 +112,12 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
                   customBorder: const CircleBorder(),
                   onTap: () => _navigate(context, 2),
                   splashColor: Colors.white24,
-                  child: const Center(
-                    child: Icon(Icons.add, size: 32, color: Colors.black),
+                  child: Center(
+                    child: Icon(
+                      Icons.add,
+                      size: 32,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                   ),
                 ),
               ),
@@ -145,6 +152,8 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final inactiveColor = isDark ? Colors.white54 : Colors.black54;
+    final activeColor =
+        isDark ? const Color(0xFF8F85FF) : const Color(0xFF4B3FA3);
 
     // implicit animations for smooth active state changes
     return GestureDetector(
@@ -160,7 +169,7 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
             child: Icon(
               icon,
               size: 28,
-              color: isActive ? const Color(0xFF4B3FA3) : inactiveColor,
+              color: isActive ? activeColor : inactiveColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -169,7 +178,7 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 11,
-              color: isActive ? const Color(0xFF4B3FA3) : inactiveColor,
+              color: isActive ? activeColor : inactiveColor,
               fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
             ),
             child: Text(label),

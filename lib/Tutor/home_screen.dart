@@ -248,10 +248,11 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     try {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
         // ================= FLOATING ADD BUTTON (BOTTOM RIGHT) =================
         floatingActionButton: Padding(
@@ -343,17 +344,22 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
               height: h * 0.065,
               width: h * 0.065,
               decoration: BoxDecoration(
-                color: const Color(0xFFDFF7E8),
+                color:
+                    isDark ? const Color(0xFF004D40) : const Color(0xFFDFF7E8),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withAlpha(15),
+                    color: Colors.black.withAlpha(isDark ? 50 : 15),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(Icons.add, size: 30, color: Colors.black),
+              child: Icon(
+                Icons.add,
+                size: 30,
+                color: isDark ? Colors.white : Colors.black,
+              ),
             ),
           ),
         ),
@@ -398,17 +404,23 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                   Container(
                     height: h * 0.055,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                       borderRadius: BorderRadius.circular(25),
                     ),
                     padding: EdgeInsets.symmetric(horizontal: w * 0.04),
                     child: Row(
-                      children: const [
-                        Icon(Icons.search, color: Colors.grey),
+                      children: [
+                        Icon(
+                          Icons.search,
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
                         SizedBox(width: 10),
                         Text(
                           "Search for anything",
-                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                          style: TextStyle(
+                            color: isDark ? Colors.white54 : Colors.grey,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
@@ -458,10 +470,16 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                                 margin: EdgeInsets.only(bottom: h * 0.015),
                                 padding: EdgeInsets.all(w * 0.04),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.shade50,
+                                  color:
+                                      isDark
+                                          ? const Color(0xFF2C2C2C)
+                                          : Colors.orange.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: Colors.orange.shade200,
+                                    color:
+                                        isDark
+                                            ? Colors.orange.shade900
+                                            : Colors.orange.shade200,
                                   ),
                                 ),
                                 child: Column(
@@ -492,14 +510,20 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                                       'Invited by: ${invite.invitedByUserName}',
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: Colors.grey.shade600,
+                                        color:
+                                            isDark
+                                                ? Colors.white70
+                                                : Colors.grey.shade600,
                                       ),
                                     ),
                                     Text(
                                       'Role: ${invite.role}',
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: Colors.grey.shade600,
+                                        color:
+                                            isDark
+                                                ? Colors.white70
+                                                : Colors.grey.shade600,
                                       ),
                                     ),
                                     SizedBox(height: 12),
@@ -515,7 +539,10 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                                           child: Text(
                                             'Decline',
                                             style: TextStyle(
-                                              color: Colors.grey.shade600,
+                                              color:
+                                                  isDark
+                                                      ? Colors.white70
+                                                      : Colors.grey.shade600,
                                             ),
                                           ),
                                         ),
@@ -593,10 +620,14 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                         width: w,
                         padding: EdgeInsets.all(w * 0.06),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color:
+                              isDark
+                                  ? const Color(0xFF1E1E1E)
+                                  : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(15),
                           border: Border.all(
-                            color: Colors.grey.shade200,
+                            color:
+                                isDark ? Colors.white24 : Colors.grey.shade200,
                             width: 1,
                           ),
                         ),
@@ -605,7 +636,10 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                             Icon(
                               Icons.stream,
                               size: 48,
-                              color: Colors.grey.shade400,
+                              color:
+                                  isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade400,
                             ),
                             SizedBox(height: h * 0.02),
                             Text(
@@ -613,7 +647,10 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade700,
+                                color:
+                                    isDark
+                                        ? Colors.white70
+                                        : Colors.grey.shade700,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -623,7 +660,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.black87,
+                                color: isDark ? Colors.white54 : Colors.black87,
                               ),
                             ),
                           ],

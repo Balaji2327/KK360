@@ -20,8 +20,14 @@ class ThemeManager with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     // If we have a user ID, use user-specific key, otherwise default key
     final key = _userId != null ? 'isDarkMode_$_userId' : 'isDarkMode';
-    final isDark = prefs.getBool(key) ?? false;
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    bool? isDark = prefs.getBool(key);
+
+    // If user-specific theme is not set, try to use the global/device setting
+    if (isDark == null && _userId != null) {
+      isDark = prefs.getBool('isDarkMode');
+    }
+
+    _themeMode = (isDark ?? false) ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 

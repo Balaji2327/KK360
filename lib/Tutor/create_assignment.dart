@@ -171,9 +171,10 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // APP BAR
@@ -271,11 +272,12 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Assignment title (required)",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
                     SizedBox(height: h * 0.02),
@@ -283,9 +285,20 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     // Title input
                     TextFormField(
                       controller: _titleController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      decoration: InputDecoration(
                         hintText: 'e.g. Assignment - 5',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
                         border: OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDark ? Colors.white24 : Colors.grey,
+                          ),
+                        ),
                       ),
                     ),
                     SizedBox(height: h * 0.02),
@@ -304,6 +317,14 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                   )
                                   : DropdownButtonFormField<String>(
                                     value: _selectedClassId,
+                                    dropdownColor:
+                                        isDark
+                                            ? const Color(0xFF2C2C2C)
+                                            : Colors.white,
+                                    style: TextStyle(
+                                      color:
+                                          isDark ? Colors.white : Colors.black,
+                                    ),
                                     items:
                                         _myClasses
                                             .map(
@@ -321,9 +342,23 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                         (v) => setState(
                                           () => _selectedClassId = v,
                                         ),
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       border: OutlineInputBorder(),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color:
+                                              isDark
+                                                  ? Colors.white24
+                                                  : Colors.grey,
+                                        ),
+                                      ),
                                       labelText: 'Class',
+                                      labelStyle: TextStyle(
+                                        color:
+                                            isDark
+                                                ? Colors.white70
+                                                : Colors.grey,
+                                      ),
                                     ),
                                   ),
                         ),
@@ -339,7 +374,9 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       width: w,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black54),
+                        border: Border.all(
+                          color: isDark ? Colors.white24 : Colors.black54,
+                        ),
                       ),
                       padding: EdgeInsets.symmetric(
                         horizontal: w * 0.03,
@@ -348,15 +385,25 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.notes, size: 22),
+                          Icon(
+                            Icons.notes,
+                            size: 22,
+                            color: isDark ? Colors.white70 : Colors.black,
+                          ),
                           SizedBox(width: w * 0.03),
                           Expanded(
                             child: TextFormField(
                               controller: _descriptionController,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
                               maxLines: 3,
                               minLines: 3,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 hintText: "Description",
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
                                 border: InputBorder.none,
                                 isCollapsed: true,
                               ),
@@ -371,7 +418,11 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     // ATTACHMENT
                     Row(
                       children: [
-                        const Icon(Icons.attachment, size: 22),
+                        Icon(
+                          Icons.attachment,
+                          size: 22,
+                          color: isDark ? Colors.white70 : Colors.black,
+                        ),
                         SizedBox(width: w * 0.02),
                         Text(
                           "Add attachment",
@@ -409,14 +460,21 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
+                                color:
+                                    isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.black12),
+                                border: Border.all(
+                                  color:
+                                      isDark ? Colors.white24 : Colors.black12,
+                                ),
                               ),
                               child: Text(
                                 _savedPoints!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black,
                                 ),
                               ),
                             ),
@@ -447,14 +505,21 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
+                                color:
+                                    isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.black12),
+                                border: Border.all(
+                                  color:
+                                      isDark ? Colors.white24 : Colors.black12,
+                                ),
                               ),
                               child: Text(
                                 _formatDate(_startDate!),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black,
                                 ),
                               ),
                             ),
@@ -485,14 +550,21 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
+                                color:
+                                    isDark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.black12),
+                                border: Border.all(
+                                  color:
+                                      isDark ? Colors.white24 : Colors.black12,
+                                ),
                               ),
                               child: Text(
                                 _formatDate(_endDate!),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black,
                                 ),
                               ),
                             ),

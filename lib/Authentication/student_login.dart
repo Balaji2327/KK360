@@ -266,9 +266,13 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               SizedBox(height: h * 0.02),
 
               // Title
-              const Text(
+              Text(
                 "Log in as Student",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
 
               SizedBox(height: h * 0.006),
@@ -287,17 +291,33 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               TextField(
                 controller: emailController,
                 enabled: !isLoading,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.person_outline, size: 20),
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    size: 20,
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
                   hintText: "Your username or email",
-                  hintStyle: const TextStyle(fontSize: 14),
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     vertical: 10,
                     horizontal: 15,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -309,17 +329,28 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 controller: passwordController,
                 enabled: !isLoading,
                 obscureText: !isPasswordVisible,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  prefixIcon: Icon(
+                    Icons.lock_outline,
+                    size: 20,
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
                   hintText: "Your password",
-                  hintStyle: const TextStyle(fontSize: 14),
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       isPasswordVisible
                           ? Icons.visibility
                           : Icons.visibility_off,
                       size: 20,
+                      color: isDark ? Colors.white70 : Colors.grey,
                     ),
                     onPressed:
                         isLoading
@@ -336,6 +367,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -356,7 +393,13 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                               });
                             },
                   ),
-                  const Text("Remember Me", style: TextStyle(fontSize: 13)),
+                  Text(
+                    "Remember Me",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
                 ],
               ),
 
@@ -440,7 +483,13 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
               SizedBox(height: h * 0.02),
 
-              const Text("or", style: TextStyle(fontSize: 14)),
+              Text(
+                "or",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
 
               SizedBox(height: h * 0.015),
 
@@ -504,9 +553,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               // Tutor Section with button
               Column(
                 children: [
-                  const Text(
+                  Text(
                     "Are you a Tutor?",
-                    style: TextStyle(fontSize: 13),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                   ),
                   const SizedBox(height: 3),
                   GestureDetector(

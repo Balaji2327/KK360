@@ -74,9 +74,10 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
       body: Column(
         children: [
@@ -124,7 +125,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                 _assignmentsLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _myAssignments.isEmpty
-                    ? _buildEmptyState(h, w)
+                    ? _buildEmptyState(h, w, isDark)
                     : _buildAssignmentsList(h, w),
           ),
         ],
@@ -132,7 +133,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
     );
   }
 
-  Widget _buildEmptyState(double h, double w) {
+  Widget _buildEmptyState(double h, double w, bool isDark) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -148,7 +149,11 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
           Text(
             "No assignments yet",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: h * 0.0185, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: h * 0.0185,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
           SizedBox(height: h * 0.015),
           Padding(
@@ -158,7 +163,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: h * 0.0145,
-                color: Colors.black87,
+                color: isDark ? Colors.white70 : Colors.black87,
                 height: 1.5,
               ),
             ),
@@ -186,15 +191,20 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
 
   Widget _buildAssignmentCard(AssignmentInfo assignment, double h, double w) {
     const appColor = Color(0xFF4B3FA3);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF333333);
+    final subTextColor = isDark ? Colors.white70 : Colors.grey.shade700;
+    final detailsColor = isDark ? Colors.white70 : Colors.grey.shade800;
 
     return Container(
       margin: EdgeInsets.only(bottom: h * 0.015),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.15),
             offset: const Offset(0, 4),
             blurRadius: 10,
           ),
@@ -220,7 +230,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                   style: TextStyle(
                     fontSize: h * 0.02,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF333333),
+                    color: textColor,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -231,7 +241,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                     assignment.description,
                     style: TextStyle(
                       fontSize: h * 0.015,
-                      color: Colors.grey.shade700,
+                      color: subTextColor,
                       height: 1.4,
                     ),
                     maxLines: 2,
@@ -240,7 +250,10 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                 ],
 
                 SizedBox(height: h * 0.02),
-                const Divider(height: 1),
+                Divider(
+                  height: 1,
+                  color: isDark ? Colors.white24 : Colors.grey.shade300,
+                ),
                 SizedBox(height: h * 0.015),
 
                 // Assignment details
@@ -254,7 +267,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                         style: TextStyle(
                           fontSize: h * 0.014,
                           fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade800,
+                          color: detailsColor,
                         ),
                       ),
                       SizedBox(width: 20),
@@ -273,7 +286,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                       style: TextStyle(
                         fontSize: h * 0.014,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade800,
+                        color: detailsColor,
                       ),
                     ),
                   ],

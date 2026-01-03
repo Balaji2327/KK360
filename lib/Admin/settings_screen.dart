@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_bottom_nav.dart';
+import '../theme_manager.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -10,14 +11,13 @@ class AdminSettingsScreen extends StatefulWidget {
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   bool notificationsEnabled = true;
-  bool darkModeEnabled = false;
   bool autoBackupEnabled = true;
 
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = themeManager.isDarkMode;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -101,7 +101,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                           notificationsEnabled = value;
                         });
                       },
-                      activeColor: const Color(0xFF4B3FA3),
+                      activeColor:
+                          isDark
+                              ? const Color(0xFF8F85FF)
+                              : const Color(0xFF4B3FA3),
                     ),
                   ),
 
@@ -112,13 +115,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                     "Dark Mode",
                     "Switch between light and dark theme",
                     Switch(
-                      value: darkModeEnabled,
+                      value: isDark,
                       onChanged: (value) {
-                        setState(() {
-                          darkModeEnabled = value;
-                        });
+                        themeManager.toggleTheme(value);
                       },
-                      activeColor: const Color(0xFF4B3FA3),
+                      activeColor:
+                          isDark
+                              ? const Color(0xFF8F85FF)
+                              : const Color(0xFF4B3FA3),
                     ),
                   ),
 
@@ -135,7 +139,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                           autoBackupEnabled = value;
                         });
                       },
-                      activeColor: const Color(0xFF4B3FA3),
+                      activeColor:
+                          isDark
+                              ? const Color(0xFF8F85FF)
+                              : const Color(0xFF4B3FA3),
                     ),
                   ),
 
@@ -266,7 +273,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF4B3FA3), size: 24),
+          Icon(
+            icon,
+            color: isDark ? const Color(0xFF8F85FF) : const Color(0xFF4B3FA3),
+            size: 24,
+          ),
           SizedBox(width: w * 0.04),
           Expanded(
             child: Column(

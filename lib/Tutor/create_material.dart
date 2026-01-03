@@ -33,20 +33,34 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
     double h,
   ) async {
     _pointsController.text = _savedPoints ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     await showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text("Topic name"),
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            "Topic name",
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
           content: SizedBox(
             width: w * 0.8,
             child: TextField(
               controller: _pointsController,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: "Enter topic name",
-                border: OutlineInputBorder(),
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.white54 : Colors.grey,
+                ),
+                border: const OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.grey,
+                  ),
+                ),
               ),
             ),
           ),
@@ -55,7 +69,12 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
               onPressed: () {
                 goBack(ctx);
               },
-              child: const Text("Cancel"),
+              child: Text(
+                "Cancel",
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ),
 
             /// ✅ GREEN SAVE BUTTON
@@ -120,9 +139,10 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // APP BAR
@@ -177,11 +197,12 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Material title (required)",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
                     SizedBox(height: h * 0.02),
@@ -200,7 +221,9 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                       width: w,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black54),
+                        border: Border.all(
+                          color: isDark ? Colors.white24 : Colors.black54,
+                        ),
                       ),
                       padding: EdgeInsets.symmetric(
                         horizontal: w * 0.03,
@@ -209,15 +232,25 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.notes, size: 22),
+                          Icon(
+                            Icons.notes,
+                            size: 22,
+                            color: isDark ? Colors.white70 : Colors.black,
+                          ),
                           SizedBox(width: w * 0.03),
                           Expanded(
                             child: TextFormField(
                               controller: _descriptionController,
                               maxLines: 3,
                               minLines: 3,
-                              decoration: const InputDecoration(
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                              decoration: InputDecoration(
                                 hintText: "Description",
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
                                 border: InputBorder.none,
                                 isCollapsed: true,
                               ),
@@ -232,13 +265,20 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                     // ATTACHMENT
                     Row(
                       children: [
-                        const Icon(Icons.attachment, size: 22),
+                        Icon(
+                          Icons.attachment,
+                          size: 22,
+                          color: isDark ? Colors.white70 : Colors.black,
+                        ),
                         SizedBox(width: w * 0.02),
                         Text(
                           "Add attachment",
                           style: TextStyle(
                             fontSize: 15,
-                            color: const Color(0xFF4B3FA3),
+                            color:
+                                isDark
+                                    ? const Color(0xFF8F85FF)
+                                    : const Color(0xFF4B3FA3),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -246,7 +286,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                     ),
 
                     SizedBox(height: h * 0.015),
-                    const Divider(),
+                    Divider(color: isDark ? Colors.white24 : Colors.grey),
                     SizedBox(height: h * 0.015),
 
                     // TOTAL POINTS
@@ -258,7 +298,10 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                           Text(
                             "Add topic",
                             style: TextStyle(
-                              color: const Color(0xFF4B3FA3),
+                              color:
+                                  isDark
+                                      ? const Color(0xFF8F85FF)
+                                      : const Color(0xFF4B3FA3),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
@@ -270,14 +313,21 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
+                                color:
+                                    isDark
+                                        ? Colors.grey.shade800
+                                        : Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.black12),
+                                border: Border.all(
+                                  color:
+                                      isDark ? Colors.white24 : Colors.black12,
+                                ),
                               ),
                               child: Text(
                                 _savedPoints!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black,
                                 ),
                               ),
                             ),

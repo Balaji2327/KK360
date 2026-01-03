@@ -100,12 +100,13 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
     final double h = size.height;
     final double w = size.width;
     final Color purple = const Color(0xFF4B3FA3);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // match AddPeopleScreen header size
     final double headerHeight = h * 0.15;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // ---------------- HEADER ----------------
@@ -282,12 +283,18 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: purple,
+                              color: isDark ? Colors.white : purple,
                             ),
                           ),
                           SizedBox(height: h * 0.015),
                           DropdownButtonFormField<String>(
                             value: _selectedClassId,
+                            dropdownColor:
+                                isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                              fontSize: 16,
+                            ),
                             items:
                                 _classes
                                     .map(
@@ -295,6 +302,12 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                                         value: c.id.split('/').last,
                                         child: Text(
                                           c.name.isNotEmpty ? c.name : c.course,
+                                          style: TextStyle(
+                                            color:
+                                                isDark
+                                                    ? Colors.white
+                                                    : Colors.black,
+                                          ),
                                         ),
                                       ),
                                     )
@@ -302,8 +315,24 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                             onChanged:
                                 (v) => setState(() => _selectedClassId = v),
                             decoration: InputDecoration(
+                              filled: true,
+                              fillColor:
+                                  isDark
+                                      ? Colors.white.withOpacity(0.05)
+                                      : Colors.transparent,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color:
+                                      isDark ? Colors.white24 : Colors.black54,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color:
+                                      isDark ? Colors.white24 : Colors.black54,
+                                ),
                               ),
                             ),
                           ),
@@ -318,15 +347,21 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                         width: w,
                         padding: EdgeInsets.all(w * 0.04),
                         decoration: BoxDecoration(
-                          color: purple.withAlpha(25),
+                          color:
+                              isDark
+                                  ? purple.withOpacity(0.2)
+                                  : purple.withAlpha(25),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: purple, width: 1),
+                          border: Border.all(
+                            color: isDark ? purple.withOpacity(0.5) : purple,
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.admin_panel_settings,
-                              color: purple,
+                              color: isDark ? const Color(0xFF8F85FF) : purple,
                               size: 24,
                             ),
                             SizedBox(width: w * 0.03),
@@ -338,7 +373,10 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                                     'Adding Admins to:',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color:
+                                          isDark
+                                              ? Colors.white70
+                                              : Colors.grey.shade600,
                                     ),
                                   ),
                                   SizedBox(height: 4),
@@ -354,7 +392,10 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: purple,
+                                      color:
+                                          isDark
+                                              ? const Color(0xFF8F85FF)
+                                              : purple,
                                     ),
                                   ),
                                 ],
@@ -372,23 +413,38 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                       controller: _controller,
                       focusNode: _focusNode,
                       textInputAction: TextInputAction.done,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       onSubmitted: (_) => _addEmailFromInput(),
                       decoration: InputDecoration(
                         hintText: 'Enter email addresses',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: w * 0.04,
                           vertical: h * 0.015,
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: purple, width: 1.2),
+                          borderSide: BorderSide(
+                            color: isDark ? const Color(0xFF8F85FF) : purple,
+                            width: 1.2,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: purple, width: 1.6),
+                          borderSide: BorderSide(
+                            color: isDark ? const Color(0xFF8F85FF) : purple,
+                            width: 1.6,
+                          ),
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(Icons.add, color: purple),
+                          icon: Icon(
+                            Icons.add,
+                            color: isDark ? const Color(0xFF8F85FF) : purple,
+                          ),
                           onPressed: _addEmailFromInput,
                         ),
                       ),
@@ -433,7 +489,7 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
                     'You can add multiple emails separated by comma or space.',
                     style: TextStyle(
                       fontSize: w * 0.035,
-                      color: Colors.black54,
+                      color: isDark ? Colors.white54 : Colors.black54,
                     ),
                   ),
                   SizedBox(height: h * 0.5),

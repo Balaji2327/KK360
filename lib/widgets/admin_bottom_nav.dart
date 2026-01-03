@@ -46,6 +46,12 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
   // ---------------- SINGLE NAV ITEM ----------------
   Widget _item(IconData icon, String label, int index) {
     final bool active = index == widget.currentIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Colors
+    final activeColor =
+        isDark ? const Color(0xFF8F85FF) : const Color(0xFF4B3FA3);
+    final inactiveColor = isDark ? Colors.white54 : Colors.black54;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -60,7 +66,7 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
             child: Icon(
               icon,
               size: 28,
-              color: active ? const Color(0xFF4B3FA3) : Colors.black54,
+              color: active ? activeColor : inactiveColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -70,7 +76,7 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
               fontFamily: 'Poppins',
               fontSize: 11,
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              color: active ? const Color(0xFF4B3FA3) : Colors.black54,
+              color: active ? activeColor : inactiveColor,
             ),
             child: Text(label),
           ),
@@ -84,16 +90,19 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: w,
       height: h * 0.10,
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withValues(
+              alpha: isDark ? 0.3 : 0.08,
+            ), // Using withValues for alpha
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

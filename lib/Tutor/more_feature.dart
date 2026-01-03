@@ -29,19 +29,38 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: const Text('Change Username'),
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Change Username',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
           content: TextField(
             controller: usernameController,
-            decoration: const InputDecoration(
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            decoration: InputDecoration(
               hintText: 'Enter new username',
-              border: OutlineInputBorder(),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white54 : Colors.grey,
+              ),
+              border: const OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white24 : Colors.grey,
+                ),
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -86,8 +105,16 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: const Text('Change Password', style: TextStyle(fontSize: 16)),
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Change Password',
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -95,30 +122,57 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                 TextField(
                   controller: currentPasswordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     hintText: 'Current password',
-                    hintStyle: TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: newPasswordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     hintText: 'New password',
-                    hintStyle: TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: confirmPasswordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     hintText: 'Confirm new password',
-                    hintStyle: TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -127,7 +181,13 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel', style: TextStyle(fontSize: 14)),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {

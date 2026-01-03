@@ -43,9 +43,10 @@ class _WorksScreenState extends State<WorksScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
       body: Column(
         children: [
@@ -99,7 +100,7 @@ class _WorksScreenState extends State<WorksScreen> {
                   style: TextStyle(
                     fontSize: w * 0.049,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 SizedBox(height: h * 0.02),
@@ -110,15 +111,28 @@ class _WorksScreenState extends State<WorksScreen> {
                     h,
                     Icons.assignment_outlined,
                     "Assignment",
+                    isDark,
                   ),
                 ),
                 GestureDetector(
                   onTap: () => goPush(context, TopicPage()),
-                  child: featureTile(w, h, Icons.topic_outlined, "Topic"),
+                  child: featureTile(
+                    w,
+                    h,
+                    Icons.topic_outlined,
+                    "Topic",
+                    isDark,
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => goPush(context, TestPage()),
-                  child: featureTile(w, h, Icons.note_alt_outlined, "Test"),
+                  child: featureTile(
+                    w,
+                    h,
+                    Icons.note_alt_outlined,
+                    "Test",
+                    isDark,
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => goPush(context, TutorMaterialPage()),
@@ -127,6 +141,7 @@ class _WorksScreenState extends State<WorksScreen> {
                     h,
                     Icons.insert_drive_file_outlined,
                     "Material",
+                    isDark,
                   ),
                 ),
                 SizedBox(height: h * 0.03),
@@ -146,17 +161,23 @@ class _WorksScreenState extends State<WorksScreen> {
   }
 
   // Feature Tile Widget
-  Widget featureTile(double w, double h, IconData icon, String text) {
+  Widget featureTile(
+    double w,
+    double h,
+    IconData icon,
+    String text,
+    bool isDark,
+  ) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: w * 0.00, vertical: h * 0.008),
       padding: EdgeInsets.symmetric(horizontal: w * 0.04),
       height: h * 0.07,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -169,10 +190,16 @@ class _WorksScreenState extends State<WorksScreen> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: w * 0.04, color: Colors.black),
+              style: TextStyle(
+                fontSize: w * 0.04,
+                color: isDark ? Colors.white : Colors.black,
+              ),
             ),
           ),
-          Icon(Icons.chevron_right, color: Colors.grey),
+          Icon(
+            Icons.chevron_right,
+            color: isDark ? Colors.white54 : Colors.grey,
+          ),
         ],
       ),
     );

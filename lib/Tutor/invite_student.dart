@@ -105,12 +105,13 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
     final double h = size.height;
     final double w = size.width;
     final Color purple = const Color(0xFF4B3FA3);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // match AddPeopleScreen header size
     final double headerHeight = h * 0.15;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // ---------------- HEADER (same style as AddPeopleScreen) ----------------
@@ -380,13 +381,17 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                                   color:
                                       isSelected
                                           ? purple.withAlpha(25)
-                                          : Colors.grey.shade50,
+                                          : (isDark
+                                              ? const Color(0xFF1E1E1E)
+                                              : Colors.grey.shade50),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color:
                                         isSelected
                                             ? purple
-                                            : Colors.grey.shade300,
+                                            : (isDark
+                                                ? Colors.white24
+                                                : Colors.grey.shade300),
                                     width: isSelected ? 2 : 1,
                                   ),
                                 ),
@@ -397,7 +402,9 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                                       color:
                                           isSelected
                                               ? purple
-                                              : Colors.grey.shade600,
+                                              : (isDark
+                                                  ? Colors.white54
+                                                  : Colors.grey.shade600),
                                       size: 24,
                                     ),
                                     SizedBox(width: w * 0.03),
@@ -416,7 +423,9 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                                               color:
                                                   isSelected
                                                       ? purple
-                                                      : Colors.black87,
+                                                      : (isDark
+                                                          ? Colors.white
+                                                          : Colors.black87),
                                             ),
                                           ),
                                           if (classInfo.course.isNotEmpty &&
@@ -425,14 +434,20 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                                               classInfo.course,
                                               style: TextStyle(
                                                 fontSize: 14,
-                                                color: Colors.grey.shade600,
+                                                color:
+                                                    isDark
+                                                        ? Colors.white54
+                                                        : Colors.grey.shade600,
                                               ),
                                             ),
                                           Text(
                                             '${classInfo.members.length} members',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey.shade500,
+                                              color:
+                                                  isDark
+                                                      ? Colors.white38
+                                                      : Colors.grey.shade500,
                                             ),
                                           ),
                                         ],
@@ -476,7 +491,10 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                                     'Adding students to:',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color:
+                                          isDark
+                                              ? Colors.white70
+                                              : Colors.grey.shade600,
                                     ),
                                   ),
                                   SizedBox(height: 4),
@@ -510,9 +528,17 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                         width: w,
                         padding: EdgeInsets.all(w * 0.04),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
+                          color:
+                              isDark
+                                  ? const Color(0xFF2C2C2C)
+                                  : Colors.orange.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.shade200),
+                          border: Border.all(
+                            color:
+                                isDark
+                                    ? Colors.orange.shade900
+                                    : Colors.orange.shade200,
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -539,6 +565,8 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                       padding: EdgeInsets.only(bottom: h * 0.015),
                       child: DropdownButtonFormField<String>(
                         value: _selectedClassId,
+                        dropdownColor:
+                            isDark ? const Color(0xFF2C2C2C) : Colors.white,
                         items:
                             _classes
                                 .map(
@@ -546,6 +574,12 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                                     value: c.id.split('/').last,
                                     child: Text(
                                       c.name.isNotEmpty ? c.name : c.course,
+                                      style: TextStyle(
+                                        color:
+                                            isDark
+                                                ? Colors.white
+                                                : Colors.black,
+                                      ),
                                     ),
                                   ),
                                 )
@@ -553,8 +587,20 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                         onChanged: (v) => setState(() => _selectedClassId = v),
                         decoration: InputDecoration(
                           labelText: 'Select class',
+                          labelStyle: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color:
+                                  isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade400,
+                            ),
                           ),
                         ),
                       ),
@@ -566,10 +612,16 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _addEmailFromInput(),
                       decoration: InputDecoration(
                         hintText: 'Enter email addresses',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: w * 0.04,
                           vertical: h * 0.015,
@@ -629,7 +681,7 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
                     'You can add multiple emails separated by comma or space.',
                     style: TextStyle(
                       fontSize: w * 0.035,
-                      color: Colors.black54,
+                      color: isDark ? Colors.white54 : Colors.black54,
                     ),
                   ),
 

@@ -17,20 +17,39 @@ class _AdminToDoListScreenState extends State<AdminToDoListScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: const Text('Add New Task'),
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Add New Task',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
           content: TextField(
             controller: todoController,
-            decoration: const InputDecoration(
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            decoration: InputDecoration(
               hintText: 'Enter task description',
-              border: OutlineInputBorder(),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white54 : Colors.grey,
+              ),
+              border: const OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white24 : Colors.grey,
+                ),
+              ),
             ),
             maxLines: 3,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -65,13 +84,26 @@ class _AdminToDoListScreenState extends State<AdminToDoListScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: const Text('Delete Task'),
-          content: const Text('Are you sure you want to delete this task?'),
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Delete Task',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
+          content: Text(
+            'Are you sure you want to delete this task?',
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () {

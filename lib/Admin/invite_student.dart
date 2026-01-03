@@ -65,12 +65,13 @@ class _AdminInviteStudentsScreenState extends State<AdminInviteStudentsScreen> {
     final double h = size.height;
     final double w = size.width;
     final Color purple = const Color(0xFF4B3FA3);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // match AddPeopleScreen header size
     final double headerHeight = h * 0.15;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // ---------------- HEADER (same style as AddPeopleScreen) ----------------
@@ -160,24 +161,39 @@ class _AdminInviteStudentsScreenState extends State<AdminInviteStudentsScreen> {
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _addEmailFromInput(),
                       decoration: InputDecoration(
                         hintText: 'Enter email addresses',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: w * 0.04,
                           vertical: h * 0.015,
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: purple, width: 1.2),
+                          borderSide: BorderSide(
+                            color: isDark ? const Color(0xFF8F85FF) : purple,
+                            width: 1.2,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: purple, width: 1.6),
+                          borderSide: BorderSide(
+                            color: isDark ? const Color(0xFF8F85FF) : purple,
+                            width: 1.6,
+                          ),
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(Icons.add, color: purple),
+                          icon: Icon(
+                            Icons.add,
+                            color: isDark ? const Color(0xFF8F85FF) : purple,
+                          ),
                           onPressed: _addEmailFromInput,
                         ),
                       ),
@@ -223,7 +239,7 @@ class _AdminInviteStudentsScreenState extends State<AdminInviteStudentsScreen> {
                     'You can add multiple emails separated by comma or space.',
                     style: TextStyle(
                       fontSize: w * 0.035,
-                      color: Colors.black54,
+                      color: isDark ? Colors.white54 : Colors.black54,
                     ),
                   ),
 

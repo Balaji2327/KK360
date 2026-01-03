@@ -75,9 +75,10 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const AdminBottomNav(currentIndex: 2),
 
       body: Column(
@@ -132,17 +133,22 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                   child: Container(
                     height: h * 0.06,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: isDark ? Colors.grey[900] : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: TextField(
                       controller: _searchController,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Search for anything',
-                        hintStyle: TextStyle(color: Colors.grey.shade600),
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        ),
                         prefixIcon: Icon(
                           Icons.search,
-                          color: Colors.grey.shade600,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
@@ -182,9 +188,9 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
               vertical: h * 0.015,
               horizontal: w * 0.04,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(10),
                 topRight: Radius.circular(10),
               ),
@@ -198,7 +204,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: isDark ? Colors.white70 : Colors.black87,
                     ),
                   ),
                 ),
@@ -209,7 +215,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: isDark ? Colors.white70 : Colors.black87,
                     ),
                   ),
                 ),
@@ -221,7 +227,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: isDark ? Colors.white70 : Colors.black87,
                     ),
                   ),
                 ),
@@ -235,17 +241,20 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                 _tutorsLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _filteredTutors.isEmpty
-                    ? const Center(
+                    ? Center(
                       child: Text(
                         'No tutors found',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
                       ),
                     )
                     : Container(
                       margin: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(10),
                           bottomRight: Radius.circular(10),
                         ),
@@ -255,7 +264,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                         itemCount: _filteredTutors.length,
                         itemBuilder: (context, index) {
                           final tutor = _filteredTutors[index];
-                          return _tutorRow(w, h, tutor, index);
+                          return _tutorRow(w, h, tutor, index, isDark);
                         },
                       ),
                     ),
@@ -265,12 +274,21 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     );
   }
 
-  Widget _tutorRow(double w, double h, Map<String, String> tutor, int index) {
+  Widget _tutorRow(
+    double w,
+    double h,
+    Map<String, String> tutor,
+    int index,
+    bool isDark,
+  ) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: h * 0.015, horizontal: w * 0.04),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+          bottom: BorderSide(
+            color: isDark ? Colors.white10 : Colors.grey.shade200,
+            width: 1,
+          ),
         ),
       ),
       child: Row(
@@ -279,10 +297,10 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
             flex: 2,
             child: Text(
               tutor['id']!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87,
+                color: isDark ? Colors.white : Colors.black87,
               ),
             ),
           ),
@@ -290,7 +308,10 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
             flex: 2,
             child: Text(
               tutor['name']!,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
             ),
           ),
           Expanded(
@@ -335,12 +356,14 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: const Text(
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
             'Add New Tutor',
             style: TextStyle(
               fontWeight: FontWeight.w500,
-              color: Color(0xFF4B3FA3),
+              color: isDark ? Colors.white : const Color(0xFF4B3FA3),
             ),
           ),
           content: Form(
@@ -350,10 +373,22 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
               children: [
                 TextFormField(
                   controller: tutorIdController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     labelText: 'Tutor ID',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.badge),
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.badge,
+                      color: isDark ? Colors.white70 : Colors.grey,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -365,10 +400,22 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: emailController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.email,
+                      color: isDark ? Colors.white70 : Colors.grey,
+                    ),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
@@ -386,10 +433,22 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: passwordController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.lock,
+                      color: isDark ? Colors.white70 : Colors.grey,
+                    ),
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -405,10 +464,22 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: confirmPasswordController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock_outline),
+                    labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      color: isDark ? Colors.white70 : Colors.grey,
+                    ),
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -427,7 +498,12 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -475,9 +551,11 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
               title: Row(
                 children: [
                   Expanded(
@@ -485,13 +563,17 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                       'Tutor Details',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF4B3FA3),
+                        color: isDark ? Colors.white : const Color(0xFF4B3FA3),
                       ),
                     ),
                   ),
                   GestureDetector(
                     onTap: () => _deleteTutor(context, tutor),
-                    child: Icon(Icons.delete, color: Colors.red, size: 24),
+                    child: const Icon(
+                      Icons.delete,
+                      color: Colors.red,
+                      size: 24,
+                    ),
                   ),
                 ],
               ),
@@ -499,45 +581,55 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow('Tutor ID:', tutor['id'] ?? 'N/A'),
-                  SizedBox(height: 12),
-                  _buildDetailRow('Name:', tutor['name'] ?? 'N/A'),
-                  SizedBox(height: 12),
-                  _buildDetailRow('Email:', tutor['email'] ?? 'N/A'),
-                  SizedBox(height: 12),
+                  _buildDetailRow('Tutor ID:', tutor['id'] ?? 'N/A', isDark),
+                  const SizedBox(height: 12),
+                  _buildDetailRow('Name:', tutor['name'] ?? 'N/A', isDark),
+                  const SizedBox(height: 12),
+                  _buildDetailRow('Email:', tutor['email'] ?? 'N/A', isDark),
+                  const SizedBox(height: 12),
                   _buildPasswordRow(
                     'Password:',
                     tutor['password'] ?? 'N/A',
                     isPasswordVisible,
                     () =>
                         setState(() => isPasswordVisible = !isPasswordVisible),
+                    isDark,
                   ),
-                  SizedBox(height: 12),
-                  _buildDetailRow('Date Added:', tutor['dateAdded'] ?? 'N/A'),
-                  SizedBox(height: 12),
-                  _buildDetailRow('Status:', 'Active'),
+                  const SizedBox(height: 12),
+                  _buildDetailRow(
+                    'Date Added:',
+                    tutor['dateAdded'] ?? 'N/A',
+                    isDark,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDetailRow('Status:', 'Active', isDark),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: Text('Close'),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
+                      const SnackBar(
                         content: Text('Edit functionality coming soon'),
                         backgroundColor: Colors.blue,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF4B3FA3),
+                    backgroundColor: const Color(0xFF4B3FA3),
                     foregroundColor: Colors.white,
                   ),
-                  child: Text('Edit'),
+                  child: const Text('Edit'),
                 ),
               ],
             );
@@ -547,7 +639,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, bool isDark) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -557,11 +649,16 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
             label,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
+              color: isDark ? Colors.white70 : Colors.grey[700],
             ),
           ),
         ),
-        Expanded(child: Text(value, style: TextStyle(color: Colors.black87))),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+          ),
+        ),
       ],
     );
   }
@@ -571,6 +668,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     String password,
     bool isVisible,
     VoidCallback onToggle,
+    bool isDark,
   ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -581,7 +679,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
             label,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
+              color: isDark ? Colors.white70 : Colors.grey[700],
             ),
           ),
         ),
@@ -591,7 +689,9 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
               Expanded(
                 child: Text(
                   isVisible ? password : '••••••••',
-                  style: TextStyle(color: Colors.black87),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
               ),
               GestureDetector(
@@ -599,7 +699,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                 child: Icon(
                   isVisible ? Icons.visibility_off : Icons.visibility,
                   size: 18,
-                  color: Colors.grey[600],
+                  color: isDark ? Colors.white70 : Colors.grey[600],
                 ),
               ),
             ],
@@ -615,18 +715,26 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
           title: Text(
             'Delete Tutor',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
           ),
           content: Text(
             'Are you sure you want to delete tutor ${tutor['name']} (${tutor['id']})?',
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () {
@@ -645,7 +753,7 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                   ),
                 );
               },
-              child: Text('Delete', style: TextStyle(color: Colors.red)),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ],
         );

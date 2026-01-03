@@ -68,9 +68,10 @@ class _AssignmentPageState extends State<AssignmentPage> {
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
@@ -84,17 +85,21 @@ class _AssignmentPageState extends State<AssignmentPage> {
             height: h * 0.065,
             width: h * 0.065,
             decoration: BoxDecoration(
-              color: const Color(0xFFDFF7E8),
+              color: isDark ? const Color(0xFF004D40) : const Color(0xFFDFF7E8),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(15),
+                  color: Colors.black.withAlpha(isDark ? 50 : 15),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: const Icon(Icons.add, size: 30, color: Colors.black),
+            child: Icon(
+              Icons.add,
+              size: 30,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
         ),
       ),
@@ -145,7 +150,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                 _assignmentsLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _myAssignments.isEmpty
-                    ? _buildEmptyState(h, w)
+                    ? _buildEmptyState(h, w, isDark)
                     : _buildAssignmentsList(h, w),
           ),
         ],
@@ -153,7 +158,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
     );
   }
 
-  Widget _buildEmptyState(double h, double w) {
+  Widget _buildEmptyState(double h, double w, bool isDark) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -169,7 +174,11 @@ class _AssignmentPageState extends State<AssignmentPage> {
           Text(
             "No assignments yet",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: h * 0.0185, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: h * 0.0185,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
           SizedBox(height: h * 0.015),
           Padding(
@@ -179,7 +188,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: h * 0.0145,
-                color: Colors.black87,
+                color: isDark ? Colors.white70 : Colors.black87,
                 height: 1.5,
               ),
             ),
@@ -207,15 +216,16 @@ class _AssignmentPageState extends State<AssignmentPage> {
 
   Widget _buildAssignmentCard(AssignmentInfo assignment, double h, double w) {
     const appColor = Color(0xFF4B3FA3);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: EdgeInsets.only(bottom: h * 0.015),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.15),
             offset: const Offset(0, 4),
             blurRadius: 10,
           ),
@@ -246,7 +256,8 @@ class _AssignmentPageState extends State<AssignmentPage> {
                         style: TextStyle(
                           fontSize: h * 0.02,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF333333),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF333333),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -254,18 +265,35 @@ class _AssignmentPageState extends State<AssignmentPage> {
                     PopupMenuButton<String>(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      icon: Icon(Icons.more_vert, color: Colors.grey.shade500),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: isDark ? Colors.white70 : Colors.grey.shade500,
+                      ),
+                      color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
                       onSelected:
                           (value) => _handleAssignmentAction(assignment, value),
                       itemBuilder:
                           (context) => [
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'edit',
                               child: Row(
                                 children: [
-                                  Icon(Icons.edit, size: 18),
+                                  Icon(
+                                    Icons.edit,
+                                    size: 18,
+                                    color:
+                                        isDark
+                                            ? Colors.white70
+                                            : Colors.black87,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('Edit'),
+                                  Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      color:
+                                          isDark ? Colors.white : Colors.black,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -306,7 +334,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                       assignment.course,
                       style: TextStyle(
                         fontSize: h * 0.014,
-                        color: appColor,
+                        color: isDark ? Colors.white70 : appColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -319,7 +347,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                     assignment.description,
                     style: TextStyle(
                       fontSize: h * 0.015,
-                      color: Colors.grey.shade700,
+                      color: isDark ? Colors.white60 : Colors.grey.shade700,
                       height: 1.4,
                     ),
                     maxLines: 2,
@@ -328,7 +356,10 @@ class _AssignmentPageState extends State<AssignmentPage> {
                 ],
 
                 SizedBox(height: h * 0.02),
-                const Divider(height: 1),
+                Divider(
+                  height: 1,
+                  color: isDark ? Colors.white24 : Colors.grey.shade300,
+                ),
                 SizedBox(height: h * 0.015),
 
                 // Assignment details
@@ -342,7 +373,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                         style: TextStyle(
                           fontSize: h * 0.014,
                           fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade800,
+                          color: isDark ? Colors.white70 : Colors.grey.shade800,
                         ),
                       ),
                       SizedBox(width: 20),
@@ -361,7 +392,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                       style: TextStyle(
                         fontSize: h * 0.014,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade800,
+                        color: isDark ? Colors.white70 : Colors.grey.shade800,
                       ),
                     ),
                   ],

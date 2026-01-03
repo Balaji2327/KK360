@@ -171,7 +171,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             style: TextStyle(
                               fontSize: w * 0.049,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: isDark ? Colors.white : Colors.black,
                             ),
                           ),
                           SizedBox(height: h * 0.02),
@@ -379,16 +379,22 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   // Feature Tile Widget
   Widget featureTile(double w, double h, IconData icon, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tileColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final shadowColor =
+        isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05);
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: w * 0.00, vertical: h * 0.008),
       padding: EdgeInsets.symmetric(horizontal: w * 0.04),
       height: h * 0.07,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: tileColor,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: shadowColor,
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -404,7 +410,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
               style: TextStyle(
                 fontSize: w * 0.04,
                 fontWeight: FontWeight.w500,
-                color: Colors.black,
+                color: textColor,
               ),
             ),
           ),

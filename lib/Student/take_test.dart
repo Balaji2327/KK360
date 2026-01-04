@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_auth_service.dart';
-import '../widgets/nav_helper.dart';
-
 import 'package:flutter/services.dart';
+import '../services/firebase_auth_service.dart';
 
 class TakeTestScreen extends StatefulWidget {
   final TestInfo test;
@@ -15,7 +13,7 @@ class TakeTestScreen extends StatefulWidget {
 class _TakeTestScreenState extends State<TakeTestScreen>
     with WidgetsBindingObserver {
   int _currentQuestionIndex = 0;
-  // Map to store selected option index for each question
+  // Question Index -> Selected Option Index
   final Map<int, int> _answers = {};
   bool _submitted = false;
 
@@ -42,38 +40,90 @@ class _TakeTestScreenState extends State<TakeTestScreen>
     // If the app is paused (user switched apps/tabs), auto submit
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      // We use a flag to prevent multiple submissions
       _autoSubmit("Test submitted automatically because you switched tabs.");
     }
   }
 
-  void _autoSubmit(String message) {
+  Future<void> _submitTest() async {
+    await _performSubmission("Test submitted successfully!");
+  }
+
+  Future<void> _autoSubmit(String message) async {
+    if (_submitted) return;
+    await _performSubmission(message);
+  }
+
+  Future<void> _performSubmission(String message) async {
     if (_submitted) return;
     _submitted = true;
 
+    // Calculate score
+    int score = 0;
+    for (int i = 0; i < widget.test.questions.length; i++) {
+      // If answer matches correct option
+      if (_answers[i] == widget.test.questions[i].correctOptionIndex) {
+        score++;
+      }
+    }
+
     if (!mounted) return;
 
-    // Force submit
+    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text("Test Submitted"),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx); // Close dialog
-                  Navigator.pop(
-                    context,
-                  ); // Exit screen (using Navigator.pop directly to be safe)
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      final authService = FirebaseAuthService();
+
+      // Since we are in the student flow, we can assume the user is the student.
+      // Ideally we should fetch their name properly, but for now we'll fetch it or use placeholder.
+      final displayName = await authService.getUserDisplayName(
+        projectId: 'kk360-69504',
+      );
+
+      await authService.submitTestResponse(
+        projectId: 'kk360-69504',
+        testId: widget.test.id,
+        studentName: displayName,
+        answers: _answers,
+        score: score,
+        totalQuestions: widget.test.questions.length,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text("Test Submitted"),
+              content: Text(
+                "$message\nYour Score: $score/${widget.test.questions.length}",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pop(context); // Go back to ActivityWall
+                  },
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Submission failed: $e")));
+      _submitted = false; // Allow retry
+    }
   }
 
   @override
@@ -125,7 +175,7 @@ class _TakeTestScreenState extends State<TakeTestScreen>
                                 TextButton(
                                   onPressed: () {
                                     Navigator.pop(ctx);
-                                    goBack(context);
+                                    Navigator.pop(context);
                                   },
                                   child: const Text(
                                     "Exit",
@@ -150,7 +200,6 @@ class _TakeTestScreenState extends State<TakeTestScreen>
                       color: Colors.white,
                     ),
                   ),
-                  // Timer could go here
                   const SizedBox(width: 28),
                 ],
               ),
@@ -191,7 +240,7 @@ class _TakeTestScreenState extends State<TakeTestScreen>
                                         ? Colors.green.withAlpha(100)
                                         : Colors.green[100])
                                     : (isDark
-                                        ? Color(0xFF2C2C2C)
+                                        ? const Color(0xFF2C2C2C)
                                         : Colors.white),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
@@ -221,7 +270,7 @@ class _TakeTestScreenState extends State<TakeTestScreen>
                                 ),
                                 child:
                                     isSelected
-                                        ? Icon(
+                                        ? const Icon(
                                           Icons.check,
                                           size: 16,
                                           color: Colors.white,
@@ -252,9 +301,9 @@ class _TakeTestScreenState extends State<TakeTestScreen>
             Container(
               padding: EdgeInsets.all(w * 0.05),
               decoration: BoxDecoration(
-                color: isDark ? Color(0xFF1E1E1E) : Colors.white,
+                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                 boxShadow: [
-                  BoxShadow(
+                  const BoxShadow(
                     color: Colors.black12,
                     blurRadius: 4,
                     offset: Offset(0, -2),
@@ -322,28 +371,6 @@ class _TakeTestScreenState extends State<TakeTestScreen>
           ],
         ),
       ),
-    );
-  }
-
-  void _submitTest() {
-    // Basic finish for now
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text("Test Submitted"),
-            content: const Text("Thank you for completing the test."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx); // Close dialog
-                  goBack(context); // Exit screen
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
     );
   }
 }

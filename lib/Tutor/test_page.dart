@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
 import 'create_test.dart';
+import 'test_results.dart';
 import '../widgets/nav_helper.dart';
 
 class TestPage extends StatefulWidget {
@@ -162,131 +163,214 @@ class _TestPageState extends State<TestPage> {
       itemCount: _tests.length,
       itemBuilder: (context, index) {
         final test = _tests[index];
-        return Container(
-          margin: EdgeInsets.only(bottom: h * 0.02),
-          width: w,
-          padding: EdgeInsets.all(w * 0.04),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withAlpha(isDark ? 0 : 30),
-                blurRadius: 6,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        return Column(
+          children: [
+            activityCard(
+              w,
+              h,
+              teacher: userName.isNotEmpty ? userName : "Me",
+              subject: test.course,
+              unit: test.title,
+              date: test.startDate != null ? _formatDate(test.startDate!) : "",
+              description: test.description,
+              start:
+                  test.startDate != null
+                      ? "Start: ${_formatDate(test.startDate!)}"
+                      : "",
+              end:
+                  test.endDate != null
+                      ? "End: ${_formatDate(test.endDate!)}"
+                      : "",
+              buttonText: "View Results",
+              onTap: () {
+                goPush(context, TestResultsScreen(test: test));
+              },
+              onDelete: () {
+                showDialog(
+                  context: context,
+                  builder:
+                      (ctx) => AlertDialog(
+                        title: const Text("Delete Test"),
+                        content: const Text(
+                          "Are you sure you want to delete this test?",
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              Navigator.pop(ctx);
+                              try {
+                                await _authService.deleteTest(
+                                  projectId: 'kk360-69504',
+                                  testId: test.id,
+                                );
+                                _loadTests();
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to delete: $e'),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            child: const Text(
+                              "Delete",
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
+              },
+            ),
+            SizedBox(height: h * 0.02),
+          ],
+        );
+      },
+    );
+  }
+
+  // =================== Activity Card Widget (Adapted) ===================
+  Widget activityCard(
+    double w,
+    double h, {
+    required String teacher,
+    required String subject,
+    required String unit,
+    required String date,
+    required String description,
+    required String start,
+    required String end,
+    required String buttonText,
+    VoidCallback? onTap,
+    VoidCallback? onDelete,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: w,
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withAlpha(isDark ? 0 : 38),
+            blurRadius: 6,
+            offset: const Offset(0, 4),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              CircleAvatar(
+                radius: 20,
+                backgroundImage: const AssetImage('assets/images/person.png'),
+                backgroundColor: Colors.transparent,
+              ),
+              SizedBox(width: w * 0.03),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    test.title,
+                    teacher,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 14,
                       color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder:
-                            (ctx) => AlertDialog(
-                              title: const Text("Delete Test"),
-                              content: const Text(
-                                "Are you sure you want to delete this test?",
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  child: const Text("Cancel"),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    Navigator.pop(ctx);
-                                    try {
-                                      await _authService.deleteTest(
-                                        projectId: 'kk360-69504',
-                                        testId: test.id,
-                                      );
-                                      _loadTests();
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Failed to delete: $e',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  child: const Text(
-                                    "Delete",
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                      );
-                    },
-                    child: Icon(
-                      Icons.delete,
-                      color: Colors.red.shade400,
-                      size: 20,
+                  Text(
+                    subject,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white54 : Colors.grey,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 5),
-              Text(
-                "Course: ${test.course}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.white54 : Colors.green,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: 8),
-              if (test.description.isNotEmpty)
+              const Spacer(),
+              if (onDelete != null)
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: onDelete,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                )
+              else
                 Text(
-                  test.description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? Colors.white70 : Colors.black87,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              SizedBox(height: 12),
-              if (test.startDate != null && test.endDate != null) ...[
-                Text(
-                  "Start: ${_formatDate(test.startDate!)}",
+                  date,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? Colors.white38 : Colors.grey,
+                    color: isDark ? Colors.white54 : Colors.grey,
                   ),
                 ),
-                Text(
-                  "End: ${_formatDate(test.endDate!)}",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.white38 : Colors.grey,
-                  ),
-                ),
-              ],
             ],
           ),
-        );
-      },
+          SizedBox(height: h * 0.015),
+          Center(
+            child: Text(
+              unit,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ),
+          SizedBox(height: h * 0.012),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: isDark ? Colors.white70 : Colors.black,
+            ),
+            textAlign:
+                description.length > 60 ? TextAlign.start : TextAlign.center,
+          ),
+          SizedBox(height: h * 0.02),
+          Center(
+            child: Text(
+              "$start\n$end",
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: isDark ? Colors.white70 : Colors.black,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: h * 0.02),
+          Center(
+            child: GestureDetector(
+              onTap: onTap,
+              child: Container(
+                height: h * 0.045,
+                width: w * 0.35,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4B3FA3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    buttonText,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

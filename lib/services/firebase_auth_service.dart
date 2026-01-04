@@ -1571,6 +1571,31 @@ class FirebaseAuthService {
     debugPrint('[Auth] createTest: Successfully created test');
   }
 
+  Future<String> getUserNameById({
+    required String projectId,
+    required String uid,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return 'Unknown';
+    final token = await user.getIdToken();
+
+    final url =
+        'https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents/users/$uid';
+    try {
+      final resp = await http.get(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body);
+        return body['fields']?['name']?['stringValue'] ?? 'Unknown';
+      }
+    } catch (e) {
+      debugPrint('Error fetching user name: $e');
+    }
+    return 'Unknown';
+  }
+
   List<TestInfo> _parseTestsFromRunQuery(List<dynamic> respJson) {
     final out = <TestInfo>[];
     for (final item in respJson) {
@@ -1587,6 +1612,7 @@ class FirebaseAuthService {
       final startDateStr = fields['startDate']?['timestampValue'] as String?;
       final endDateStr = fields['endDate']?['timestampValue'] as String?;
       final createdAt = fields['createdAt']?['timestampValue'] as String?;
+      final createdBy = fields['createdBy']?['stringValue'] as String? ?? '';
 
       final questionsList = <Question>[];
       final questionsVal =
@@ -1633,10 +1659,201 @@ class FirebaseAuthService {
           createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
           classId: classId,
           questions: questionsList,
+          createdBy: createdBy,
         ),
       );
     }
     return out;
+  }
+
+  // Submit a test response
+  Future<void> submitTestResponse({
+    required String projectId,
+    required String testId,
+    required String studentName,
+    required Map<int, int> answers,
+    required int score,
+    required int totalQuestions,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("User not logged in");
+
+    final url =
+        'https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents/test_submissions';
+
+    // Convert answers map to string keys
+    final answersMap = <String, dynamic>{};
+    answers.forEach((k, v) {
+      answersMap[k.toString()] = {'integerValue': v};
+    });
+
+    final body = {
+      'fields': {
+        'testId': {'stringValue': testId},
+        'studentId': {'stringValue': user.uid},
+        'studentName': {'stringValue': studentName},
+        'score': {'integerValue': score},
+        'totalQuestions': {'integerValue': totalQuestions},
+        'submittedAt': {
+          'timestampValue': DateTime.now().toUtc().toIso8601String(),
+        },
+        'answers': {
+          'mapValue': {'fields': answersMap},
+        },
+      },
+    };
+
+    final token = await user.getIdToken();
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      debugPrint('Error submitTestResponse: ${response.body}');
+      throw Exception('Failed to submit test: ${response.body}');
+    }
+  }
+
+  // Get submissions for a specific test
+  Future<List<TestSubmission>> getTestSubmissions({
+    required String projectId,
+    required String testId,
+  }) async {
+    final url =
+        'https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents:runQuery';
+
+    final body = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'test_submissions'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'testId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': testId},
+          },
+        },
+      },
+    };
+
+    final user = _auth.currentUser;
+    final token = await user?.getIdToken();
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.where((doc) => doc['document'] != null).map((doc) {
+        final fields = doc['document']['fields'];
+        return TestSubmission(
+          id: (doc['document']['name'] as String).split('/').last,
+          testId: fields['testId']?['stringValue'] ?? '',
+          studentId: fields['studentId']?['stringValue'] ?? '',
+          studentName: fields['studentName']?['stringValue'] ?? 'Unknown',
+          score: int.tryParse(fields['score']?['integerValue'] ?? '0') ?? 0,
+          totalQuestions:
+              int.tryParse(fields['totalQuestions']?['integerValue'] ?? '0') ??
+              0,
+          submittedAt:
+              DateTime.tryParse(
+                fields['submittedAt']?['timestampValue'] ?? '',
+              ) ??
+              DateTime.now(),
+        );
+      }).toList();
+    } else {
+      debugPrint('Error getTestSubmissions: ${response.body}');
+      throw Exception('Failed to load submissions');
+    }
+  }
+
+  // Get student's specific submission for a test
+  Future<TestSubmission?> getStudentSubmissionForTest({
+    required String projectId,
+    required String testId,
+    required String studentId,
+  }) async {
+    final url =
+        'https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents:runQuery';
+
+    final body = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'test_submissions'},
+        ],
+        'where': {
+          'compositeFilter': {
+            'op': 'AND',
+            'filters': [
+              {
+                'fieldFilter': {
+                  'field': {'fieldPath': 'testId'},
+                  'op': 'EQUAL',
+                  'value': {'stringValue': testId},
+                },
+              },
+              {
+                'fieldFilter': {
+                  'field': {'fieldPath': 'studentId'},
+                  'op': 'EQUAL',
+                  'value': {'stringValue': studentId},
+                },
+              },
+            ],
+          },
+        },
+        'limit': 1,
+      },
+    };
+
+    final user = _auth.currentUser;
+    final token = await user?.getIdToken();
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      if (data.isEmpty || data[0]['document'] == null) return null;
+
+      final doc = data[0]['document'];
+      final fields = doc['fields'];
+      return TestSubmission(
+        id: (doc['name'] as String).split('/').last,
+        testId: fields['testId']?['stringValue'] ?? '',
+        studentId: fields['studentId']?['stringValue'] ?? '',
+        studentName: fields['studentName']?['stringValue'] ?? 'Unknown',
+        score: int.tryParse(fields['score']?['integerValue'] ?? '0') ?? 0,
+        totalQuestions:
+            int.tryParse(fields['totalQuestions']?['integerValue'] ?? '0') ?? 0,
+        submittedAt:
+            DateTime.tryParse(fields['submittedAt']?['timestampValue'] ?? '') ??
+            DateTime.now(),
+      );
+    } else {
+      debugPrint('Error getStudentSubmissionForTest: ${response.body}');
+      // Return null on error so we don't block the UI, but ideally logs should catch this
+      return null;
+    }
   }
 
   Future<List<TestInfo>> getTestsForTutor({required String projectId}) async {
@@ -3519,6 +3736,7 @@ class TestInfo {
   final DateTime? endDate;
   final DateTime? createdAt;
   final List<Question> questions;
+  final String createdBy;
 
   TestInfo({
     required this.id,
@@ -3530,6 +3748,7 @@ class TestInfo {
     this.endDate,
     this.createdAt,
     this.questions = const [],
+    this.createdBy = '',
   });
 }
 
@@ -3542,5 +3761,25 @@ class Question {
     required this.text,
     required this.options,
     required this.correctOptionIndex,
+  });
+}
+
+class TestSubmission {
+  final String id;
+  final String testId;
+  final String studentId;
+  final String studentName;
+  final int score;
+  final int totalQuestions;
+  final DateTime submittedAt;
+
+  TestSubmission({
+    required this.id,
+    required this.testId,
+    required this.studentId,
+    required this.studentName,
+    required this.score,
+    required this.totalQuestions,
+    required this.submittedAt,
   });
 }

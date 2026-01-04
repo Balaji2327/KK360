@@ -15,16 +15,60 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   List<TestInfo> _tests = [];
   bool _loading = true;
+  Map<String, TestSubmission?> _submissions = {};
+  Map<String, String> _tutorNames = {};
+  String _userName = "Student";
+  String _userEmail = "";
 
   Future<void> _loadData() async {
     try {
+      final user = _authService.getCurrentUser();
+      if (user == null) return;
+
+      // Fetch user profile
+      final name = await _authService.getUserDisplayName(
+        projectId: 'kk360-69504',
+      );
+      final profile = await _authService.getUserProfile(
+        projectId: 'kk360-69504',
+      );
+
       // Fetch tests for student
       final items = await _authService.getTestsForStudent(
         projectId: 'kk360-69504',
       );
+
+      // Fetch tutor names
+      final tutorMap = <String, String>{};
+      final uniqueTutors =
+          items.map((t) => t.createdBy).where((id) => id.isNotEmpty).toSet();
+
+      for (final id in uniqueTutors) {
+        final tName = await _authService.getUserNameById(
+          projectId: 'kk360-69504',
+          uid: id,
+        );
+        tutorMap[id] = tName;
+      }
+
+      // Check for submissions for each test
+      final submissionMap = <String, TestSubmission?>{};
+      for (final test in items) {
+        final sub = await _authService.getStudentSubmissionForTest(
+          projectId: 'kk360-69504',
+          testId: test.id,
+          studentId: user.uid,
+        );
+        submissionMap[test.id] = sub;
+      }
+
       if (mounted) {
         setState(() {
+          _userName = name;
+          _userEmail = profile?.email ?? user.email ?? "";
           _tests = items;
+          _submissions = submissionMap;
+          _tutorNames = tutorMap;
           _loading = false;
         });
       }
@@ -82,9 +126,9 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                   ),
                 ),
                 SizedBox(height: 5),
-                const Text(
-                  "Updates from all tutors",
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                Text(
+                  "$_userName | $_userEmail",
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
                 SizedBox(height: 15),
                 Container(
@@ -114,7 +158,6 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
               ],
             ),
           ),
-
           // Content
           Expanded(
             child: SingleChildScrollView(
@@ -139,12 +182,47 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                           children: [
                             SizedBox(height: h * 0.02),
                             ..._tests.map((test) {
+                              final submission = _submissions[test.id];
+                              final hasSubmitted = submission != null;
+                              final now = DateTime.now();
+
+                              String btnText = "Take Test";
+                              VoidCallback? onTap;
+                              Color btnColor = const Color(0xFF4B3FA3);
+
+                              if (hasSubmitted) {
+                                btnText =
+                                    "Submitted (${submission.score}/${submission.totalQuestions})";
+                                btnColor = Colors.green;
+                                onTap = null;
+                              } else if (test.endDate != null &&
+                                  now.isAfter(test.endDate!.toLocal())) {
+                                btnText = "Expired";
+                                btnColor = Colors.grey;
+                                onTap = null;
+                              } else if (test.startDate != null &&
+                                  now.isBefore(test.startDate!.toLocal())) {
+                                btnText = "Yet to start";
+                                btnColor = Colors.grey;
+                                onTap = null;
+                              } else {
+                                btnText = "Take Test";
+                                btnColor = const Color(0xFF4B3FA3);
+                                onTap = () {
+                                  goPush(
+                                    context,
+                                    TakeTestScreen(test: test),
+                                  ).then((_) => _loadData());
+                                };
+                              }
+
                               return Column(
                                 children: [
                                   activityCard(
                                     w,
                                     h,
-                                    teacher: "Tutor", // Placeholder
+                                    teacher:
+                                        _tutorNames[test.createdBy] ?? "Tutor",
                                     subject:
                                         test.course.isNotEmpty
                                             ? test.course
@@ -163,18 +241,15 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                                         test.endDate != null
                                             ? "End: ${_formatDate(test.endDate!)}"
                                             : "",
-                                    buttonText: "Take Test",
-                                    onTap: () {
-                                      goPush(
-                                        context,
-                                        TakeTestScreen(test: test),
-                                      );
-                                    },
+                                    buttonText: btnText,
+                                    onTap: onTap,
+                                    explicitColor: btnColor,
                                   ),
                                   SizedBox(height: h * 0.02),
                                 ],
                               );
                             }).toList(),
+
                             SizedBox(height: h * 0.1),
                           ],
                         ),
@@ -199,6 +274,8 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
     required String end,
     required String buttonText,
     VoidCallback? onTap,
+    bool isSubmitted = false,
+    Color? explicitColor,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -276,7 +353,8 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
               height: 1.4,
               color: isDark ? Colors.white70 : Colors.black,
             ),
-            textAlign: TextAlign.center,
+            textAlign:
+                description.length > 60 ? TextAlign.start : TextAlign.center,
           ),
           SizedBox(height: h * 0.02),
           Center(
@@ -298,7 +376,9 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                 height: h * 0.045,
                 width: w * 0.35,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4B3FA3),
+                  color:
+                      explicitColor ??
+                      (isSubmitted ? Colors.green : const Color(0xFF4B3FA3)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(

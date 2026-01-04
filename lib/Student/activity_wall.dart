@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/student_bottom_nav.dart';
+import '../services/firebase_auth_service.dart';
+import '../widgets/nav_helper.dart';
+import 'take_test.dart';
 
 class ActivityWallScreen extends StatefulWidget {
   const ActivityWallScreen({super.key});
@@ -9,6 +12,39 @@ class ActivityWallScreen extends StatefulWidget {
 }
 
 class _ActivityWallScreenState extends State<ActivityWallScreen> {
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  List<TestInfo> _tests = [];
+  bool _loading = true;
+
+  Future<void> _loadData() async {
+    try {
+      // Fetch tests for student
+      final items = await _authService.getTestsForStudent(
+        projectId: 'kk360-69504',
+      );
+      if (mounted) {
+        setState(() {
+          _tests = items;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading activity wall: $e");
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  String _formatDate(DateTime d) {
+    final local = d.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}-${local.month.toString().padLeft(2, '0')}-${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -17,15 +53,11 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
-      // ⭐ NEW COMMON NAV BAR
       bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
-
-      // =================== BODY WITH SAME HEADER AS HOME ===================
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ================= TOP PURPLE HEADER =================
+          // Header
           Container(
             width: w,
             height: h * 0.23,
@@ -41,7 +73,6 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: h * 0.07),
-
                 const Text(
                   "Activity Wall",
                   style: TextStyle(
@@ -50,16 +81,12 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 SizedBox(height: 5),
-
                 const Text(
                   "Updates from all tutors",
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-
                 SizedBox(height: 15),
-
                 Container(
                   height: h * 0.055,
                   decoration: BoxDecoration(
@@ -88,47 +115,69 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
             ),
           ),
 
-          // ================= BODY SCROLL CONTENT =================
+          // Content
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                child: Column(
-                  children: [
-                    SizedBox(height: h * 0.02),
-
-                    activityCard(
-                      w,
-                      h,
-                      teacher: "Ms. S. Sowmiya",
-                      subject: "Mathematics Tutor",
-                      unit: "UNIT - I",
-                      date: "Nov 04 2025",
-                      description:
-                          "A Test named UNIT - I is created and set to\nbe expired on 2025-11-27 23:15:00",
-                      start: "Start Time : 2025-11-27 19:56:00",
-                      end: "End Time : 2025-11-27 23:15:00",
-                      buttonText: "Take Test",
-                    ),
-
-                    SizedBox(height: h * 0.02),
-
-                    activityCard(
-                      w,
-                      h,
-                      teacher: "Mr. S. Dhanush",
-                      subject: "Physics Tutor",
-                      unit: "UNIT - II",
-                      date: "Nov 04 2025",
-                      description: "Your test has been evaluated successfully.",
-                      start: "Score: 8/10",
-                      end: "Rank: 8/45",
-                      buttonText: "View Result",
-                    ),
-
-                    SizedBox(height: h * 0.1),
-                  ],
-                ),
+                child:
+                    _loading
+                        ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 50),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                        : _tests.isEmpty
+                        ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 50),
+                            child: Text("No upcoming activities"),
+                          ),
+                        )
+                        : Column(
+                          children: [
+                            SizedBox(height: h * 0.02),
+                            ..._tests.map((test) {
+                              return Column(
+                                children: [
+                                  activityCard(
+                                    w,
+                                    h,
+                                    teacher: "Tutor", // Placeholder
+                                    subject:
+                                        test.course.isNotEmpty
+                                            ? test.course
+                                            : "General",
+                                    unit: test.title,
+                                    date:
+                                        test.startDate != null
+                                            ? _formatDate(test.startDate!)
+                                            : "",
+                                    description: test.description,
+                                    start:
+                                        test.startDate != null
+                                            ? "Start: ${_formatDate(test.startDate!)}"
+                                            : "",
+                                    end:
+                                        test.endDate != null
+                                            ? "End: ${_formatDate(test.endDate!)}"
+                                            : "",
+                                    buttonText: "Take Test",
+                                    onTap: () {
+                                      goPush(
+                                        context,
+                                        TakeTestScreen(test: test),
+                                      );
+                                    },
+                                  ),
+                                  SizedBox(height: h * 0.02),
+                                ],
+                              );
+                            }).toList(),
+                            SizedBox(height: h * 0.1),
+                          ],
+                        ),
               ),
             ),
           ),
@@ -149,6 +198,7 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
     required String start,
     required String end,
     required String buttonText,
+    VoidCallback? onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -242,17 +292,20 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
           ),
           SizedBox(height: h * 0.02),
           Center(
-            child: Container(
-              height: h * 0.045,
-              width: w * 0.35,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4B3FA3),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  buttonText,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+            child: GestureDetector(
+              onTap: onTap,
+              child: Container(
+                height: h * 0.045,
+                width: w * 0.35,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4B3FA3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    buttonText,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
                 ),
               ),
             ),

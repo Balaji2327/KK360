@@ -1479,6 +1479,321 @@ class FirebaseAuthService {
     debugPrint('[Auth] deleteAssignment: Successfully deleted assignment');
   }
 
+  // ---------------- Tests API ----------------
+  Future<void> createTest({
+    required String projectId,
+    required String title,
+    required String classId,
+    String? course,
+    String? description,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<Question>? questions,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    debugPrint(
+      '[Auth] createTest: Creating test "$title" for classId: $classId',
+    );
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/tests',
+    );
+
+    final fields = <String, dynamic>{
+      'title': {'stringValue': title},
+      'classId': {'stringValue': classId},
+      'createdBy': {'stringValue': user.uid},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+    if (course != null && course.isNotEmpty)
+      fields['course'] = {'stringValue': course};
+    if (description != null && description.isNotEmpty)
+      fields['description'] = {'stringValue': description};
+    if (startDate != null)
+      fields['startDate'] = {
+        'timestampValue': startDate.toUtc().toIso8601String(),
+      };
+    if (endDate != null)
+      fields['endDate'] = {'timestampValue': endDate.toUtc().toIso8601String()};
+
+    if (questions != null && questions.isNotEmpty) {
+      fields['questions'] = {
+        'arrayValue': {
+          'values':
+              questions.map((q) {
+                return {
+                  'mapValue': {
+                    'fields': {
+                      'text': {'stringValue': q.text},
+                      'options': {
+                        'arrayValue': {
+                          'values':
+                              q.options.map((o) => {'stringValue': o}).toList(),
+                        },
+                      },
+                      'correctOptionIndex': {
+                        'integerValue': q.correctOptionIndex,
+                      },
+                    },
+                  },
+                };
+              }).toList(),
+        },
+      };
+    }
+
+    final body = jsonEncode({'fields': fields});
+    debugPrint('[Auth] createTest: Request body: $body');
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: body,
+        )
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint('[Auth] createTest: Response status: ${resp.statusCode}');
+    debugPrint('[Auth] createTest: Response body: ${resp.body}');
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create test (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    debugPrint('[Auth] createTest: Successfully created test');
+  }
+
+  List<TestInfo> _parseTestsFromRunQuery(List<dynamic> respJson) {
+    final out = <TestInfo>[];
+    for (final item in respJson) {
+      final doc = item['document'] as Map<String, dynamic>?;
+      if (doc == null) continue;
+      final name = doc['name'] as String?;
+      final fields = doc['fields'] as Map<String, dynamic>?;
+      if (fields == null) continue;
+      final title = fields['title']?['stringValue'] as String? ?? '';
+      final classId = fields['classId']?['stringValue'] as String? ?? '';
+      final course = fields['course']?['stringValue'] as String? ?? '';
+      final description =
+          fields['description']?['stringValue'] as String? ?? '';
+      final startDateStr = fields['startDate']?['timestampValue'] as String?;
+      final endDateStr = fields['endDate']?['timestampValue'] as String?;
+      final createdAt = fields['createdAt']?['timestampValue'] as String?;
+
+      final questionsList = <Question>[];
+      final questionsVal =
+          fields['questions']?['arrayValue']?['values'] as List<dynamic>?;
+      if (questionsVal != null) {
+        for (final item in questionsVal) {
+          final qFields = item['mapValue']?['fields'] as Map<String, dynamic>?;
+          if (qFields != null) {
+            final text = qFields['text']?['stringValue'] as String? ?? '';
+            final correctOptionIndex =
+                int.tryParse(
+                  qFields['correctOptionIndex']?['integerValue']?.toString() ??
+                      '0',
+                ) ??
+                0;
+            final options = <String>[];
+            final optsVal =
+                qFields['options']?['arrayValue']?['values'] as List<dynamic>?;
+            if (optsVal != null) {
+              for (final o in optsVal) {
+                options.add(o['stringValue'] as String? ?? '');
+              }
+            }
+            questionsList.add(
+              Question(
+                text: text,
+                options: options,
+                correctOptionIndex: correctOptionIndex,
+              ),
+            );
+          }
+        }
+      }
+
+      out.add(
+        TestInfo(
+          id: name?.split('/').last ?? '',
+          title: title,
+          course: course,
+          description: description,
+          startDate:
+              startDateStr != null ? DateTime.tryParse(startDateStr) : null,
+          endDate: endDateStr != null ? DateTime.tryParse(endDateStr) : null,
+          createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
+          classId: classId,
+          questions: questionsList,
+        ),
+      );
+    }
+    return out;
+  }
+
+  Future<List<TestInfo>> getTestsForTutor({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    debugPrint('[Auth] getTestsForTutor: Loading tests for tutor: ${user.uid}');
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'tests'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'createdBy'},
+            'op': 'EQUAL',
+            'value': {'stringValue': user.uid},
+          },
+        },
+      },
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200)
+      throw 'Failed to fetch tutor tests (status ${resp.statusCode})';
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final tests = _parseTestsFromRunQuery(body);
+
+    tests.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    return tests;
+  }
+
+  Future<List<TestInfo>> getTestsForStudent({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    // 1. Get student's classes
+    final classes = await getClassesForUser(projectId: projectId);
+    if (classes.isEmpty) return [];
+
+    final classIds = classes.map((c) => c.id).toList();
+    // Firestore 'in' limit is 10. If more, take first 10 for now.
+    // Ideally we batch or change query structure.
+    final limitedClassIds = classIds.take(10).toList();
+
+    debugPrint(
+      '[Auth] getTestsForStudent: Loading tests for classes: $limitedClassIds',
+    );
+
+    final userToken = await user.getIdToken();
+    if (userToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'tests'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'classId'},
+            'op': 'IN',
+            'value': {
+              'arrayValue': {
+                'values':
+                    limitedClassIds.map((id) => {'stringValue': id}).toList(),
+              },
+            },
+          },
+        },
+      },
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $userToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      debugPrint('[Auth] Failed to fetch student tests: ${resp.body}');
+      return [];
+    }
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final tests = _parseTestsFromRunQuery(body);
+
+    // Sort by createdAt descending
+    tests.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    return tests;
+  }
+
+  Future<void> deleteTest({
+    required String projectId,
+    required String testId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final simpleId = testId.contains('/') ? testId.split('/').last : testId;
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/tests/$simpleId',
+    );
+
+    final resp = await http
+        .delete(url, headers: {'Authorization': 'Bearer $idToken'})
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to delete test (status ${resp.statusCode}): ${resp.body}';
+    }
+  }
+
   // -------- Classes API --------
   List<ClassInfo> _parseClassesFromRunQuery(List<dynamic> respJson) {
     final out = <ClassInfo>[];
@@ -3192,4 +3507,40 @@ class InviteInfo {
             ? DateTime.tryParse(j['createdAt'] as String)
             : null,
   );
+}
+
+class TestInfo {
+  final String id;
+  final String title;
+  final String course;
+  final String description;
+  final String classId;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final DateTime? createdAt;
+  final List<Question> questions;
+
+  TestInfo({
+    required this.id,
+    required this.title,
+    required this.course,
+    required this.description,
+    required this.classId,
+    this.startDate,
+    this.endDate,
+    this.createdAt,
+    this.questions = const [],
+  });
+}
+
+class Question {
+  final String text;
+  final List<String> options;
+  final int correctOptionIndex;
+
+  Question({
+    required this.text,
+    required this.options,
+    required this.correctOptionIndex,
+  });
 }

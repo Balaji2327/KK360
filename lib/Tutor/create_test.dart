@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
 
 class CreateTestScreen extends StatefulWidget {
   const CreateTestScreen({super.key});
@@ -157,6 +159,133 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
         setState(() {
           _endDate = DateTime(d.year, d.month, d.day, t.hour, t.minute);
         });
+      }
+    }
+  }
+
+  Future<void> _generateQuestionsWithAI() async {
+    final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+    final count = int.tryParse(_questionCountController.text) ?? 5;
+
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a Test Title first")),
+      );
+      return;
+    }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Using the Google Generative AI SDK (key supplied at runtime)
+      const apiKey = String.fromEnvironment('GEMINI_API_KEY');
+      if (apiKey.isEmpty) {
+        if (Navigator.canPop(context)) Navigator.pop(context);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Gemini API key missing. Run with --dart-define=GEMINI_API_KEY=your_key.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: apiKey,
+        generationConfig: GenerationConfig(
+          responseMimeType: 'application/json',
+        ),
+      );
+
+      final prompt =
+          "Generate $count multiple choice questions for a test about '$title'. "
+          "Description: '$description'. "
+          "The output must be a standard JSON array of objects. "
+          "Each object must have exactly these keys: 'question' (string), 'options' (array of 4 strings), and 'correctIndex' (int 0-3).";
+
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      if (response.text != null) {
+        String cleanJson = response.text!;
+        // Basic cleanup just in case
+        if (cleanJson.startsWith('```json')) {
+          cleanJson = cleanJson.replaceAll('```json', '').replaceAll('```', '');
+        } else if (cleanJson.startsWith('```')) {
+          cleanJson = cleanJson.replaceAll('```', '');
+        }
+
+        final List<dynamic> jsonList = jsonDecode(cleanJson);
+
+        setState(() {
+          _questions.clear();
+          for (var item in jsonList) {
+            final q = _QuestionEditor();
+            q.text.text = item['question']?.toString() ?? "";
+            final opts = item['options'] as List<dynamic>? ?? [];
+            for (int i = 0; i < 4; i++) {
+              if (i < opts.length) {
+                q.options[i].text = opts[i].toString();
+              } else {
+                q.options[i].text = "";
+              }
+            }
+            q.correctOption = (item['correctIndex'] as int?) ?? 0;
+            _questions.add(q);
+          }
+          // Update count controller
+          _questionCountController.text = _questions.length.toString();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Questions generated successfully!")),
+        );
+      } else {
+        throw "Empty response from AI";
+      }
+    } catch (e) {
+      if (mounted) {
+        if (Navigator.canPop(context))
+          Navigator.pop(context); // Ensure loading is closed
+
+        // Show a detailed error dialog or snackbar
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text("AI Error"),
+                content: SingleChildScrollView(
+                  child: Text(
+                    "Failed to generate questions.\n\nError: $e\n\n"
+                    "CRITICAL TROUBLESHOOTING:\n"
+                    "The error 'Not Found' means the Google AI API is NOT enabled for your project.\n\n"
+                    "1. Go to https://console.cloud.google.com\n"
+                    "2. Select project 'kk360-69504' (or whichever project created the API key).\n"
+                    "3. Search for 'Generative Language API'.\n"
+                    "4. Click 'ENABLE'.\n"
+                    "5. Wait 1-2 minutes and try again.",
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+        );
       }
     }
   }
@@ -417,14 +546,37 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                   Divider(color: Colors.grey),
                   SizedBox(height: 10),
 
-                  // Questions Section
-                  Text(
-                    "Questions",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF4B3FA3),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Questions",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF4B3FA3),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4B3FA3),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        onPressed: _generateQuestionsWithAI,
+                        icon: const Icon(Icons.auto_awesome, size: 16),
+                        label: const Text(
+                          "Gemini AI",
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: 10),
 
@@ -578,16 +730,31 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
           ),
           SizedBox(height: 15),
           Text(
-            "Options",
+            "Options (Select the correct answer)",
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white70 : Colors.black54,
             ),
           ),
+          SizedBox(height: 5),
           ...List.generate(4, (optIndex) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
+            final isSelected = editor.correctOption == optIndex;
+            return Container(
+              margin: EdgeInsets.symmetric(vertical: 5),
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? (isDark
+                            ? Colors.green.withAlpha(50)
+                            : Colors.green.withAlpha(30))
+                        : null,
+                border: Border.all(
+                  color: isSelected ? Colors.green : Colors.transparent,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 5),
               child: Row(
                 children: [
                   Radio<int>(
@@ -616,6 +783,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                           vertical: 8,
                         ),
                         isDense: true,
+                        fillColor: isSelected ? Colors.transparent : null,
                       ),
                     ),
                   ),
@@ -623,10 +791,6 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
               ),
             );
           }),
-          Text(
-            "Select the radio button for the correct answer.",
-            style: TextStyle(fontSize: 10, color: Colors.grey),
-          ),
         ],
       ),
     );

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/student_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 class StudentAssignmentPage extends StatefulWidget {
   final String classId;
@@ -23,7 +26,9 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
   bool profileLoading = true;
 
   List<AssignmentInfo> _myAssignments = [];
+  final Map<String, AssignmentSubmission?> _mySubmissions = {};
   bool _assignmentsLoading = false;
+  bool _submissionLoading = false;
 
   @override
   void initState() {
@@ -57,12 +62,82 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
         _myAssignments = assignments;
         _assignmentsLoading = false;
       });
+      _loadMySubmissions();
     } catch (e) {
       if (!mounted) return;
       setState(() => _assignmentsLoading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load assignments: $e')));
+    }
+  }
+
+  Future<void> _loadMySubmissions() async {
+    for (var assignment in _myAssignments) {
+      final submission = await _authService.getMyAssignmentSubmission(
+        projectId: 'kk360-69504',
+        assignmentId: assignment.id,
+      );
+      if (mounted) {
+        setState(() {
+          _mySubmissions[assignment.id] = submission;
+        });
+      }
+    }
+  }
+
+  Future<void> _submitWork(String assignmentId) async {
+    // 0. Check for expiration
+    final assignment = _myAssignments.firstWhere((a) => a.id == assignmentId);
+    if (assignment.endDate != null &&
+        DateTime.now().isAfter(assignment.endDate!)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Assignment has expired. Cannot submit."),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 1. Pick file
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null || result.files.isEmpty) return;
+
+    final file = File(result.files.first.path!);
+
+    if (!mounted) return;
+    setState(() => _submissionLoading = true);
+
+    try {
+      // 2. Upload
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Uploading submission...")));
+      final url = await _authService.uploadFile(file);
+
+      // 3. Submit
+      await _authService.submitAssignment(
+        projectId: 'kk360-69504',
+        assignmentId: assignmentId,
+        studentName: userName,
+        attachmentUrl: url,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Work submitted!")));
+      }
+      await _loadMySubmissions(); // refresh status
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
+    } finally {
+      if (mounted) setState(() => _submissionLoading = false);
     }
   }
 
@@ -249,6 +324,52 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                   ),
                 ],
 
+                if (assignment.attachmentUrl != null &&
+                    assignment.attachmentUrl!.isNotEmpty) ...[
+                  SizedBox(height: h * 0.015),
+                  InkWell(
+                    onTap: () async {
+                      final uri = Uri.parse(assignment.attachmentUrl!);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Could not open attachment"),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: appColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.attachment, size: 16, color: appColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            "View Attachment",
+                            style: TextStyle(
+                              fontSize: h * 0.014,
+                              fontWeight: FontWeight.w600,
+                              color: appColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
                 SizedBox(height: h * 0.02),
                 Divider(
                   height: 1,
@@ -257,45 +378,179 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                 SizedBox(height: h * 0.015),
 
                 // Assignment details
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
                   children: [
-                    if (assignment.points.isNotEmpty) ...[
-                      Icon(Icons.verified_outlined, size: 18, color: appColor),
-                      SizedBox(width: 6),
-                      Text(
-                        '${assignment.points} pts',
-                        style: TextStyle(
-                          fontSize: h * 0.014,
-                          fontWeight: FontWeight.w500,
-                          color: detailsColor,
-                        ),
+                    if (assignment.points.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.verified_outlined,
+                            size: 18,
+                            color: appColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${assignment.points} pts',
+                            style: TextStyle(
+                              fontSize: h * 0.014,
+                              fontWeight: FontWeight.w500,
+                              color: detailsColor,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 20),
-                    ],
 
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 16,
-                      color: appColor,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      assignment.endDate != null
-                          ? 'Due ${_formatDate(assignment.endDate!)}'
-                          : 'Posted ${_formatDate(assignment.createdAt ?? DateTime.now())}',
-                      style: TextStyle(
-                        fontSize: h * 0.014,
-                        fontWeight: FontWeight.w500,
-                        color: detailsColor,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 16,
+                          color: appColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          assignment.endDate != null
+                              ? 'Due ${_formatDate(assignment.endDate!)}'
+                              : 'No due date',
+                          style: TextStyle(
+                            fontSize: h * 0.014,
+                            fontWeight: FontWeight.w500,
+                            color: detailsColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+
+                SizedBox(height: h * 0.02),
+
+                // Submission Status
+                Divider(
+                  height: 1,
+                  color: isDark ? Colors.white24 : Colors.grey.shade300,
+                ),
+                SizedBox(height: h * 0.015),
+
+                _buildSubmissionSection(assignment, h, isDark, appColor),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSubmissionSection(
+    AssignmentInfo assignment,
+    double h,
+    bool isDark,
+    Color appColor,
+  ) {
+    final submission = _mySubmissions[assignment.id];
+    final isSubmitted = submission != null;
+    final isExpired =
+        assignment.endDate != null &&
+        DateTime.now().isAfter(assignment.endDate!);
+
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 12,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSubmitted
+                  ? Icons.check_circle
+                  : isExpired
+                  ? Icons.cancel
+                  : Icons.pending_outlined,
+              size: 20,
+              color:
+                  isSubmitted
+                      ? Colors.green
+                      : isExpired
+                      ? Colors.red
+                      : Colors.orange,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              isSubmitted
+                  ? "Submitted"
+                  : isExpired
+                  ? "Expired"
+                  : "Pending",
+              style: TextStyle(
+                fontSize: h * 0.016,
+                fontWeight: FontWeight.w600,
+                color:
+                    isSubmitted
+                        ? Colors.green
+                        : isExpired
+                        ? Colors.red
+                        : Colors.orange,
+              ),
+            ),
+          ],
+        ),
+
+        if (!isSubmitted)
+          if (isExpired)
+            ElevatedButton.icon(
+              onPressed: null, // Disabled
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: Icon(Icons.timer_off, size: 18, color: Colors.white),
+              label: Text(
+                "Expired",
+                style: TextStyle(color: Colors.white, fontSize: h * 0.014),
+              ),
+            )
+          else
+            ElevatedButton.icon(
+              onPressed:
+                  _submissionLoading ? null : () => _submitWork(assignment.id),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: appColor,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: Icon(Icons.upload_file, size: 18, color: Colors.white),
+              label: Text(
+                "Submit Work",
+                style: TextStyle(color: Colors.white, fontSize: h * 0.014),
+              ),
+            )
+        else if (submission?.attachmentUrl != null)
+          TextButton.icon(
+            onPressed: () async {
+              final uri = Uri.parse(submission!.attachmentUrl!);
+              if (await canLaunchUrl(uri)) await launchUrl(uri);
+            },
+            icon: Icon(Icons.file_present, size: 18, color: appColor),
+            label: Text("View My Work", style: TextStyle(color: appColor)),
+          ),
+      ],
     );
   }
 

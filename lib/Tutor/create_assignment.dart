@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/tutor_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 class CreateAssignmentScreen extends StatefulWidget {
   const CreateAssignmentScreen({super.key});
@@ -18,7 +20,9 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
 
   String? _savedPoints;
   DateTime? _startDate;
+
   DateTime? _endDate;
+  PlatformFile? _pickedFile;
 
   final FirebaseAuthService _auth = FirebaseAuthService();
   List<ClassInfo> _myClasses = [];
@@ -59,7 +63,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   }
 
   String _formatDate(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year}';
+    return '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 
   Future<void> _showPointsDialog(
@@ -127,9 +131,23 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
     );
 
     if (picked != null) {
-      setState(() {
-        _startDate = picked;
-      });
+      if (context.mounted) {
+        final time = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.fromDateTime(now),
+        );
+        if (time != null) {
+          setState(() {
+            _startDate = DateTime(
+              picked.year,
+              picked.month,
+              picked.day,
+              time.hour,
+              time.minute,
+            );
+          });
+        }
+      }
     }
   }
 
@@ -143,8 +161,31 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
     );
 
     if (picked != null) {
+      if (context.mounted) {
+        final time = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.fromDateTime(now),
+        );
+        if (time != null) {
+          setState(() {
+            _endDate = DateTime(
+              picked.year,
+              picked.month,
+              picked.day,
+              time.hour,
+              time.minute,
+            );
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result != null) {
       setState(() {
-        _endDate = picked;
+        _pickedFile = result.files.first;
       });
     }
   }
@@ -221,6 +262,29 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                         return;
                       }
 
+                      String? attachmentUrl;
+                      try {
+                        if (_pickedFile != null && _pickedFile!.path != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Uploading attachment..."),
+                            ),
+                          );
+                          attachmentUrl = await _auth.uploadFile(
+                            File(_pickedFile!.path!),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Failed to upload attachment: $e"),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
                       try {
                         await _auth.createAssignment(
                           projectId: 'kk360-69504',
@@ -231,6 +295,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                           points: _pointsController.text.trim(),
                           startDate: _startDate,
                           endDate: _endDate,
+                          attachmentUrl: attachmentUrl,
                         );
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -416,23 +481,37 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     SizedBox(height: h * 0.03),
 
                     // ATTACHMENT
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.attachment,
-                          size: 22,
-                          color: isDark ? Colors.white70 : Colors.black,
-                        ),
-                        SizedBox(width: w * 0.02),
-                        Text(
-                          "Add attachment",
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: const Color(0xFF4B3FA3),
-                            fontWeight: FontWeight.w500,
+                    GestureDetector(
+                      onTap: _pickFile,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.attachment,
+                            size: 22,
+                            color: isDark ? Colors.white70 : Colors.black,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: w * 0.02),
+                          Expanded(
+                            child: Text(
+                              _pickedFile != null
+                                  ? _pickedFile!.name
+                                  : "Add attachment",
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: const Color(0xFF4B3FA3),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (_pickedFile != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              onPressed:
+                                  () => setState(() => _pickedFile = null),
+                            ),
+                        ],
+                      ),
                     ),
 
                     SizedBox(height: h * 0.015),

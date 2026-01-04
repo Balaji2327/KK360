@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
@@ -1168,6 +1170,24 @@ class FirebaseAuthService {
   }
 
   // ---------------- Assignments API ----------------
+  // Upload a file to Firebase Storage
+  Future<String> uploadFile(File file) async {
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('assignments')
+          .child(
+            '${DateTime.now().millisecondsSinceEpoch}_${file.path.split(Platform.pathSeparator).last}',
+          );
+      final uploadTask = await ref.putFile(file);
+      final url = await uploadTask.ref.getDownloadURL();
+      return url;
+    } catch (e) {
+      debugPrint("Error uploading file: $e");
+      throw 'Upload failed: $e';
+    }
+  }
+
   // Create an assignment that is visible to students of a course
   Future<void> createAssignment({
     required String projectId,
@@ -1178,6 +1198,7 @@ class FirebaseAuthService {
     String? points,
     DateTime? startDate,
     DateTime? endDate,
+    String? attachmentUrl,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
@@ -1211,6 +1232,8 @@ class FirebaseAuthService {
       };
     if (endDate != null)
       fields['endDate'] = {'timestampValue': endDate.toUtc().toIso8601String()};
+    if (attachmentUrl != null && attachmentUrl.isNotEmpty)
+      fields['attachmentUrl'] = {'stringValue': attachmentUrl};
 
     final body = jsonEncode({'fields': fields});
     debugPrint('[Auth] createAssignment: Request body: $body');
@@ -1236,6 +1259,144 @@ class FirebaseAuthService {
     debugPrint('[Auth] createAssignment: Successfully created assignment');
   }
 
+  // Submit an assignment
+  Future<void> submitAssignment({
+    required String projectId,
+    required String assignmentId,
+    required String studentName,
+    String? attachmentUrl,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/assignment_submissions',
+    );
+
+    final fields = <String, dynamic>{
+      'assignmentId': {'stringValue': assignmentId},
+      'studentId': {'stringValue': user.uid},
+      'studentName': {'stringValue': studentName},
+      'submittedAt': {
+        'timestampValue': DateTime.now().toUtc().toIso8601String(),
+      },
+    };
+
+    if (attachmentUrl != null && attachmentUrl.isNotEmpty) {
+      fields['attachmentUrl'] = {'stringValue': attachmentUrl};
+    }
+
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'fields': fields}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to submit assignment (status ${resp.statusCode}): ${resp.body}';
+      }
+    } catch (e) {
+      debugPrint('[Auth] submitAssignment error: $e');
+      rethrow;
+    }
+  }
+
+  // Get submission for a specific assignment for current user
+  Future<AssignmentSubmission?> getMyAssignmentSubmission({
+    required String projectId,
+    required String assignmentId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    final idToken = await user.getIdToken();
+    if (idToken == null) return null;
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'assignment_submissions'},
+        ],
+        'where': {
+          'compositeFilter': {
+            'op': 'AND',
+            'filters': [
+              {
+                'fieldFilter': {
+                  'field': {'fieldPath': 'assignmentId'},
+                  'op': 'EQUAL',
+                  'value': {'stringValue': assignmentId},
+                },
+              },
+              {
+                'fieldFilter': {
+                  'field': {'fieldPath': 'studentId'},
+                  'op': 'EQUAL',
+                  'value': {'stringValue': user.uid},
+                },
+              },
+            ],
+          },
+        },
+        'limit': 1,
+      },
+    };
+
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(q),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) return null;
+
+      final body = jsonDecode(resp.body) as List<dynamic>;
+      if (body.isEmpty) return null;
+
+      final doc = body.first['document'];
+      if (doc == null) return null;
+
+      final fields = doc['fields'] as Map<String, dynamic>?;
+      if (fields == null) return null;
+
+      final name = doc['name'] as String?;
+      final id = name?.split('/').last ?? '';
+
+      return AssignmentSubmission(
+        id: id,
+        assignmentId: fields['assignmentId']?['stringValue'] ?? '',
+        studentId: fields['studentId']?['stringValue'] ?? '',
+        studentName: fields['studentName']?['stringValue'] ?? '',
+        attachmentUrl: fields['attachmentUrl']?['stringValue'],
+        submittedAt:
+            DateTime.tryParse(fields['submittedAt']?['timestampValue'] ?? '') ??
+            DateTime.now(),
+      );
+    } catch (e) {
+      debugPrint('[Auth] getMyAssignmentSubmission error: $e');
+      return null;
+    }
+  }
+
   // Model for assignment
   List<AssignmentInfo> _parseAssignmentsFromRunQuery(List<dynamic> respJson) {
     final out = <AssignmentInfo>[];
@@ -1251,6 +1412,7 @@ class FirebaseAuthService {
       final description =
           fields['description']?['stringValue'] as String? ?? '';
       final points = fields['points']?['stringValue'] as String? ?? '';
+      final attachmentUrl = fields['attachmentUrl']?['stringValue'] as String?;
 
       // Keep backward compatibility if needed, map dueDate to endDate if endDate missing?
       // For now, let's parse what's there.
@@ -1277,6 +1439,7 @@ class FirebaseAuthService {
                   : null,
           createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
           classId: classId,
+          attachmentUrl: attachmentUrl,
         ),
       );
     }
@@ -3626,6 +3789,7 @@ class AssignmentInfo {
   final DateTime? startDate;
   final DateTime? endDate;
   final DateTime? createdAt;
+  final String? attachmentUrl;
 
   AssignmentInfo({
     required this.id,
@@ -3637,6 +3801,7 @@ class AssignmentInfo {
     this.startDate,
     this.endDate,
     this.createdAt,
+    this.attachmentUrl,
   });
 }
 
@@ -3783,3 +3948,22 @@ class TestSubmission {
     required this.submittedAt,
   });
 }
+
+class AssignmentSubmission {
+  final String id;
+  final String assignmentId;
+  final String studentId;
+  final String studentName;
+  final String? attachmentUrl;
+  final DateTime submittedAt;
+
+  AssignmentSubmission({
+    required this.id,
+    required this.assignmentId,
+    required this.studentId,
+    required this.studentName,
+    this.attachmentUrl,
+    required this.submittedAt,
+  });
+}
+

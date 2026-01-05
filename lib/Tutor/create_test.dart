@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 
 class CreateTestScreen extends StatefulWidget {
@@ -166,11 +167,32 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
   Future<void> _generateQuestionsWithAI() async {
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
-    final count = int.tryParse(_questionCountController.text) ?? 5;
+    final countText = _questionCountController.text.trim();
+    final count = (int.tryParse(countText.isEmpty ? '5' : countText) ?? 5)
+        .clamp(1, 50);
 
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter a Test Title first")),
+      );
+      return;
+    }
+
+    // Ensure .env is loaded before accessing the key
+    if (!dotenv.isInitialized) {
+      await dotenv.load(fileName: ".env");
+    }
+
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    if (apiKey.isEmpty) {
+      if (Navigator.canPop(context)) Navigator.pop(context);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Gemini API key missing. Make sure your .env file contains GEMINI_API_KEY.',
+          ),
+        ),
       );
       return;
     }
@@ -183,23 +205,8 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
     );
 
     try {
-      // Using the Google Generative AI SDK (key supplied at runtime)
-      const apiKey = String.fromEnvironment('GEMINI_API_KEY');
-      if (apiKey.isEmpty) {
-        if (Navigator.canPop(context)) Navigator.pop(context);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Gemini API key missing. Run with --dart-define=GEMINI_API_KEY=your_key.',
-            ),
-          ),
-        );
-        return;
-      }
-
       final model = GenerativeModel(
-        model: 'gemini-1.5-flash-latest',
+        model: 'gemini-2.5-flash',
         apiKey: apiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',
@@ -267,16 +274,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
               (context) => AlertDialog(
                 title: const Text("AI Error"),
                 content: SingleChildScrollView(
-                  child: Text(
-                    "Failed to generate questions.\n\nError: $e\n\n"
-                    "CRITICAL TROUBLESHOOTING:\n"
-                    "The error 'Not Found' means the Google AI API is NOT enabled for your project.\n\n"
-                    "1. Go to https://console.cloud.google.com\n"
-                    "2. Select project 'kk360-69504' (or whichever project created the API key).\n"
-                    "3. Search for 'Generative Language API'.\n"
-                    "4. Click 'ENABLE'.\n"
-                    "5. Wait 1-2 minutes and try again.",
-                  ),
+                  child: Text("Failed to generate questions.\n\nError: $e\n\n"),
                 ),
                 actions: [
                   TextButton(

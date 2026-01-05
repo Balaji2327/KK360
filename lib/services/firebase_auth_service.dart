@@ -3769,6 +3769,284 @@ class FirebaseAuthService {
       debugPrint('[Auth] debugTestClassAccess: Error: $e');
     }
   }
+
+  // ---------------- Materials (Units) API ----------------
+
+  // Create a Unit
+  Future<void> createUnit({
+    required String projectId,
+    required String title,
+    required String description,
+    required String classId,
+    required String className,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final token = await user.getIdToken();
+    if (token == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/units',
+    );
+
+    final fields = {
+      'title': {'stringValue': title},
+      'description': {'stringValue': description},
+      'classId': {'stringValue': classId},
+      'className': {'stringValue': className},
+      'tutorId': {'stringValue': user.uid},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+
+    final body = jsonEncode({'fields': fields});
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create unit: ${resp.body}';
+    }
+  }
+
+  // Get Units for Tutor
+  Future<List<UnitInfo>> getUnitsForTutor({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final token = await user.getIdToken();
+    if (token == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'units'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'tutorId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': user.uid},
+          },
+        },
+      },
+    };
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(q),
+    );
+
+    if (resp.statusCode != 200) throw 'Failed to fetch units';
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    return _parseUnitsFromRunQuery(body);
+  }
+
+  // Get Units for Class (Student view)
+  Future<List<UnitInfo>> getUnitsForClass({
+    required String projectId,
+    required String classId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final token = await user.getIdToken();
+    if (token == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'units'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'classId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': classId},
+          },
+        },
+      },
+    };
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(q),
+    );
+
+    if (resp.statusCode != 200) throw 'Failed to fetch class units';
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    return _parseUnitsFromRunQuery(body);
+  }
+
+  List<UnitInfo> _parseUnitsFromRunQuery(List<dynamic> jsonList) {
+    final out = <UnitInfo>[];
+    for (final item in jsonList) {
+      final doc = item['document'];
+      if (doc == null) continue;
+      final name = doc['name'] as String;
+      final fields = doc['fields'];
+      if (fields == null) continue;
+
+      out.add(
+        UnitInfo(
+          id: name.split('/').last,
+          title: fields['title']?['stringValue'] ?? '',
+          description: fields['description']?['stringValue'] ?? '',
+          tutorId: fields['tutorId']?['stringValue'] ?? '',
+          classId: fields['classId']?['stringValue'] ?? '',
+          className: fields['className']?['stringValue'] ?? '',
+          createdAt:
+              DateTime.tryParse(
+                fields['createdAt']?['timestampValue'] ?? '',
+              ) ??
+              DateTime.now(),
+        ),
+      );
+    }
+    // Sort newest first
+    out.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return out;
+  }
+
+  // Create Material in Unit
+  Future<void> createMaterial({
+    required String projectId,
+    required String unitId,
+    required String title,
+    required String description,
+    String? attachmentUrl,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final token = await user.getIdToken();
+    if (token == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/materials',
+    );
+
+    final fields = {
+      'unitId': {'stringValue': unitId},
+      'title': {'stringValue': title},
+      'description': {'stringValue': description},
+      'createdBy': {'stringValue': user.uid},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+    if (attachmentUrl != null && attachmentUrl.isNotEmpty) {
+      fields['attachmentUrl'] = {'stringValue': attachmentUrl};
+    }
+
+    final body = jsonEncode({'fields': fields});
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create material: ${resp.body}';
+    }
+  }
+
+  // Get Materials for Unit
+  Future<List<MaterialInfo>> getMaterialsForUnit({
+    required String projectId,
+    required String unitId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final token = await user.getIdToken();
+    if (token == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'materials'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'unitId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': unitId},
+          },
+        },
+      },
+    };
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(q),
+    );
+
+    if (resp.statusCode != 200) throw 'Failed to fetch materials';
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final materials = <MaterialInfo>[];
+
+    for (final item in body) {
+      final doc = item['document'];
+      if (doc == null) continue;
+      final name = doc['name'] as String;
+      final fields = doc['fields'];
+      if (fields == null) continue;
+
+      materials.add(
+        MaterialInfo(
+          id: name.split('/').last,
+          unitId: fields['unitId']?['stringValue'] ?? '',
+          title: fields['title']?['stringValue'] ?? '',
+          description: fields['description']?['stringValue'] ?? '',
+          attachmentUrl: fields['attachmentUrl']?['stringValue'],
+          createdAt:
+              DateTime.tryParse(
+                fields['createdAt']?['timestampValue'] ?? '',
+              ) ??
+              DateTime.now(),
+        ),
+      );
+    }
+    // Sort newest first
+    materials.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return materials;
+  }
 }
 
 class UserProfile {
@@ -3966,4 +4244,40 @@ class AssignmentSubmission {
     required this.submittedAt,
   });
 }
+class UnitInfo {
+  final String id;
+  final String title;
+  final String description;
+  final String tutorId;
+  final String classId;
+  final String className;
+  final DateTime createdAt;
 
+  UnitInfo({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.tutorId,
+    required this.classId,
+    required this.className,
+    required this.createdAt,
+  });
+}
+
+class MaterialInfo {
+  final String id;
+  final String unitId;
+  final String title;
+  final String description;
+  final String? attachmentUrl;
+  final DateTime createdAt;
+
+  MaterialInfo({
+    required this.id,
+    required this.unitId,
+    required this.title,
+    required this.description,
+    this.attachmentUrl,
+    required this.createdAt,
+  });
+}

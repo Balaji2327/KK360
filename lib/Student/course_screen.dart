@@ -6,6 +6,7 @@ import '../widgets/student_bottom_nav.dart';
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 import 'assignment_page.dart';
+import 'student_material_page.dart';
 
 class CoursesScreen extends StatefulWidget {
   final String? initialClassId;
@@ -223,12 +224,13 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           ),
                           GestureDetector(
                             onTap:
-                                () =>
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Materials coming soon'),
-                                      ),
-                                    ),
+                                () => goPush(
+                                  context,
+                                  StudentMaterialPage(
+                                    classId: _selectedClassId!,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
                             child: featureTile(
                               w,
                               h,

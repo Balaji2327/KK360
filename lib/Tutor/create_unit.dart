@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 
-class CreateMaterialScreen extends StatefulWidget {
-  final String unitId;
-  const CreateMaterialScreen({super.key, required this.unitId});
+class CreateUnitScreen extends StatefulWidget {
+  const CreateUnitScreen({super.key});
 
   @override
-  State<CreateMaterialScreen> createState() => _CreateMaterialScreenState();
+  State<CreateUnitScreen> createState() => _CreateUnitScreenState();
 }
 
-class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
+class _CreateUnitScreenState extends State<CreateUnitScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final FirebaseAuthService _auth = FirebaseAuthService();
 
-  PlatformFile? _pickedFile;
-  bool _uploading = false;
+  List<ClassInfo> _myClasses = [];
+  String? _selectedClassId;
+  String _selectedClassName = '';
+  bool _classesLoading = false;
+  bool _creating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyClasses();
+  }
 
   @override
   void dispose() {
@@ -27,56 +33,84 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
     super.dispose();
   }
 
-  Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      if (mounted) {
-        setState(() {
-          _pickedFile = result.files.first;
-        });
-      }
+  Future<void> _loadMyClasses() async {
+    setState(() => _classesLoading = true);
+    try {
+      final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
+      if (!mounted) return;
+      setState(() {
+        _myClasses = items;
+        if (_myClasses.isNotEmpty) {
+          _selectedClassId = _myClasses.first.id;
+          _selectedClassName = _myClasses.first.name;
+        }
+        _classesLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _classesLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
     }
   }
 
-  Future<void> _postMaterial() async {
+  Future<void> _createUnit() async {
     final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+
     if (title.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
       return;
     }
+    if (_selectedClassId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a class')));
+      return;
+    }
 
-    setState(() => _uploading = true);
-
-    String? attachmentUrl;
+    setState(() => _creating = true);
     try {
-      if (_pickedFile != null && _pickedFile!.path != null) {
-        attachmentUrl = await _auth.uploadFile(File(_pickedFile!.path!));
-      }
-
-      await _auth.createMaterial(
+      await _auth.createUnit(
         projectId: 'kk360-69504',
-        unitId: widget.unitId,
         title: title,
-        description: _descriptionController.text.trim(),
-        attachmentUrl: attachmentUrl,
+        description: description,
+        classId: _selectedClassId!,
+        className: _selectedClassName,
       );
-
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Material Posted!')));
+        ).showSnackBar(const SnackBar(content: Text('Unit created')));
         goBack(context);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _uploading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to post material: $e')));
-      }
+      setState(() => _creating = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to create unit: $e')));
     }
+  }
+
+  Widget _chip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4B3FA3),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   @override
@@ -108,19 +142,19 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: _uploading ? null : _postMaterial,
+                    onTap: _creating ? null : _createUnit,
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: w * 0.05,
                         vertical: h * 0.008,
                       ),
                       decoration: BoxDecoration(
-                        color: _uploading ? Colors.grey : Colors.green,
+                        color: _creating ? Colors.grey : Colors.green,
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child:
-                          _uploading
-                              ? const SizedBox(
+                          _creating
+                              ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
@@ -129,7 +163,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                                 ),
                               )
                               : const Text(
-                                "Post",
+                                "Create",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -155,7 +189,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Material Details",
+                      "Create New Unit",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -170,7 +204,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                         color: isDark ? Colors.white : Colors.black,
                       ),
                       decoration: InputDecoration(
-                        labelText: "Title (Required)",
+                        labelText: "Unit Title",
                         labelStyle: TextStyle(
                           color: isDark ? Colors.white54 : Colors.grey,
                         ),
@@ -181,6 +215,71 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                           ),
                         ),
                       ),
+                    ),
+                    SizedBox(height: h * 0.02),
+
+                    // CLASS SELECTOR
+                    Row(
+                      children: [
+                        Expanded(
+                          child:
+                              _classesLoading
+                                  ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                  : DropdownButtonFormField<String>(
+                                    value: _selectedClassId,
+                                    dropdownColor:
+                                        isDark
+                                            ? const Color(0xFF2C2C2C)
+                                            : Colors.white,
+                                    style: TextStyle(
+                                      color:
+                                          isDark ? Colors.white : Colors.black,
+                                    ),
+                                    items:
+                                        _myClasses
+                                            .map(
+                                              (c) => DropdownMenuItem(
+                                                value: c.id,
+                                                child: Text(
+                                                  c.name.isNotEmpty
+                                                      ? c.name
+                                                      : c.id,
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged: (v) {
+                                      setState(() {
+                                        _selectedClassId = v;
+                                        final cls = _myClasses.firstWhere(
+                                          (c) => c.id == v,
+                                        );
+                                        _selectedClassName = cls.name;
+                                      });
+                                    },
+                                    decoration: InputDecoration(
+                                      labelText: 'Select Class',
+                                      labelStyle: TextStyle(
+                                        color:
+                                            isDark
+                                                ? Colors.white70
+                                                : Colors.grey,
+                                      ),
+                                      border: OutlineInputBorder(),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color:
+                                              isDark
+                                                  ? Colors.white24
+                                                  : Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: h * 0.02),
 
@@ -209,13 +308,13 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                           Expanded(
                             child: TextFormField(
                               controller: _descriptionController,
-                              maxLines: 5,
-                              minLines: 5,
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black,
                               ),
+                              maxLines: 4,
+                              minLines: 4,
                               decoration: InputDecoration(
-                                hintText: "Description (Optional)",
+                                hintText: "Unit Description (Optional)",
                                 hintStyle: TextStyle(
                                   color: isDark ? Colors.white54 : Colors.grey,
                                 ),
@@ -227,48 +326,6 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
                         ],
                       ),
                     ),
-
-                    SizedBox(height: h * 0.03),
-
-                    // ATTACHMENT
-                    GestureDetector(
-                      onTap: _pickFile,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.attachment,
-                            size: 22,
-                            color: isDark ? Colors.white70 : Colors.black,
-                          ),
-                          SizedBox(width: w * 0.02),
-                          Expanded(
-                            child: Text(
-                              _pickedFile != null
-                                  ? _pickedFile!.name
-                                  : "Add attachment",
-                              style: TextStyle(
-                                fontSize: 15,
-                                color:
-                                    isDark
-                                        ? const Color(0xFF8F85FF)
-                                        : const Color(0xFF4B3FA3),
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (_pickedFile != null)
-                            IconButton(
-                              icon: const Icon(Icons.clear, size: 20),
-                              onPressed:
-                                  () => setState(() => _pickedFile = null),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: h * 0.015),
-                    Divider(color: isDark ? Colors.white24 : Colors.grey),
                   ],
                 ),
               ),

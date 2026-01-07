@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import 'create_assignment.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
@@ -72,7 +72,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
+
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
         child: GestureDetector(

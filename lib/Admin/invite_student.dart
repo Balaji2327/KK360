@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart'; // change to student_bottom_nav if needed
 
 class AdminInviteStudentsScreen extends StatefulWidget {
   const AdminInviteStudentsScreen({super.key});
@@ -250,8 +249,6 @@ class _AdminInviteStudentsScreenState extends State<AdminInviteStudentsScreen> {
           ),
         ],
       ),
-
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 3),
     );
   }
 }

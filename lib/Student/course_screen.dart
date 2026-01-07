@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'activity_wall.dart';
-import '../widgets/student_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 import 'assignment_page.dart';
@@ -151,8 +151,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ⭐ NEW COMMON NAVIGATION BAR
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
-
       body: Column(
         children: [
           SafeArea(child: headerLayout(h, w)),
@@ -210,11 +208,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           GestureDetector(
                             onTap:
                                 () =>
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Tests coming soon'),
-                                      ),
-                                    ),
+                                    goPush(context, const ActivityWallScreen()),
                             child: featureTile(
                               w,
                               h,
@@ -293,36 +287,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              InkWell(
-                onTap: () {
-                  goPush(context, const ActivityWallScreen());
-                },
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: w * 0.045,
-                    vertical: h * 0.006,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.notifications, size: 16, color: Colors.orange),
-                      SizedBox(width: 6),
-                      Text(
-                        "Tests",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ],

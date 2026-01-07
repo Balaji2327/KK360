@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/student_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 import 'take_test.dart';
@@ -97,7 +97,7 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
+
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

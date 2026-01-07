@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 import 'create_test.dart';
 import 'test_results.dart';
@@ -67,7 +67,7 @@ class _TestPageState extends State<TestPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
+
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
         child: GestureDetector(

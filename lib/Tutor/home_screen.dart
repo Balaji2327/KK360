@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'create_class.dart';
 // import 'invite_student.dart';
 // import 'invite_tutor.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import '../widgets/class_card.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
@@ -366,7 +366,6 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
         floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
 
         // ================= REUSABLE BOTTOM NAVIGATION =================
-        bottomNavigationBar: const TutorBottomNav(currentIndex: 0),
 
         // ================= PAGE BODY =================
         body: Column(

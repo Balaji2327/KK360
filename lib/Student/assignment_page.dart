@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/student_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
@@ -153,7 +153,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 3),
+
       body: Column(
         children: [
           // header

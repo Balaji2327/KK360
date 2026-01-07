@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart'; // <-- ADDED IMPORT
+
 import '../services/firebase_auth_service.dart';
 
 class TutorJoinMeetingScreen extends StatefulWidget {
@@ -44,7 +44,6 @@ class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ---------------- BOTTOM NAVIGATION BAR ----------------
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 1),
 
       // ======================================================================
       // BODY

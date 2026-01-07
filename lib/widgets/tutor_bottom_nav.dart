@@ -1,46 +1,17 @@
 import 'package:flutter/material.dart';
-import '../Tutor/home_screen.dart';
-import '../Tutor/meeting_control.dart';
-import '../Tutor/your_work.dart';
-import '../Tutor/more_feature.dart';
-import 'nav_helper.dart';
 
-class TutorBottomNav extends StatefulWidget {
+class TutorBottomNav extends StatelessWidget {
   final int currentIndex;
-  const TutorBottomNav({super.key, required this.currentIndex});
+  final Function(int) onTap;
 
-  @override
-  State<TutorBottomNav> createState() => _TutorBottomNavState();
-}
+  const TutorBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
-class _TutorBottomNavState extends State<TutorBottomNav> {
-  void _onTap(BuildContext context, int index) {
-    if (index == widget.currentIndex) return;
-
-    final forward = index > widget.currentIndex;
-    late Widget page;
-
-    switch (index) {
-      case 0:
-        page = const TutorStreamScreen();
-        break;
-      case 1:
-        page = const TutorMeetingControlScreen();
-        break;
-      case 2:
-        page = const WorksScreen();
-        break;
-      case 3:
-      default:
-        page = const TutorMoreFeaturesScreen();
-        break;
-    }
-
-    goTab(context, page, isForward: forward);
-  }
-
-  Widget _item(IconData icon, String label, int index) {
-    bool active = index == widget.currentIndex;
+  Widget _item(BuildContext context, IconData icon, String label, int index) {
+    bool active = index == currentIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Colors
@@ -50,7 +21,7 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _onTap(context, index),
+      onTap: () => onTap(index),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -83,13 +54,13 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final h = MediaQuery.of(context).size.height;
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       width: w,
-      height: h * 0.10,
+      height: 85,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
@@ -103,10 +74,10 @@ class _TutorBottomNavState extends State<TutorBottomNav> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _item(Icons.home_outlined, "Home", 0),
-          _item(Icons.group_outlined, "Join meet", 1),
-          _item(Icons.menu_book_outlined, "Classwork", 2),
-          _item(Icons.more_horiz_outlined, "More", 3),
+          _item(context, Icons.home_outlined, "Home", 0),
+          _item(context, Icons.group_outlined, "Join meet", 1),
+          _item(context, Icons.menu_book_outlined, "Classwork", 2),
+          _item(context, Icons.more_horiz_outlined, "More", 3),
         ],
       ),
     );

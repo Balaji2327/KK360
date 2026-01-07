@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 import 'dart:io';
@@ -659,8 +659,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
           ),
         ],
       ),
-
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
     );
   }
 }

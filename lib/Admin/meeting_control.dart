@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart'; // <-- ADDED IMPORT
+
 import 'join_meet.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
@@ -48,7 +48,6 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ---------------- BOTTOM NAVIGATION BAR ----------------
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 1),
 
       // ---------------- BODY (HEADER + SCROLLABLE CONTENT) ----------------
       body: Column(

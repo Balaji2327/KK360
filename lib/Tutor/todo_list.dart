@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/nav_helper.dart';
-import '../widgets/tutor_bottom_nav.dart';
 
 class TutorToDoListScreen extends StatefulWidget {
   const TutorToDoListScreen({super.key});
@@ -153,7 +152,6 @@ class _TutorToDoListScreenState extends State<TutorToDoListScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 3),
 
       body: Column(
         children: [

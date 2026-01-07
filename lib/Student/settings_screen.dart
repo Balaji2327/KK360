@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/nav_helper.dart';
-import '../widgets/student_bottom_nav.dart';
+
 import '../theme_manager.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -23,7 +23,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       // Background color is handled by theme, but we can be explicit if needed
       // backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
       body: Column(
         children: [
           // ---------------- CUSTOM PURPLE HEADER ----------------

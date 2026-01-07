@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Tutor/create_class.dart';
-import '../widgets/admin_bottom_nav.dart';
+
 import '../widgets/class_card.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
@@ -308,7 +308,6 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
 
       // ================= REUSABLE BOTTOM NAVIGATION =================
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 0),
 
       // ================= PAGE BODY =================
       body: Column(

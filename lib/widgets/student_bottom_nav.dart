@@ -1,51 +1,14 @@
 import 'package:flutter/material.dart';
-import '../Student/home_screen.dart';
-import '../Student/join_meet.dart';
-import '../Student/join_class.dart';
-import '../Student/course_screen.dart';
-import '../Student/more_feature.dart';
-import 'nav_helper.dart';
 
-class StudentBottomNav extends StatefulWidget {
+class StudentBottomNav extends StatelessWidget {
   final int currentIndex;
+  final Function(int) onTap;
 
-  const StudentBottomNav({super.key, required this.currentIndex});
-
-  @override
-  State<StudentBottomNav> createState() => _StudentBottomNavState();
-}
-
-class _StudentBottomNavState extends State<StudentBottomNav> {
-  // Create a page route with a smooth slide transition
-
-  void _navigate(BuildContext context, int index) {
-    if (index == widget.currentIndex) return;
-
-    // determine forward/back direction for transition
-    final forward = index > widget.currentIndex;
-
-    Widget page;
-    switch (index) {
-      case 0:
-        page = const StudentHomeScreen();
-        break;
-      case 1:
-        page = const JoinMeetScreen();
-        break;
-      case 2:
-        page = const JoinClassScreen();
-        break;
-      case 3:
-        page = const CoursesScreen();
-        break;
-      case 4:
-      default:
-        page = const MoreFeaturesScreen();
-        break;
-    }
-
-    goTab(context, page, isForward: forward);
-  }
+  const StudentBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +23,9 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 80 : 20),
+            color: Colors.black.withValues(
+              alpha: isDark ? 0.3 : 0.08,
+            ), // standardizing alpha use
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -71,80 +36,84 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
         children: [
           // HOME
           _navItem(
+            context,
             icon: Icons.home_outlined,
             label: "Home",
-            isActive: widget.currentIndex == 0,
-            onTap: () => _navigate(context, 0),
+            isActive: currentIndex == 0,
+            onTap: () => onTap(0),
           ),
 
           // JOIN MEET
           _navItem(
+            context,
             icon: Icons.group_outlined,
             label: "Join meet",
-            isActive: widget.currentIndex == 1,
-            onTap: () => _navigate(context, 1),
+            isActive: currentIndex == 1,
+            onTap: () => onTap(1),
           ),
 
           // CENTER CIRCULAR ADD BUTTON (floating feel)
-          // We slightly translate it up to give an overlapping floating effect
-          Transform.translate(
-            offset: const Offset(0, -12),
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                height: 64,
-                width: 64,
-                decoration: BoxDecoration(
-                  color:
-                      isDark
-                          ? const Color(0xFF004D40)
-                          : const Color(0xffDFF7E8), // light green
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () => _navigate(context, 2),
-                  splashColor: Colors.white24,
-                  child: Center(
-                    child: Icon(
-                      Icons.add,
-                      size: 32,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          // Transform.translate(
+          //   offset: const Offset(0, -12),
+          //   child: Material(
+          //     color: Colors.transparent,
+          //     child: Container(
+          //       height: 64,
+          //       width: 64,
+          //       decoration: BoxDecoration(
+          //         color:
+          //             isDark
+          //                 ? const Color(0xFF004D40)
+          //                 : const Color(0xffDFF7E8), // light green
+          //         shape: BoxShape.circle,
+          //         boxShadow: [
+          //           BoxShadow(
+          //             color: Colors.black.withValues(alpha: 0.12),
+          //             blurRadius: 10,
+          //             offset: const Offset(0, 6),
+          //           ),
+          //         ],
+          //       ),
+          //       child: InkWell(
+          //         customBorder: const CircleBorder(),
+          //         onTap: () => onTap(2),
+          //         splashColor: Colors.white24,
+          //         child: Center(
+          //           child: Icon(
+          //             Icons.add,
+          //             size: 32,
+          //             color: isDark ? Colors.white : Colors.black,
+          //           ),
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
 
           // CLASSWORK
           _navItem(
+            context,
             icon: Icons.edit_note_outlined,
             label: "Classwork",
-            isActive: widget.currentIndex == 3,
-            onTap: () => _navigate(context, 3),
+            isActive: currentIndex == 2,
+            onTap: () => onTap(2),
           ),
 
           // MORE
           _navItem(
+            context,
             icon: Icons.more_vert,
             label: "More",
-            isActive: widget.currentIndex == 4,
-            onTap: () => _navigate(context, 4),
+            isActive: currentIndex == 3,
+            onTap: () => onTap(3),
           ),
         ],
       ),
     );
   }
 
-  Widget _navItem({
+  Widget _navItem(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required bool isActive,
@@ -155,7 +124,6 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
     final activeColor =
         isDark ? const Color(0xFF8F85FF) : const Color(0xFF4B3FA3);
 
-    // implicit animations for smooth active state changes
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -188,4 +156,3 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
     );
   }
 }
-// color: const Color(0xffDFF7E8)

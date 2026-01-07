@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 
 class AdminInviteAdminsScreen extends StatefulWidget {
@@ -499,7 +499,6 @@ class _AdminInviteAdminsScreenState extends State<AdminInviteAdminsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 3),
     );
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/admin_login.dart';
-import '../widgets/admin_bottom_nav.dart';
+
 import '../widgets/nav_helper.dart';
 import 'settings_screen.dart';
 
@@ -255,7 +255,6 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ⭐ ADMIN NAVIGATION BAR
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 3),
 
       // ---------------- BODY ----------------
       body: Column(

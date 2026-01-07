@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart';
+
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 import 'student_control.dart';
@@ -50,8 +50,6 @@ class _AdminControlSelectionScreenState
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ================= ADMIN BOTTOM NAV =================
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 2),
-
       body: Column(
         children: [
           // ==================================================

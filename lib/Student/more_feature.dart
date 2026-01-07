@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/student_login.dart';
-import '../widgets/student_bottom_nav.dart';
+
 import '../widgets/nav_helper.dart';
 import 'settings_screen.dart';
 
@@ -194,7 +194,6 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ⭐ COMMON NAVIGATION BAR
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
 
       // ---------------- BODY ----------------
       body: Column(

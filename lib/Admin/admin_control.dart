@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 
 class AdminControlScreen extends StatefulWidget {
@@ -80,7 +80,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 2),
 
       body: Column(
         children: [

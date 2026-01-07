@@ -1,51 +1,18 @@
 import 'package:flutter/material.dart';
-import '../Admin/home_screen.dart';
-import '../Admin/meeting_control.dart';
-import '../Admin/controls_screen.dart';
-import '../Admin/more_feature.dart';
-import 'nav_helper.dart';
 
-class AdminBottomNav extends StatefulWidget {
+class AdminBottomNav extends StatelessWidget {
   final int currentIndex;
+  final Function(int) onTap;
 
-  const AdminBottomNav({super.key, required this.currentIndex});
-
-  @override
-  State<AdminBottomNav> createState() => _AdminBottomNavState();
-}
-
-class _AdminBottomNavState extends State<AdminBottomNav> {
-  // ---------------- PAGE TRANSITION (SAME AS TUTOR) ----------------
-
-  // ---------------- NAV TAP HANDLER ----------------
-  void _onTap(BuildContext context, int index) {
-    if (index == widget.currentIndex) return;
-
-    final bool forward = index > widget.currentIndex;
-    late Widget page;
-
-    switch (index) {
-      case 0:
-        page = const AdminStreamScreen();
-        break;
-      case 1:
-        page = const AdminMeetingControlScreen();
-        break;
-      case 2:
-        page = const AdminControlSelectionScreen();
-        break;
-      case 3:
-      default:
-        page = const AdminMoreFeaturesScreen();
-        break;
-    }
-
-    goTab(context, page, isForward: forward);
-  }
+  const AdminBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   // ---------------- SINGLE NAV ITEM ----------------
-  Widget _item(IconData icon, String label, int index) {
-    final bool active = index == widget.currentIndex;
+  Widget _item(BuildContext context, IconData icon, String label, int index) {
+    final bool active = index == currentIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Colors
@@ -55,7 +22,7 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _onTap(context, index),
+      onTap: () => onTap(index),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -89,12 +56,11 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final h = MediaQuery.of(context).size.height;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: w,
-      height: h * 0.10,
+      height: 85,
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -111,10 +77,10 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _item(Icons.home_outlined, "Home", 0),
-          _item(Icons.groups_outlined, "Join meet", 1),
-          _item(Icons.tune_outlined, "Controls", 2),
-          _item(Icons.more_horiz_outlined, "More", 3),
+          _item(context, Icons.home_outlined, "Home", 0),
+          _item(context, Icons.groups_outlined, "Join meet", 1),
+          _item(context, Icons.tune_outlined, "Controls", 2),
+          _item(context, Icons.more_horiz_outlined, "More", 3),
         ],
       ),
     );

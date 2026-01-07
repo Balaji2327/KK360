@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 
 class StudentControlScreen extends StatefulWidget {
@@ -82,7 +82,6 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 2),
 
       body: Column(
         children: [

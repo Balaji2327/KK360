@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import 'assignment_page.dart';
 import 'topic_page.dart';
 import 'test_page.dart';
@@ -47,7 +47,7 @@ class _WorksScreenState extends State<WorksScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 2),
+
       body: Column(
         children: [
           // header (same as meeting control)

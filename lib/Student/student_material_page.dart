@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/student_bottom_nav.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 import 'student_unit_details.dart';
@@ -19,13 +18,37 @@ class StudentMaterialPage extends StatefulWidget {
 
 class _StudentMaterialPageState extends State<StudentMaterialPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
+
+  // -- Added for Header Data --
+  String userName = 'User';
+  String userEmail = '';
+  bool profileLoading = true;
+  // ---------------------------
+
   List<UnitInfo> _units = [];
   bool _unitsLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadUserProfile(); // Load user data for header
     _loadUnits();
+  }
+
+  // -- Copied from Assignment Page --
+  Future<void> _loadUserProfile() async {
+    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
+    final authUser = _authService.getCurrentUser();
+    final displayName = await _authService.getUserDisplayName(
+      projectId: 'kk360-69504',
+    );
+    if (mounted) {
+      setState(() {
+        userName = displayName;
+        userEmail = profile?.email ?? authUser?.email ?? '';
+        profileLoading = false;
+      });
+    }
   }
 
   Future<void> _loadUnits() async {
@@ -51,41 +74,86 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
     }
   }
 
+  Future<void> _refreshUnits() async {
+    await _loadUnits();
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
 
+    // Using Scaffold background color from theme
     return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        title: Text(
-          "${widget.className} Materials",
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
-        ),
-        backgroundColor: bgColor,
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
-        elevation: 0,
-      ),
-      body:
-          _unitsLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _units.isEmpty
-              ? _buildEmptyState(h, w, isDark)
-              : RefreshIndicator(
-                onRefresh: _loadUnits,
-                child: ListView.builder(
-                  padding: EdgeInsets.all(w * 0.04),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: _units.length,
-                  itemBuilder: (context, index) {
-                    final unit = _units[index];
-                    return _buildUnitCard(context, unit, h, w, isDark);
-                  },
-                ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+
+      // Removed standard AppBar
+      body: Column(
+        children: [
+          // --- Custom Header (Copied & Modified title) ---
+          Container(
+            width: w,
+            height: h * 0.16,
+            decoration: const BoxDecoration(
+              color: Color(0xFF4B3FA3),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: h * 0.05),
+                  Text(
+                    "Materials - ${widget.className}", // Updated Title
+                    style: TextStyle(
+                      fontSize: h * 0.025,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: h * 0.006),
+                  Text(
+                    profileLoading ? 'Loading...' : '$userName | $userEmail',
+                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: h * 0.0005),
+
+          // --- Main Content ---
+          Expanded(
+            child:
+                _unitsLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _units.isEmpty
+                    ? _buildEmptyState(h, w, isDark)
+                    : RefreshIndicator(
+                      onRefresh: _refreshUnits,
+                      child: ListView.builder(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: w * 0.04,
+                          vertical: h * 0.02,
+                        ),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: _units.length,
+                        itemBuilder: (context, index) {
+                          final unit = _units[index];
+                          return _buildUnitCard(context, unit, h, w, isDark);
+                        },
+                      ),
+                    ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -101,7 +169,9 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
         goPush(context, StudentUnitDetailsPage(unit: unit));
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: h * 0.02),
+        margin: EdgeInsets.only(
+          bottom: h * 0.015,
+        ), // Adjusted margin slightly to match assignment look
         padding: EdgeInsets.all(w * 0.04),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -148,7 +218,7 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
                   size: 14,
                   color: isDark ? Colors.white38 : Colors.grey,
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   "${unit.createdAt.day}/${unit.createdAt.month}/${unit.createdAt.year}",
                   style: TextStyle(
@@ -157,11 +227,11 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
                   ),
                 ),
                 const Spacer(),
-                Text(
+                const Text(
                   "View",
                   style: TextStyle(
                     fontSize: 14,
-                    color: const Color(0xFF4B3FA3),
+                    color: Color(0xFF4B3FA3),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -179,25 +249,32 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
   }
 
   Widget _buildEmptyState(double h, double w, bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_off,
-            size: 64,
-            color: isDark ? Colors.white24 : Colors.black26,
+    // Wrapped in SingleChildScrollView to allow pull-to-refresh even when empty
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: SizedBox(
+        height: h * 0.6, // constrain height to center visually
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.folder_off,
+                size: 64,
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
+              SizedBox(height: h * 0.02),
+              Text(
+                "No materials found for this class",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: h * 0.02),
-          Text(
-            "No materials found for this class",
-            style: TextStyle(
-              fontSize: 16,
-              color: isDark ? Colors.white54 : Colors.black54,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

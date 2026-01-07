@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart';
+
 import '../theme_manager.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 3),
+
       body: Column(
         children: [
           // Header

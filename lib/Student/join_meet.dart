@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/student_bottom_nav.dart';
 
 class JoinMeetScreen extends StatefulWidget {
   const JoinMeetScreen({super.key});
@@ -153,7 +152,6 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
       ),
 
       // ⭐ NEW COMMON NAVIGATION BAR — this screen is index 1
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 1),
     );
   }
 }

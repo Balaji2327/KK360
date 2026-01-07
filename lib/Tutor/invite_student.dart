@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import '../services/firebase_auth_service.dart';
 
 class TutorInviteStudentsScreen extends StatefulWidget {
@@ -692,8 +692,6 @@ class _TutorInviteStudentsScreenState extends State<TutorInviteStudentsScreen> {
           ),
         ],
       ),
-
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 3),
     );
   }
 }

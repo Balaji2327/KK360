@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_bottom_nav.dart';
 
 class AdminToDoListScreen extends StatefulWidget {
   const AdminToDoListScreen({super.key});
@@ -132,7 +131,7 @@ class _AdminToDoListScreenState extends State<AdminToDoListScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 3),
+
       body: Column(
         children: [
           // Header

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/nav_helper.dart';
-import '../widgets/student_bottom_nav.dart';
 
 class ToDoListScreen extends StatefulWidget {
   const ToDoListScreen({super.key});
@@ -133,7 +132,6 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 4),
 
       // Using index 4 to keep "More" active or maybe 4 is appropriate since it is under 'More'
       body: Column(

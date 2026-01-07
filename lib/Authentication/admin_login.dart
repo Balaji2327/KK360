@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'forget_password.dart';
 import 'otp_screen.dart';
 import '../widgets/nav_helper.dart';
-import '../Admin/home_screen.dart';
+import '../Admin/admin_main_screen.dart';
 import '../services/firebase_auth_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
@@ -195,7 +195,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Welcome Admin!')),
                             );
-                            goPush(context, AdminStreamScreen());
+                            goPush(context, const AdminMainScreen());
                           } catch (e) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -366,7 +366,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       );
 
       if (mounted) {
-        goPush(context, AdminStreamScreen());
+        goPush(context, const AdminMainScreen());
       }
     } catch (e) {
       if (!mounted) return;

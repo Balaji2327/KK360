@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
-import '../widgets/student_bottom_nav.dart';
+
 import '../widgets/class_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -644,7 +644,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       ),
 
       // =================== REPLACED WITH COMMON NAV BAR ===================
-      bottomNavigationBar: const StudentBottomNav(currentIndex: 0),
     );
   }
 

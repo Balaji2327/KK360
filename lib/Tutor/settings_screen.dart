@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/nav_helper.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import '../theme_manager.dart';
 
 class TutorSettingsScreen extends StatefulWidget {
@@ -21,7 +21,6 @@ class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
     final isDark = themeManager.isDarkMode;
 
     return Scaffold(
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 3),
       body: Column(
         children: [
           // ---------------- CUSTOM PURPLE HEADER ----------------

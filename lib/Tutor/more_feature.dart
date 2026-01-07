@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/tutor_login.dart';
-import '../widgets/tutor_bottom_nav.dart';
+
 import '../widgets/nav_helper.dart';
 import 'settings_screen.dart';
 
@@ -255,7 +255,6 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ⭐ TUTOR NAVIGATION BAR
-      bottomNavigationBar: const TutorBottomNav(currentIndex: 3),
 
       // ---------------- BODY ----------------
       body: Column(

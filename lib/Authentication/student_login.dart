@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'forget_password.dart';
 import 'tutor_login.dart';
 import 'otp_screen.dart';
-import '../student/home_screen.dart';
+import '../student/student_main_screen.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
@@ -70,7 +70,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       await _checkPendingInvites();
 
       if (mounted) {
-        goPush(context, const StudentHomeScreen());
+        goPush(context, const StudentMainScreen());
       }
     } catch (e) {
       _showErrorSnackbar(e.toString());
@@ -95,7 +95,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       }
 
       if (mounted) {
-        goPush(context, const StudentHomeScreen());
+        goPush(context, const StudentMainScreen());
       }
     } catch (e) {
       _showErrorSnackbar(e.toString());

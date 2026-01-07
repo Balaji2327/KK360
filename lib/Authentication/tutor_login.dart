@@ -3,7 +3,7 @@ import '../services/firebase_auth_service.dart';
 import 'forget_password.dart';
 import 'student_login.dart';
 import 'otp_screen.dart';
-import '../tutor/home_screen.dart';
+import '../Tutor/tutor_main_screen.dart';
 import '../widgets/nav_helper.dart';
 
 class TutorLoginScreen extends StatefulWidget {
@@ -55,7 +55,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
       }
 
       if (mounted) {
-        goPush(context, TutorStreamScreen());
+        goPush(context, const TutorMainScreen());
       }
     } catch (e) {
       if (!mounted) return;
@@ -389,7 +389,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                             await _checkPendingInvites(email);
 
                             if (mounted) {
-                              goPush(context, TutorStreamScreen());
+                              goPush(context, const TutorMainScreen());
                             }
                           } catch (e) {
                             if (!mounted) return;

@@ -17,9 +17,9 @@ class TestPage extends StatefulWidget {
 
 class _TestPageState extends State<TestPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
   List<TestInfo> _tests = [];
   bool _testsLoading = true;
 
@@ -80,7 +80,7 @@ class _TestPageState extends State<TestPage> {
         padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
         child: GestureDetector(
           onTap: () async {
-            await goPush(context, const CreateTestScreen());
+            await goPush(context, CreateTestScreen(classId: widget.classId));
             _loadTests(); // Refresh after return
           },
           child: Container(

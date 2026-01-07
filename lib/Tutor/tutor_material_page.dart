@@ -17,9 +17,9 @@ class TutorMaterialPage extends StatefulWidget {
 
 class _TutorMaterialPageState extends State<TutorMaterialPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
   List<UnitInfo> _units = [];
   bool _unitsLoading = true;
 

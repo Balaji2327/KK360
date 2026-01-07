@@ -18,9 +18,9 @@ class TutorStreamScreen extends StatefulWidget {
 
 class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   // Classes shown on the home screen
   List<ClassInfo> _classes = [];
@@ -273,7 +273,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
 
         // ================= FLOATING ADD BUTTON (BOTTOM RIGHT) =================
         floatingActionButton: Padding(
-          padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
+          padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
           child: GestureDetector(
             onTap: () async {
               // Open Create Class Page

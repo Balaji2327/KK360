@@ -19,9 +19,9 @@ class WorksScreen extends StatefulWidget {
 
 class _WorksScreenState extends State<WorksScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   @override
   void initState() {
@@ -35,11 +35,13 @@ class _WorksScreenState extends State<WorksScreen> {
     final displayName = await _authService.getUserDisplayName(
       projectId: 'kk360-69504',
     );
-    setState(() {
-      userName = displayName;
-      userEmail = profile?.email ?? authUser?.email ?? '';
-      profileLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        userName = displayName;
+        userEmail = profile?.email ?? authUser?.email ?? '';
+        profileLoading = false;
+      });
+    }
   }
 
   @override
@@ -50,157 +52,170 @@ class _WorksScreenState extends State<WorksScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // header (same as meeting control)
-            Container(
-              width: w,
-              height: h * 0.16,
-              decoration: const BoxDecoration(
-                color: Color(0xFF4B3FA3),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
+      // Removed SafeArea to allow header to go behind status bar (matching Meeting Screen)
+      body: Column(
+        children: [
+          // ------------ HEADER (Matches TutorMeetingControlScreen) ------------
+          Container(
+            width: w,
+            height: h * 0.16,
+            decoration: const BoxDecoration(
+              color: Color(0xFF4B3FA3),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: h * 0.05),
+                  // Title
+                  if (widget.className != null) ...[
+                    Text(
+                      widget.className!,
+                      style: TextStyle(
+                        fontSize: h * 0.028,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "Your works",
+                      style: TextStyle(
+                        fontSize: h * 0.016,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ] else
+                    Text(
+                      "Your works",
+                      style: TextStyle(
+                        fontSize: h * 0.03,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  SizedBox(height: h * 0.006),
+                  // User Profile
+                  Text(
+                    profileLoading ? 'Loading...' : '$userName | $userEmail',
+                    style: TextStyle(
+                      fontSize: h * 0.014, // Matches Meeting Screen size
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: h * 0.0005),
+
+          // ------------ BODY CONTENT ------------
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: h * 0.05),
-                    Flexible(
-                      child: Text(
-                        widget.className != null
-                            ? "${widget.className} - Your works"
-                            : "Your works",
-                        style: TextStyle(
-                          fontSize: w * 0.045, // Made responsive
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    SizedBox(height: h * 0.02),
+                    Text(
+                      "Create",
+                      style: TextStyle(
+                        fontSize: w * 0.049,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
-                    SizedBox(height: h * 0.006),
-                    Flexible(
-                      child: Text(
-                        profileLoading
-                            ? 'Loading...'
-                            : '$userName | $userEmail',
-                        style: TextStyle(
-                          fontSize: w * 0.035, // Made responsive
-                          color: Colors.white,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    SizedBox(height: h * 0.02),
+                    GestureDetector(
+                      onTap:
+                          () => goPush(
+                            context,
+                            AssignmentPage(
+                              classId: widget.classId,
+                              className: widget.className,
+                            ),
+                          ),
+                      child: featureTile(
+                        w,
+                        h,
+                        Icons.assignment_outlined,
+                        "Assignment",
+                        isDark,
                       ),
                     ),
+                    GestureDetector(
+                      onTap:
+                          () => goPush(
+                            context,
+                            TopicPage(
+                              classId: widget.classId,
+                              className: widget.className,
+                            ),
+                          ),
+                      child: featureTile(
+                        w,
+                        h,
+                        Icons.topic_outlined,
+                        "Topic",
+                        isDark,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap:
+                          () => goPush(
+                            context,
+                            TestPage(
+                              classId: widget.classId,
+                              className: widget.className,
+                            ),
+                          ),
+                      child: featureTile(
+                        w,
+                        h,
+                        Icons.note_alt_outlined,
+                        "Test",
+                        isDark,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap:
+                          () => goPush(
+                            context,
+                            TutorMaterialPage(
+                              classId: widget.classId,
+                              className: widget.className,
+                            ),
+                          ),
+                      child: featureTile(
+                        w,
+                        h,
+                        Icons.insert_drive_file_outlined,
+                        "Material",
+                        isDark,
+                      ),
+                    ),
+                    SizedBox(height: h * 0.03),
                   ],
                 ),
               ),
             ),
-
-            SizedBox(height: h * 0.0005),
-
-            // Create options - wrapped in SingleChildScrollView for safety
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: h * 0.02),
-                      Text(
-                        "Create",
-                        style: TextStyle(
-                          fontSize: w * 0.049,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
-                      ),
-                      SizedBox(height: h * 0.02),
-                      GestureDetector(
-                        onTap:
-                            () => goPush(
-                              context,
-                              AssignmentPage(
-                                classId: widget.classId,
-                                className: widget.className,
-                              ),
-                            ),
-                        child: featureTile(
-                          w,
-                          h,
-                          Icons.assignment_outlined,
-                          "Assignment",
-                          isDark,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap:
-                            () => goPush(
-                              context,
-                              TopicPage(
-                                classId: widget.classId,
-                                className: widget.className,
-                              ),
-                            ),
-                        child: featureTile(
-                          w,
-                          h,
-                          Icons.topic_outlined,
-                          "Topic",
-                          isDark,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap:
-                            () => goPush(
-                              context,
-                              TestPage(
-                                classId: widget.classId,
-                                className: widget.className,
-                              ),
-                            ),
-                        child: featureTile(
-                          w,
-                          h,
-                          Icons.note_alt_outlined,
-                          "Test",
-                          isDark,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap:
-                            () => goPush(
-                              context,
-                              TutorMaterialPage(
-                                classId: widget.classId,
-                                className: widget.className,
-                              ),
-                            ),
-                        child: featureTile(
-                          w,
-                          h,
-                          Icons.insert_drive_file_outlined,
-                          "Material",
-                          isDark,
-                        ),
-                      ),
-                      SizedBox(height: h * 0.03),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -222,7 +237,7 @@ class _WorksScreenState extends State<WorksScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),

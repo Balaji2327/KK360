@@ -14,9 +14,9 @@ class TopicPage extends StatefulWidget {
 
 class _TopicPageState extends State<TopicPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   @override
   void initState() {

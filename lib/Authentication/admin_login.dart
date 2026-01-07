@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'forget_password.dart';
 import 'otp_screen.dart';
 import '../widgets/nav_helper.dart';
@@ -192,6 +193,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               projectId: 'kk360-69504',
                             );
                             if (!mounted) return;
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setString('userRole', 'admin');
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Welcome Admin!')),
                             );
@@ -366,6 +369,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       );
 
       if (mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userRole', 'admin');
         goPush(context, const AdminMainScreen());
       }
     } catch (e) {

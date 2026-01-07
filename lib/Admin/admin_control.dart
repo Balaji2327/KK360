@@ -11,9 +11,9 @@ class AdminControlScreen extends StatefulWidget {
 
 class _AdminControlScreenState extends State<AdminControlScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  bool profileLoading = true;
-  String userName = 'User';
-  String userEmail = '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
   List<Map<String, String>> _admins = [];
   List<Map<String, String>> _filteredAdmins = [];
   bool _adminsLoading = true;

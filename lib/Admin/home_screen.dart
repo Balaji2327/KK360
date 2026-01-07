@@ -15,9 +15,9 @@ class AdminStreamScreen extends StatefulWidget {
 
 class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'Admin';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   // Classes shown on the home screen
   List<ClassInfo> _classes = [];

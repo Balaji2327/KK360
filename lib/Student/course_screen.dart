@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'activity_wall.dart';
-
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 import 'assignment_page.dart';
+import 'test_page.dart';
 import 'student_material_page.dart';
 
 class CoursesScreen extends StatefulWidget {
@@ -20,9 +19,9 @@ class CoursesScreen extends StatefulWidget {
 
 class _CoursesScreenState extends State<CoursesScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'Guest';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'Guest';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   List<ClassInfo> _myClasses = [];
   String? _selectedClassId;
@@ -66,6 +65,33 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   Future<void> _loadStudentClasses() async {
     setState(() => _classesLoading = true);
+
+    // 1. Try to load from cache first
+    try {
+      final cachedClasses = await _authService.getCachedClassesForUser();
+      if (cachedClasses.isNotEmpty && mounted) {
+        setState(() {
+          _myClasses = cachedClasses;
+          // Set initial class selection if not already set
+          if (_selectedClassId == null) {
+            if (widget.initialClassId != null &&
+                _myClasses.any((c) => c.id == widget.initialClassId)) {
+              _selectedClassId = widget.initialClassId;
+            } else {
+              _selectedClassId =
+                  _myClasses.isNotEmpty ? _myClasses.first.id : null;
+            }
+          }
+          _classesLoading = false;
+        });
+        // If we have a selection, load its assignments (optimistically)
+        if (_selectedClassId != null) _loadAssignmentsForClass();
+      }
+    } catch (e) {
+      debugPrint('[CoursesScreen] Cache load failed: $e');
+    }
+
+    // 2. Fetch fresh classes from server
     try {
       final items = await _authService.getClassesForUser(
         projectId: 'kk360-69504',
@@ -90,11 +116,16 @@ class _CoursesScreenState extends State<CoursesScreen> {
       // Once classes are loaded, load assignments for the selected class
       if (_selectedClassId != null) _loadAssignmentsForClass();
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _classesLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
+      debugPrint('[CoursesScreen] Error loading classes: $e');
+      if (mounted) {
+        setState(() => _classesLoading = false);
+        // Only show error snackbar if we really have no data
+        if (_myClasses.isEmpty) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
+        }
+      }
     }
   }
 
@@ -109,6 +140,22 @@ class _CoursesScreenState extends State<CoursesScreen> {
       assignmentsLoading = true;
     });
 
+    // 1. Load from cache
+    try {
+      final cached = await _authService.getCachedAssignmentsForClass(
+        classId: _selectedClassId!,
+      );
+      if (cached.isNotEmpty && mounted) {
+        setState(() {
+          assignmentList = cached;
+          assignmentsLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[CoursesScreen] Assignment cache error: $e');
+    }
+
+    // 2. Load from server
     try {
       final items = await _authService.getAssignmentsForClass(
         projectId: 'kk360-69504',
@@ -207,8 +254,13 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           ),
                           GestureDetector(
                             onTap:
-                                () =>
-                                    goPush(context, const ActivityWallScreen()),
+                                () => goPush(
+                                  context,
+                                  StudentTestPage(
+                                    classId: _selectedClassId!,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
                             child: featureTile(
                               w,
                               h,

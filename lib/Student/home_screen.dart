@@ -15,9 +15,9 @@ class StudentHomeScreen extends StatefulWidget {
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'Guest';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'Guest';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   // Classes the student is enrolled in
   List<ClassInfo> _classes = [];
@@ -64,19 +64,34 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     setState(() => _classesLoading = true);
     try {
       debugPrint('[StudentHome] 🔄 Loading classes for student...');
-      // Fetch classes where student is a member
+
+      // 1. Try to load from cache first
+      try {
+        final cachedClasses = await _authService.getCachedClassesForUser();
+        if (cachedClasses.isNotEmpty && mounted) {
+          debugPrint(
+            '[StudentHome] 💾 Loaded ${cachedClasses.length} cached classes',
+          );
+          setState(() {
+            _classes = cachedClasses;
+            _filteredClasses = List.from(_classes);
+            _classesLoading = false; // Show content immediately
+          });
+        }
+      } catch (e) {
+        debugPrint('[StudentHome] ⚠️ Cache load failed: $e');
+      }
+
+      // 2. Fetch fresh classes from server
       final classes = await _authService.getClassesForUser(
         projectId: 'kk360-69504',
       );
       if (!mounted) return;
+
       debugPrint(
-        '[StudentHome] ✅ Loaded ${classes.length} classes for student',
+        '[StudentHome] ✅ Loaded ${classes.length} classes for student from server',
       );
-      for (final c in classes) {
-        debugPrint(
-          '[StudentHome] 📚 Class: ${c.name} (${c.id}) - members: ${c.members.length}',
-        );
-      }
+
       setState(() {
         _classes = classes;
         _filteredClasses = List.from(_classes);

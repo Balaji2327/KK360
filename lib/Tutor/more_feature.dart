@@ -17,9 +17,9 @@ class TutorMoreFeaturesScreen extends StatefulWidget {
 class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   bool isLoggingOut = false;
-  String userName = 'Guest';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'Guest';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   void _showChangeUsernameDialog() {
     final TextEditingController usernameController = TextEditingController(

@@ -15,9 +15,9 @@ class AdminMeetingControlScreen extends StatefulWidget {
 class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
   bool isJoinPressed = false; // for blinking animation
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   @override
   void initState() {

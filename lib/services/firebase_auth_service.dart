@@ -889,15 +889,24 @@ class FirebaseAuthService {
     debugPrint('[Auth] Successfully created user profile');
   }
 
+  // Static cache for user profile to prevent "Loading..." flicker
+  static UserProfile? _cachedUserProfile;
+  static UserProfile? get cachedProfile => _cachedUserProfile;
+
   // Sign out
   Future<void> signOut() async {
+    _cachedUserProfile = null; // Clear profile cache
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userRole');
     try {
       // Note: We intentionally do NOT clear cached classes on sign out
       // This allows classes to persist when the same user logs back in
       // The cache is keyed by user ID, so different users have separate caches
       final user = _auth.currentUser;
       if (user != null) {
-        debugPrint('[Auth] Signing out user ${user.uid} (cache preserved)');
+        debugPrint(
+          '[Auth] Signing out user ${user.uid} (cache preserved, profile cleared)',
+        );
       }
 
       // Sign out from both Firebase and Google
@@ -920,9 +929,18 @@ class FirebaseAuthService {
   // Contains name, email and role as filled in Firestore `users/{uid}` doc
   // Fields are optional and may be null
   // Example usage: final profile = await authService.getUserProfile(projectId: 'kk360-69504');
-  Future<UserProfile?> getUserProfile({required String projectId}) async {
+  Future<UserProfile?> getUserProfile({
+    required String projectId,
+    bool forceRefresh = false,
+  }) async {
     final user = _auth.currentUser;
     if (user == null) return null;
+
+    // Return cached profile if available and not forcing refresh
+    if (!forceRefresh && _cachedUserProfile != null) {
+      return _cachedUserProfile;
+    }
+
     final idToken = await user.getIdToken();
     if (idToken == null) return null;
 
@@ -947,9 +965,12 @@ class FirebaseAuthService {
         final name = fields?['name']?['stringValue'] as String?;
         final email = fields?['email']?['stringValue'] as String?;
         final role = fields?['role']?['stringValue'] as String?;
-        return UserProfile(name: name, email: email, role: role);
+
+        final profile = UserProfile(name: name, email: email, role: role);
+        _cachedUserProfile = profile;
+        return profile;
       } else {
-        // Fallback: return basic auth user info
+        // Fallback: return basic auth user info (do not cache partial dat)
         return UserProfile(
           name: user.displayName,
           email: user.email,
@@ -967,6 +988,8 @@ class FirebaseAuthService {
     required String projectId,
     required List<String> userIds,
   }) async {
+    // ... existing ...
+    // Note: No changes needed here as this is for OTHER users, we only cache CURRENT user.
     final user = _auth.currentUser;
     if (user == null) return {};
     final idToken = await user.getIdToken();
@@ -1013,6 +1036,7 @@ class FirebaseAuthService {
   // Return a best-effort display name for the currently signed-in user.
   // Priority: Firestore `name` field -> Firebase `displayName` -> Derived from email -> 'User'
   Future<String> getUserDisplayName({required String projectId}) async {
+    // getUserProfile now uses cache internally
     final profile = await getUserProfile(projectId: projectId);
     final authUser = _auth.currentUser;
     final email = profile?.email ?? authUser?.email;
@@ -1199,6 +1223,7 @@ class FirebaseAuthService {
     DateTime? startDate,
     DateTime? endDate,
     String? attachmentUrl,
+    List<String>? assignedTo,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
@@ -1234,6 +1259,13 @@ class FirebaseAuthService {
       fields['endDate'] = {'timestampValue': endDate.toUtc().toIso8601String()};
     if (attachmentUrl != null && attachmentUrl.isNotEmpty)
       fields['attachmentUrl'] = {'stringValue': attachmentUrl};
+    if (assignedTo != null && assignedTo.isNotEmpty) {
+      fields['assignedTo'] = {
+        'arrayValue': {
+          'values': assignedTo.map((id) => {'stringValue': id}).toList(),
+        },
+      };
+    }
 
     final body = jsonEncode({'fields': fields});
     debugPrint('[Auth] createAssignment: Request body: $body');
@@ -1413,6 +1445,15 @@ class FirebaseAuthService {
           fields['description']?['stringValue'] as String? ?? '';
       final points = fields['points']?['stringValue'] as String? ?? '';
       final attachmentUrl = fields['attachmentUrl']?['stringValue'] as String?;
+      final assignedToVal =
+          fields['assignedTo']?['arrayValue']?['values'] as List<dynamic>?;
+      final assignedToList = <String>[];
+      if (assignedToVal != null) {
+        for (final v in assignedToVal) {
+          final s = v['stringValue'] as String?;
+          if (s != null) assignedToList.add(s);
+        }
+      }
 
       // Keep backward compatibility if needed, map dueDate to endDate if endDate missing?
       // For now, let's parse what's there.
@@ -1440,6 +1481,7 @@ class FirebaseAuthService {
           createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
           classId: classId,
           attachmentUrl: attachmentUrl,
+          assignedTo: assignedToList,
         ),
       );
     }
@@ -1447,6 +1489,30 @@ class FirebaseAuthService {
   }
 
   // Get assignments for a class (by classId)
+  // Get cached assignments for a specific class
+  Future<List<AssignmentInfo>> getCachedAssignmentsForClass({
+    required String classId,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cached_assignments_$classId';
+      final jsonStr = prefs.getString(key);
+
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> jsonList = jsonDecode(jsonStr);
+        final assignments =
+            jsonList.map((j) => AssignmentInfo.fromJson(j)).toList();
+        debugPrint(
+          '[Auth] Retrieved ${assignments.length} assignments from cache for $classId',
+        );
+        return assignments;
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error reading assignment cache: $e');
+    }
+    return [];
+  }
+
   Future<List<AssignmentInfo>> getAssignmentsForClass({
     required String projectId,
     required String classId,
@@ -1521,6 +1587,18 @@ class FirebaseAuthService {
       if (b.createdAt == null) return -1;
       return b.createdAt!.compareTo(a.createdAt!);
     });
+
+    // Cache the assignments
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cached_assignments_$classId';
+      await prefs.setString(
+        key,
+        jsonEncode(assignments.map((c) => c.toJson()).toList()),
+      );
+    } catch (e) {
+      debugPrint('[Auth] Could not cache assignments: $e');
+    }
 
     return assignments;
   }
@@ -1652,6 +1730,7 @@ class FirebaseAuthService {
     DateTime? startDate,
     DateTime? endDate,
     List<Question>? questions,
+    List<String>? assignedTo,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
@@ -1706,6 +1785,14 @@ class FirebaseAuthService {
                   },
                 };
               }).toList(),
+        },
+      };
+    }
+
+    if (assignedTo != null && assignedTo.isNotEmpty) {
+      fields['assignedTo'] = {
+        'arrayValue': {
+          'values': assignedTo.map((id) => {'stringValue': id}).toList(),
         },
       };
     }
@@ -1841,8 +1928,15 @@ class FirebaseAuthService {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
 
-    final url =
-        'https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents/test_submissions';
+    // Use a deterministic ID: {testId}_{studentId}
+    // ensure testId does not have slashes just in case, though usually it's a doc ID.
+    final simpleTestId = testId.split('/').last;
+    final docId = '${simpleTestId}_${user.uid}';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/test_submissions/$docId',
+    );
 
     // Convert answers map to string keys
     final answersMap = <String, dynamic>{};
@@ -1850,30 +1944,28 @@ class FirebaseAuthService {
       answersMap[k.toString()] = {'integerValue': v};
     });
 
-    final body = {
-      'fields': {
-        'testId': {'stringValue': testId},
-        'studentId': {'stringValue': user.uid},
-        'studentName': {'stringValue': studentName},
-        'score': {'integerValue': score},
-        'totalQuestions': {'integerValue': totalQuestions},
-        'submittedAt': {
-          'timestampValue': DateTime.now().toUtc().toIso8601String(),
-        },
-        'answers': {
-          'mapValue': {'fields': answersMap},
-        },
+    final fields = {
+      'testId': {'stringValue': testId},
+      'studentId': {'stringValue': user.uid},
+      'studentName': {'stringValue': studentName},
+      'score': {'integerValue': score},
+      'totalQuestions': {'integerValue': totalQuestions},
+      'submittedAt': {
+        'timestampValue': DateTime.now().toUtc().toIso8601String(),
+      },
+      'answers': {
+        'mapValue': {'fields': answersMap},
       },
     };
 
     final token = await user.getIdToken();
-    final response = await http.post(
-      Uri.parse(url),
+    final response = await http.patch(
+      url,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode(body),
+      body: jsonEncode({'fields': fields}),
     );
 
     if (response.statusCode != 200) {
@@ -2308,6 +2400,30 @@ class FirebaseAuthService {
     }
 
     return parsed;
+  }
+
+  // Get cached classes for the current user (Student)
+  Future<List<ClassInfo>> getCachedClassesForUser() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return [];
+
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'cached_student_classes_${user.uid}';
+      final jsonStr = prefs.getString(key);
+
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> jsonList = jsonDecode(jsonStr);
+        final classes = jsonList.map((j) => ClassInfo.fromJson(j)).toList();
+        debugPrint(
+          '[Auth] Retrieved ${classes.length} student classes from cache',
+        );
+        return classes;
+      }
+    } catch (e) {
+      debugPrint('[Auth] Error reading student class cache: $e');
+    }
+    return [];
   }
 
   Future<List<ClassInfo>> getClassesForUser({required String projectId}) async {
@@ -3920,9 +4036,7 @@ class FirebaseAuthService {
           classId: fields['classId']?['stringValue'] ?? '',
           className: fields['className']?['stringValue'] ?? '',
           createdAt:
-              DateTime.tryParse(
-                fields['createdAt']?['timestampValue'] ?? '',
-              ) ??
+              DateTime.tryParse(fields['createdAt']?['timestampValue'] ?? '') ??
               DateTime.now(),
         ),
       );
@@ -3939,6 +4053,7 @@ class FirebaseAuthService {
     required String title,
     required String description,
     String? attachmentUrl,
+    List<String>? assignedTo,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
@@ -3950,7 +4065,7 @@ class FirebaseAuthService {
       '/v1/projects/$projectId/databases/(default)/documents/materials',
     );
 
-    final fields = {
+    final fields = <String, dynamic>{
       'unitId': {'stringValue': unitId},
       'title': {'stringValue': title},
       'description': {'stringValue': description},
@@ -3959,6 +4074,13 @@ class FirebaseAuthService {
     };
     if (attachmentUrl != null && attachmentUrl.isNotEmpty) {
       fields['attachmentUrl'] = {'stringValue': attachmentUrl};
+    }
+    if (assignedTo != null && assignedTo.isNotEmpty) {
+      fields['assignedTo'] = {
+        'arrayValue': {
+          'values': assignedTo.map((id) => {'stringValue': id}).toList(),
+        },
+      };
     }
 
     final body = jsonEncode({'fields': fields});
@@ -4036,9 +4158,7 @@ class FirebaseAuthService {
           description: fields['description']?['stringValue'] ?? '',
           attachmentUrl: fields['attachmentUrl']?['stringValue'],
           createdAt:
-              DateTime.tryParse(
-                fields['createdAt']?['timestampValue'] ?? '',
-              ) ??
+              DateTime.tryParse(fields['createdAt']?['timestampValue'] ?? '') ??
               DateTime.now(),
         ),
       );
@@ -4068,6 +4188,7 @@ class AssignmentInfo {
   final DateTime? endDate;
   final DateTime? createdAt;
   final String? attachmentUrl;
+  final List<String> assignedTo;
 
   AssignmentInfo({
     required this.id,
@@ -4080,7 +4201,38 @@ class AssignmentInfo {
     this.endDate,
     this.createdAt,
     this.attachmentUrl,
+    this.assignedTo = const [],
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'course': course,
+    'description': description,
+    'points': points,
+    'classId': classId,
+    'startDate': startDate?.toIso8601String(),
+    'endDate': endDate?.toIso8601String(),
+    'createdAt': createdAt?.toIso8601String(),
+    'attachmentUrl': attachmentUrl,
+    'assignedTo': assignedTo,
+  };
+
+  static AssignmentInfo fromJson(Map<String, dynamic> j) => AssignmentInfo(
+    id: j['id'] as String? ?? '',
+    title: j['title'] as String? ?? '',
+    course: j['course'] as String? ?? '',
+    description: j['description'] as String? ?? '',
+    points: j['points'] as String? ?? '',
+    classId: j['classId'] as String? ?? '',
+    startDate:
+        j['startDate'] != null ? DateTime.tryParse(j['startDate']) : null,
+    endDate: j['endDate'] != null ? DateTime.tryParse(j['endDate']) : null,
+    createdAt:
+        j['createdAt'] != null ? DateTime.tryParse(j['createdAt']) : null,
+    attachmentUrl: j['attachmentUrl'] as String?,
+    assignedTo: (j['assignedTo'] as List<dynamic>?)?.cast<String>() ?? [],
+  );
 }
 
 class ClassInfo {
@@ -4180,6 +4332,7 @@ class TestInfo {
   final DateTime? createdAt;
   final List<Question> questions;
   final String createdBy;
+  final List<String> assignedTo;
 
   TestInfo({
     required this.id,
@@ -4192,6 +4345,7 @@ class TestInfo {
     this.createdAt,
     this.questions = const [],
     this.createdBy = '',
+    this.assignedTo = const [],
   });
 }
 
@@ -4244,6 +4398,7 @@ class AssignmentSubmission {
     required this.submittedAt,
   });
 }
+
 class UnitInfo {
   final String id;
   final String title;
@@ -4271,6 +4426,7 @@ class MaterialInfo {
   final String description;
   final String? attachmentUrl;
   final DateTime createdAt;
+  final List<String> assignedTo;
 
   MaterialInfo({
     required this.id,
@@ -4279,5 +4435,6 @@ class MaterialInfo {
     required this.description,
     this.attachmentUrl,
     required this.createdAt,
+    this.assignedTo = const [],
   });
 }

@@ -20,9 +20,9 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
 
   // -- Added for Header Data --
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
   // ---------------------------
 
   List<UnitInfo> _units = [];

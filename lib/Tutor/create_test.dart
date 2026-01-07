@@ -6,7 +6,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 
 class CreateTestScreen extends StatefulWidget {
-  const CreateTestScreen({super.key});
+  final String? classId;
+  const CreateTestScreen({super.key, this.classId});
 
   @override
   State<CreateTestScreen> createState() => _CreateTestScreenState();
@@ -41,6 +42,10 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
   final FirebaseAuthService _auth = FirebaseAuthService();
   List<ClassInfo> _myClasses = [];
   bool _classesLoading = false;
+
+  List<String> _selectedStudentIds = [];
+  Map<String, UserProfile?> _studentProfiles = {};
+  bool _studentsLoading = false;
 
   List<_QuestionEditor> _questions = [];
 
@@ -89,21 +94,85 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
 
       setState(() {
         _myClasses = items;
-        _selectedClassIds = _myClasses.isNotEmpty ? [_myClasses.first.id] : [];
-        if (_myClasses.isNotEmpty) {
-          _selectedCourse =
-              _myClasses.first.course.isNotEmpty
-                  ? _myClasses.first.course
-                  : 'General';
+        if (widget.classId != null &&
+            items.any((c) => c.id == widget.classId)) {
+          _selectedClassIds = [widget.classId!];
+          final cls = items.firstWhere((c) => c.id == widget.classId);
+          _selectedCourse = cls.course.isNotEmpty ? cls.course : 'General';
+        } else {
+          _selectedClassIds = [];
         }
         _classesLoading = false;
       });
+      _fetchStudentsForSelectedClasses();
     } catch (e) {
       if (!mounted) return;
       setState(() => _classesLoading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
+    }
+  }
+
+  Future<void> _fetchStudentsForSelectedClasses() async {
+    if (_selectedClassIds.isEmpty) {
+      setState(() {
+        _studentProfiles = {};
+        _selectedStudentIds = [];
+      });
+      return;
+    }
+
+    setState(() => _studentsLoading = true);
+    try {
+      final allStudents = <String, UserProfile>{};
+
+      for (final classId in _selectedClassIds) {
+        final classInfo = _myClasses.firstWhere(
+          (c) => c.id == classId,
+          orElse:
+              () => ClassInfo(
+                id: '',
+                name: '',
+                tutorId: '',
+                members: [],
+                course: '',
+              ),
+        );
+        if (classInfo.id.isEmpty) continue;
+
+        // Get profiles for members
+        if (classInfo.members.isNotEmpty) {
+          final profiles = await _auth.getUserProfiles(
+            projectId: 'kk360-69504',
+            userIds: classInfo.members,
+          );
+
+          // Filter for students only
+          profiles.forEach((uid, profile) {
+            if (profile != null && profile.role == 'student') {
+              allStudents[uid] = profile;
+            }
+          });
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _studentProfiles = allStudents;
+        // Remove selected IDs that are no longer valid
+        _selectedStudentIds.removeWhere(
+          (id) => !_studentProfiles.containsKey(id),
+        );
+        _studentsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _studentsLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load students: $e')));
     }
   }
 
@@ -333,6 +402,27 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
     try {
       // Create test for each selected class
       for (String classId in _selectedClassIds) {
+        // Determine assignedTo for this class
+        List<String>? classAssignedTo;
+        if (_selectedStudentIds.isNotEmpty) {
+          final classInfo = _myClasses.firstWhere((c) => c.id == classId);
+          // Filter selected students to those in this class
+          final studentsInThisClass =
+              _selectedStudentIds.where((sid) {
+                return classInfo.members.contains(sid);
+              }).toList();
+
+          if (studentsInThisClass.isEmpty) {
+            // No selected students allowd in this class, skip creating test for this class?
+            // Or create with empty list (error)?
+            debugPrint(
+              'Skipping class $classId as no selected students are members.',
+            );
+            continue;
+          }
+          classAssignedTo = studentsInThisClass;
+        }
+
         await _auth.createTest(
           projectId: 'kk360-69504',
           title: title,
@@ -342,6 +432,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
           startDate: _startDate,
           endDate: _endDate,
           questions: validQuestions,
+          assignedTo: classAssignedTo,
         );
       }
 
@@ -401,6 +492,114 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                           },
                         );
                       }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _fetchStudentsForSelectedClasses();
+                  },
+                  child: const Text('Done'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showStudentSelectionDialog() async {
+    // Ensure we have students fetched
+    if (_studentProfiles.isEmpty && !_studentsLoading) {
+      await _fetchStudentsForSelectedClasses();
+    }
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            if (_studentsLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (_studentProfiles.isEmpty) {
+              return AlertDialog(
+                title: const Text('Select Students'),
+                content: const Text(
+                  'No students found in selected classes. Please select classes first.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            }
+
+            final sortedStudentIds = _studentProfiles.keys.toList();
+
+            return AlertDialog(
+              title: const Text('Select Students'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          if (_selectedStudentIds.length ==
+                              sortedStudentIds.length) {
+                            _selectedStudentIds.clear();
+                          } else {
+                            _selectedStudentIds = List.from(sortedStudentIds);
+                          }
+                        });
+                        this.setState(() {});
+                      },
+                      child: Text(
+                        _selectedStudentIds.length == sortedStudentIds.length
+                            ? "Deselect All"
+                            : "Select All",
+                      ),
+                    ),
+                    const Divider(),
+                    Expanded(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children:
+                            sortedStudentIds.map((uid) {
+                              final profile = _studentProfiles[uid];
+                              final isSelected = _selectedStudentIds.contains(
+                                uid,
+                              );
+                              final name = profile?.name ?? 'Unknown';
+                              final email = profile?.email ?? 'No Email';
+                              return CheckboxListTile(
+                                title: Text(name),
+                                subtitle: Text(email),
+                                value: isSelected,
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      _selectedStudentIds.add(uid);
+                                    } else {
+                                      _selectedStudentIds.remove(uid);
+                                    }
+                                  });
+                                  // Update parent state to reflect "X students selected" button text
+                                  this.setState(() {});
+                                },
+                              );
+                            }).toList(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               actions: [
@@ -520,6 +719,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                   _classesLoading
                       ? const Center(child: CircularProgressIndicator())
                       : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
@@ -527,13 +727,9 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                                 child: ElevatedButton(
                                   onPressed: _showClassSelectionDialog,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        isDark
-                                            ? const Color(0xFF2C2C2C)
-                                            : Colors.white,
-                                    foregroundColor:
-                                        isDark ? Colors.white : Colors.black,
-                                    side: BorderSide(color: Colors.grey),
+                                    backgroundColor: const Color(0xFF4B3FA3),
+                                    foregroundColor: Colors.white,
+                                    side: BorderSide(color: Colors.transparent),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 12,
                                     ),
@@ -541,26 +737,28 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                                   child: Text(
                                     _selectedClassIds.isEmpty
                                         ? 'Select Classes'
-                                        : '${_selectedClassIds.length} class(es) selected',
+                                        : '${_selectedClassIds.length} Classes',
                                   ),
                                 ),
                               ),
                               SizedBox(width: 8),
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _selectedClassIds =
-                                        _myClasses.map((c) => c.id).toList();
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _showStudentSelectionDialog,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF4B3FA3),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _selectedStudentIds.isEmpty
+                                        ? 'All Students'
+                                        : '${_selectedStudentIds.length} Students',
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
-                                child: const Text('All'),
                               ),
                             ],
                           ),
@@ -573,6 +771,14 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                                     _selectedClassIds.map((classId) {
                                       final classInfo = _myClasses.firstWhere(
                                         (c) => c.id == classId,
+                                        orElse:
+                                            () => ClassInfo(
+                                              id: '',
+                                              name: '',
+                                              tutorId: '',
+                                              members: [],
+                                              course: '',
+                                            ),
                                       );
                                       return Chip(
                                         label: Text(
@@ -584,6 +790,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                                         onDeleted: () {
                                           setState(() {
                                             _selectedClassIds.remove(classId);
+                                            _fetchStudentsForSelectedClasses();
                                           });
                                         },
                                         backgroundColor: Colors.blue.shade100,

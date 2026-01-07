@@ -45,6 +45,12 @@ class _UnitDetailsPageState extends State<UnitDetailsPage> {
     }
   }
 
+  // Helper to capitalize the first letter (matches Student design)
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -54,75 +60,129 @@ class _UnitDetailsPageState extends State<UnitDetailsPage> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        title: Text(
-          widget.unit.title,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
-        ),
-        backgroundColor: bgColor,
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
-        elevation: 0,
-      ),
+      // Removed standard AppBar
+
+      // Kept Floating Action Button for Tutors
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await goPush(context, CreateMaterialScreen(unitId: widget.unit.id));
+          await goPush(context, CreateMaterialScreen(unit: widget.unit));
           _loadMaterials();
         },
         backgroundColor: const Color(0xFF4B3FA3),
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body:
-          _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _materials.isEmpty
-              ? _buildEmptyState(h, w, isDark)
-              : RefreshIndicator(
-                onRefresh: _loadMaterials,
-                child: ListView.builder(
-                  padding: EdgeInsets.all(w * 0.04),
-                  itemCount: _materials.length + 1, // +1 for header info
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: h * 0.03),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.unit.description.isNotEmpty)
-                              Text(
-                                widget.unit.description,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color:
-                                      isDark ? Colors.white70 : Colors.black87,
-                                  height: 1.5,
-                                ),
-                              ),
-                            SizedBox(height: h * 0.02),
-                            Divider(
-                              color:
-                                  isDark
-                                      ? Colors.white24
-                                      : Colors.grey.shade300,
-                            ),
-                            SizedBox(height: h * 0.01),
-                            Text(
-                              "${_materials.length} Materials",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white54 : Colors.black54,
-                              ),
-                            ),
-                          ],
+
+      body: Column(
+        children: [
+          // --- Custom Header (From Student Design) ---
+          Container(
+            width: w,
+            height: h * 0.16,
+            decoration: const BoxDecoration(
+              color: Color(0xFF4B3FA3),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Back Button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    SizedBox(width: w * 0.02),
+
+                    // Title Only
+                    Expanded(
+                      child: Text(
+                        _capitalize(widget.unit.title),
+                        style: TextStyle(
+                          fontSize: h * 0.024,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-                      );
-                    }
-                    final material = _materials[index - 1];
-                    return _buildMaterialCard(material, h, w, isDark);
-                  },
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
+          ),
+
+          // --- Body Content ---
+          Expanded(
+            child:
+                _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _materials.isEmpty
+                    ? _buildEmptyState(h, w, isDark)
+                    : RefreshIndicator(
+                      onRefresh: _loadMaterials,
+                      child: ListView.builder(
+                        padding: EdgeInsets.all(w * 0.04),
+                        itemCount: _materials.length + 1, // +1 for header info
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: h * 0.03),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (widget.unit.description.isNotEmpty)
+                                    Text(
+                                      widget.unit.description,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color:
+                                            isDark
+                                                ? Colors.white70
+                                                : Colors.black87,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  SizedBox(height: h * 0.02),
+                                  Divider(
+                                    color:
+                                        isDark
+                                            ? Colors.white24
+                                            : Colors.grey.shade300,
+                                  ),
+                                  SizedBox(height: h * 0.01),
+                                  Text(
+                                    "${_materials.length} Materials",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          isDark
+                                              ? Colors.white54
+                                              : Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          final material = _materials[index - 1];
+                          return _buildMaterialCard(material, h, w, isDark);
+                        },
+                      ),
+                    ),
+          ),
+        ],
+      ),
     );
   }
 

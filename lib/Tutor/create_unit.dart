@@ -103,24 +103,6 @@ class _CreateUnitScreenState extends State<CreateUnitScreen> {
     }
   }
 
-  Widget _chip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF4B3FA3),
-        borderRadius: BorderRadius.circular(50),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
   void _showClassSelectionDialog() {
     showDialog(
       context: context,
@@ -214,7 +196,7 @@ class _CreateUnitScreenState extends State<CreateUnitScreen> {
                       ),
                       child:
                           _creating
-                              ? SizedBox(
+                              ? const SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
@@ -278,85 +260,82 @@ class _CreateUnitScreenState extends State<CreateUnitScreen> {
                     ),
                     SizedBox(height: h * 0.02),
 
-                    // CLASS SELECTOR
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    // CLASS SELECTOR (Consistent Style)
+                    Text(
+                      "Assign To",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+
+                    _classesLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
+                            SizedBox(
+                              width: double.infinity,
                               child: ElevatedButton(
                                 onPressed: _showClassSelectionDialog,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      isDark
-                                          ? const Color(0xFF2C2C2C)
-                                          : Colors.white,
-                                  foregroundColor:
-                                      isDark ? Colors.white : Colors.black,
-                                  side: BorderSide(
-                                    color:
-                                        isDark ? Colors.white24 : Colors.grey,
+                                  backgroundColor: const Color(0xFF4B3FA3),
+                                  foregroundColor: Colors.white,
+                                  side: const BorderSide(
+                                    color: Colors.transparent,
                                   ),
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: h * 0.015,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
                                   ),
                                 ),
                                 child: Text(
                                   _selectedClassIds.isEmpty
                                       ? 'Select Classes'
-                                      : '${_selectedClassIds.length} class(es) selected',
+                                      : '${_selectedClassIds.length} Classes',
                                 ),
                               ),
                             ),
-                            SizedBox(width: w * 0.02),
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _selectedClassIds =
-                                      _myClasses.map((c) => c.id).toList();
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: w * 0.03,
-                                  vertical: h * 0.015,
+                            if (_selectedClassIds.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Wrap(
+                                  spacing: 8,
+                                  children:
+                                      _selectedClassIds.map((classId) {
+                                        final classInfo = _myClasses.firstWhere(
+                                          (c) => c.id == classId,
+                                          orElse:
+                                              () => ClassInfo(
+                                                id: '',
+                                                name: 'Unknown',
+                                                tutorId: '',
+                                                members: [],
+                                                course: '',
+                                              ),
+                                        );
+                                        return Chip(
+                                          label: Text(
+                                            classInfo.name.isNotEmpty
+                                                ? classInfo.name
+                                                : classInfo.id,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          onDeleted: () {
+                                            setState(() {
+                                              _selectedClassIds.remove(classId);
+                                            });
+                                          },
+                                          backgroundColor: Colors.blue.shade100,
+                                        );
+                                      }).toList(),
                                 ),
                               ),
-                              child: const Text('All Classes'),
-                            ),
                           ],
                         ),
-                        if (_selectedClassIds.isNotEmpty)
-                          Padding(
-                            padding: EdgeInsets.only(top: h * 0.01),
-                            child: Wrap(
-                              spacing: 8,
-                              children:
-                                  _selectedClassIds.map((classId) {
-                                    final classInfo = _myClasses.firstWhere(
-                                      (c) => c.id == classId,
-                                    );
-                                    return Chip(
-                                      label: Text(
-                                        classInfo.name.isNotEmpty
-                                            ? classInfo.name
-                                            : classInfo.id,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      onDeleted: () {
-                                        setState(() {
-                                          _selectedClassIds.remove(classId);
-                                        });
-                                      },
-                                      backgroundColor: Colors.blue.shade100,
-                                    );
-                                  }).toList(),
-                            ),
-                          ),
-                      ],
-                    ),
                     SizedBox(height: h * 0.02),
 
                     // DESCRIPTION BOX

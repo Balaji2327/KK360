@@ -21,9 +21,9 @@ class StudentAssignmentPage extends StatefulWidget {
 
 class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   List<AssignmentInfo> _myAssignments = [];
   final Map<String, AssignmentSubmission?> _mySubmissions = {};
@@ -52,6 +52,23 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
 
   Future<void> _loadMyAssignments() async {
     setState(() => _assignmentsLoading = true);
+    // 1. Cache
+    try {
+      final cached = await _authService.getCachedAssignmentsForClass(
+        classId: widget.classId,
+      );
+      if (cached.isNotEmpty && mounted) {
+        setState(() {
+          _myAssignments = cached;
+          _assignmentsLoading = false;
+        });
+        _loadMySubmissions();
+      }
+    } catch (e) {
+      debugPrint('[AssignmentPage] Cache error: $e');
+    }
+
+    // 2. Server
     try {
       final assignments = await _authService.getAssignmentsForClass(
         projectId: 'kk360-69504',

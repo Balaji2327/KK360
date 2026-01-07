@@ -16,9 +16,9 @@ class AssignmentPage extends StatefulWidget {
 
 class _AssignmentPageState extends State<AssignmentPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = 'User';
-  String userEmail = '';
-  bool profileLoading = true;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
   List<AssignmentInfo> _myAssignments = [];
   bool _assignmentsLoading = false;
@@ -43,9 +43,30 @@ class _AssignmentPageState extends State<AssignmentPage> {
     });
   }
 
+  Map<String, String> _classNameMap = {};
+
   Future<void> _loadMyAssignments() async {
     setState(() => _assignmentsLoading = true);
     try {
+      if (widget.classId != null) {
+        try {
+          final cached = await _authService.getCachedAssignmentsForClass(
+            classId: widget.classId!,
+          );
+          if (cached.isNotEmpty && mounted) {
+            // Create a limited class map or wait for full class map?
+            // Ideally we want class names. For now, show content.
+            // We can fetch class names later or in parallel.
+            setState(() {
+              _myAssignments = cached;
+              _assignmentsLoading = false;
+            });
+          }
+        } catch (e) {
+          debugPrint('[AssignmentPage] Cache error: $e');
+        }
+      }
+
       final assignments =
           widget.classId != null
               ? await _authService.getAssignmentsForClass(
@@ -55,9 +76,17 @@ class _AssignmentPageState extends State<AssignmentPage> {
               : await _authService.getAssignmentsForTutor(
                 projectId: 'kk360-69504',
               );
+
+      // Fetch class names to display
+      final classes = await _authService.getClassesForTutor(
+        projectId: 'kk360-69504',
+      );
+      final classMap = {for (var c in classes) c.id: c.name};
+
       if (!mounted) return;
       setState(() {
         _myAssignments = assignments;
+        _classNameMap = classMap;
         _assignmentsLoading = false;
       });
     } catch (e) {
@@ -88,7 +117,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
           onTap:
               () => goPush(
                 context,
-                CreateAssignmentScreen(),
+                CreateAssignmentScreen(classId: widget.classId),
               ).then((_) => _refreshAssignments()),
           child: Container(
             height: h * 0.065,
@@ -239,6 +268,9 @@ class _AssignmentPageState extends State<AssignmentPage> {
   Widget _buildAssignmentCard(AssignmentInfo assignment, double h, double w) {
     const appColor = Color(0xFF4B3FA3);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final className =
+        _classNameMap[assignment.classId] ??
+        (widget.className ?? 'Unknown Class');
 
     return Container(
       margin: EdgeInsets.only(bottom: h * 0.015),
@@ -341,27 +373,26 @@ class _AssignmentPageState extends State<AssignmentPage> {
                   ],
                 ),
 
-                if (assignment.course.isNotEmpty) ...[
-                  SizedBox(height: h * 0.005),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: appColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      assignment.course,
-                      style: TextStyle(
-                        fontSize: h * 0.014,
-                        color: isDark ? Colors.white70 : appColor,
-                        fontWeight: FontWeight.w600,
-                      ),
+                // Class Name Tag
+                Container(
+                  margin: EdgeInsets.only(top: h * 0.008),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: appColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    className,
+                    style: TextStyle(
+                      fontSize: h * 0.014,
+                      color: appColor,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
+                ),
 
                 if (assignment.description.isNotEmpty) ...[
                   SizedBox(height: h * 0.012),

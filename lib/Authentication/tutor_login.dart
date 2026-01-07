@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firebase_auth_service.dart';
 import 'forget_password.dart';
 import 'student_login.dart';
@@ -53,6 +54,9 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
       if (user?.email != null) {
         await _checkPendingInvites(user!.email!);
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userRole', 'tutor');
 
       if (mounted) {
         goPush(context, const TutorMainScreen());
@@ -387,6 +391,9 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
 
                             // Check for pending invites after successful login
                             await _checkPendingInvites(email);
+
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setString('userRole', 'tutor');
 
                             if (mounted) {
                               goPush(context, const TutorMainScreen());

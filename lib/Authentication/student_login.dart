@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'forget_password.dart';
 import 'tutor_login.dart';
 import 'otp_screen.dart';
@@ -69,6 +70,21 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       // Check for pending invites after successful login
       await _checkPendingInvites();
 
+      // Save role locally
+      if (mounted) {
+        // Assuming you can get SharedPreferences instance here, or add the import
+        // I'll add the import in a separate multi_replace or use full qualification if needed,
+        // but replace_file_content is better with context.
+        // Let's assume I need to add the import first.
+
+        // Actually, let's just use the logic here, I will add the import next.
+      }
+
+      // ... wait, I need to add import 'package:shared_preferences/shared_preferences.dart';
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userRole', 'student');
+
       if (mounted) {
         goPush(context, const StudentMainScreen());
       }
@@ -93,6 +109,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       if (user?.email != null) {
         await _checkPendingInvites();
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userRole', 'student');
 
       if (mounted) {
         goPush(context, const StudentMainScreen());

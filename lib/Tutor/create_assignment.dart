@@ -6,7 +6,8 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 
 class CreateAssignmentScreen extends StatefulWidget {
-  const CreateAssignmentScreen({super.key});
+  final String? classId;
+  const CreateAssignmentScreen({super.key, this.classId});
 
   @override
   State<CreateAssignmentScreen> createState() => _CreateAssignmentScreenState();
@@ -50,9 +51,15 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
       if (!mounted) return;
       setState(() {
         _myClasses = items;
-        _selectedClassIds = _myClasses.isNotEmpty ? [_myClasses.first.id] : [];
+        if (widget.classId != null &&
+            items.any((c) => c.id == widget.classId)) {
+          _selectedClassIds = [widget.classId!];
+        } else {
+          _selectedClassIds = [];
+        }
         _classesLoading = false;
       });
+      _fetchStudentsForSelectedClasses();
     } catch (e) {
       if (!mounted) return;
       setState(() => _classesLoading = false);
@@ -96,8 +103,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
               },
               child: const Text("Cancel"),
             ),
-
-            /// ✅ GREEN SAVE BUTTON
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               onPressed: () {
@@ -260,6 +265,136 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
     );
   }
 
+  List<String> _selectedStudentIds = [];
+  Map<String, UserProfile?> _studentProfiles = {};
+  bool _studentsLoading = false;
+
+  Future<void> _fetchStudentsForSelectedClasses() async {
+    setState(() => _studentsLoading = true);
+    try {
+      final Set<String> memberIds = {};
+      final selectedClasses = _myClasses.where(
+        (c) => _selectedClassIds.contains(c.id),
+      );
+      for (final c in selectedClasses) {
+        memberIds.addAll(c.members);
+      }
+
+      if (memberIds.isNotEmpty) {
+        final profiles = await _auth.getUserProfiles(
+          projectId: 'kk360-69504',
+          userIds: memberIds.toList(),
+        );
+        // Filter to include only students
+        _studentProfiles = Map.fromEntries(
+          profiles.entries.where(
+            (entry) =>
+                entry.value?.role == 'student' ||
+                (entry.value?.role == null &&
+                    entry.value?.email != null &&
+                    !entry.value!.email!.toLowerCase().contains('tutor')),
+          ),
+        );
+      } else {
+        _studentProfiles = {};
+      }
+    } catch (e) {
+      debugPrint("Error fetching students: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load students: $e")));
+    } finally {
+      if (mounted) setState(() => _studentsLoading = false);
+    }
+  }
+
+  void _showStudentSelectionDialog() async {
+    await _fetchStudentsForSelectedClasses();
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final allMemberIds = _studentProfiles.keys.toList();
+            final allSelected =
+                allMemberIds.isNotEmpty &&
+                _selectedStudentIds.length == allMemberIds.length;
+
+            return AlertDialog(
+              title: const Text('Select Students'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child:
+                    _studentsLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _studentProfiles.isEmpty
+                        ? const Center(child: Text("No students found."))
+                        : ListView(
+                          shrinkWrap: true,
+                          children: [
+                            CheckboxListTile(
+                              title: const Text(
+                                "Select All",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              value: allSelected,
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _selectedStudentIds = List.from(
+                                      allMemberIds,
+                                    );
+                                  } else {
+                                    _selectedStudentIds.clear();
+                                  }
+                                });
+                                this.setState(() {});
+                              },
+                            ),
+                            const Divider(),
+                            ..._studentProfiles.entries.map((entry) {
+                              final uid = entry.key;
+                              final profile = entry.value;
+                              final name = profile?.name ?? "Unknown";
+                              final email = profile?.email ?? "";
+
+                              return CheckboxListTile(
+                                title: Text(name),
+                                subtitle: Text(
+                                  email,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                value: _selectedStudentIds.contains(uid),
+                                onChanged: (val) {
+                                  setState(() {
+                                    if (val == true) {
+                                      _selectedStudentIds.add(uid);
+                                    } else {
+                                      _selectedStudentIds.remove(uid);
+                                    }
+                                  });
+                                  this.setState(() {});
+                                },
+                              );
+                            }),
+                          ],
+                        ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Done'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -342,6 +477,26 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       try {
                         // Create assignment for each selected class
                         for (String classId in _selectedClassIds) {
+                          // Determine assigned students for THIS class
+                          List<String>? assignedToForClass;
+                          if (_selectedStudentIds.isNotEmpty) {
+                            final classInfo = _myClasses.firstWhere(
+                              (c) => c.id == classId,
+                            );
+                            assignedToForClass =
+                                _selectedStudentIds
+                                    .where(
+                                      (sid) => classInfo.members.contains(sid),
+                                    )
+                                    .toList();
+
+                            // If specific students were selected, but none are in this class,
+                            // we skip creating the assignment for this class.
+                            if (assignedToForClass.isEmpty) {
+                              continue;
+                            }
+                          }
+
                           await _auth.createAssignment(
                             projectId: 'kk360-69504',
                             title: title,
@@ -352,6 +507,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                             startDate: _startDate,
                             endDate: _endDate,
                             attachmentUrl: attachmentUrl,
+                            assignedTo: assignedToForClass,
                           );
                         }
                         if (mounted) {
@@ -427,26 +583,19 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     ),
                     SizedBox(height: h * 0.02),
 
-                    // Class selector (so tutor can choose which classes to assign to)
+                    // Class selector & Student selector
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
+                            // Select Classes Button
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: _showClassSelectionDialog,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      isDark
-                                          ? const Color(0xFF2C2C2C)
-                                          : Colors.white,
-                                  foregroundColor:
-                                      isDark ? Colors.white : Colors.black,
-                                  side: BorderSide(
-                                    color:
-                                        isDark ? Colors.white24 : Colors.grey,
-                                  ),
+                                  backgroundColor: const Color(0xFF4B3FA3),
+                                  foregroundColor: Colors.white,
                                   padding: EdgeInsets.symmetric(
                                     vertical: h * 0.015,
                                   ),
@@ -454,26 +603,41 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                 child: Text(
                                   _selectedClassIds.isEmpty
                                       ? 'Select Classes'
-                                      : '${_selectedClassIds.length} class(es) selected',
+                                      : '${_selectedClassIds.length} class(es)',
                                 ),
                               ),
                             ),
                             SizedBox(width: w * 0.02),
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _selectedClassIds =
-                                      _myClasses.map((c) => c.id).toList();
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: w * 0.03,
-                                  vertical: h * 0.015,
+
+                            // Select Students Button (Replaces All Classes)
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (_selectedClassIds.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Please select a class first",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  _showStudentSelectionDialog();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4B3FA3),
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: h * 0.015,
+                                  ),
+                                ),
+                                child: Text(
+                                  _selectedStudentIds.isEmpty
+                                      ? 'All students'
+                                      : '${_selectedStudentIds.length} student(s)',
                                 ),
                               ),
-                              child: const Text('All Classes'),
                             ),
                           ],
                         ),

@@ -4,24 +4,28 @@ import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
 import 'take_test.dart';
 
-class ActivityWallScreen extends StatefulWidget {
-  const ActivityWallScreen({super.key});
+class StudentTestPage extends StatefulWidget {
+  final String classId;
+  final String className;
+
+  const StudentTestPage({
+    super.key,
+    required this.classId,
+    required this.className,
+  });
 
   @override
-  State<ActivityWallScreen> createState() => _ActivityWallScreenState();
+  State<StudentTestPage> createState() => _StudentTestPageState();
 }
 
-class _ActivityWallScreenState extends State<ActivityWallScreen> {
+class _StudentTestPageState extends State<StudentTestPage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   List<TestInfo> _tests = [];
-  List<TestInfo> _filteredTests = [];
   bool _loading = true;
   Map<String, TestSubmission?> _submissions = {};
   Map<String, String> _tutorNames = {};
-  String _userName = "Student";
-  String _userEmail = "";
-
-  final TextEditingController _searchController = TextEditingController();
+  String _userName = FirebaseAuthService.cachedProfile?.name ?? "Student";
+  String _userEmail = FirebaseAuthService.cachedProfile?.email ?? "";
 
   Future<void> _loadData() async {
     try {
@@ -36,48 +40,61 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
         projectId: 'kk360-69504',
       );
 
-      // Fetch tests for student
+      // Fetch tests
+      // Fetch all student tests
       final items = await _authService.getTestsForStudent(
         projectId: 'kk360-69504',
       );
 
-      // Fetch tutor names
-      final tutorMap = <String, String>{};
-      final uniqueTutors =
-          items.map((t) => t.createdBy).where((id) => id.isNotEmpty).toSet();
+      // Filter items by classId
+      final classTests =
+          items.where((t) => t.classId == widget.classId).toList();
 
-      for (final id in uniqueTutors) {
-        final tName = await _authService.getUserNameById(
-          projectId: 'kk360-69504',
-          uid: id,
-        );
-        tutorMap[id] = tName;
-      }
+      // Fetch tutor names
+      final uniqueTutors =
+          classTests
+              .map((t) => t.createdBy)
+              .where((id) => id.isNotEmpty)
+              .toSet()
+              .toList();
+
+      final tutorNamesList = await Future.wait(
+        uniqueTutors.map(
+          (id) =>
+              _authService.getUserNameById(projectId: 'kk360-69504', uid: id),
+        ),
+      );
+
+      final tutorMap = Map.fromIterables(uniqueTutors, tutorNamesList);
 
       // Check for submissions for each test
-      final submissionMap = <String, TestSubmission?>{};
-      for (final test in items) {
-        final sub = await _authService.getStudentSubmissionForTest(
-          projectId: 'kk360-69504',
-          testId: test.id,
-          studentId: user.uid,
-        );
-        submissionMap[test.id] = sub;
-      }
+      final submissionResults = await Future.wait(
+        classTests.map(
+          (test) => _authService.getStudentSubmissionForTest(
+            projectId: 'kk360-69504',
+            testId: test.id,
+            studentId: user.uid,
+          ),
+        ),
+      );
+
+      final submissionMap = <String, TestSubmission?>{
+        for (int i = 0; i < classTests.length; i++)
+          classTests[i].id: submissionResults[i],
+      };
 
       if (mounted) {
         setState(() {
           _userName = name;
           _userEmail = profile?.email ?? user.email ?? "";
-          _tests = items;
-          _filteredTests = List.from(_tests);
+          _tests = classTests;
           _submissions = submissionMap;
           _tutorNames = tutorMap;
           _loading = false;
         });
       }
     } catch (e) {
-      debugPrint("Error loading activity wall: $e");
+      debugPrint("Error loading tests: $e");
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -86,32 +103,11 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
   void initState() {
     super.initState();
     _loadData();
-    _searchController.addListener(_filterTests);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   String _formatDate(DateTime d) {
     final local = d.toLocal();
     return '${local.day.toString().padLeft(2, '0')}-${local.month.toString().padLeft(2, '0')}-${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _filterTests() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredTests =
-          _tests.where((test) {
-            final tutorName = _tutorNames[test.createdBy] ?? '';
-            return test.title.toLowerCase().contains(query) ||
-                test.course.toLowerCase().contains(query) ||
-                test.description.toLowerCase().contains(query) ||
-                tutorName.toLowerCase().contains(query);
-          }).toList();
-    });
   }
 
   @override
@@ -122,15 +118,13 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // ------------ HEADER (Matches Assignment Page) ------------
           Container(
             width: w,
-            height: h * 0.23,
-            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+            height: h * 0.16,
             decoration: const BoxDecoration(
               color: Color(0xFF4B3FA3),
               borderRadius: BorderRadius.only(
@@ -138,57 +132,36 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                 bottomRight: Radius.circular(30),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: h * 0.07),
-                const Text(
-                  "Activity Wall",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  "$_userName | $_userEmail",
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                SizedBox(height: 15),
-                Container(
-                  height: h * 0.055,
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-                  child: TextField(
-                    controller: _searchController,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: h * 0.05),
+                  Text(
+                    "Tests - ${widget.className}",
                     style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                      fontSize: 14,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Search tests...',
-                      hintStyle: TextStyle(
-                        color: isDark ? Colors.white54 : Colors.grey.shade600,
-                        fontSize: 14,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: isDark ? Colors.white54 : Colors.grey.shade600,
-                        size: 20,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                      fontSize: h * 0.025,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(height: h * 0.006),
+                  Text(
+                    (_loading && _userName == "Student")
+                        ? 'Loading...'
+                        : "$_userName | $_userEmail",
+                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
-          // Content
+
+          // ------------ CONTENT LIST ------------
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
@@ -201,14 +174,12 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                             child: CircularProgressIndicator(),
                           ),
                         )
-                        : _filteredTests.isEmpty
+                        : _tests.isEmpty
                         ? Center(
                           child: Padding(
                             padding: const EdgeInsets.only(top: 50),
                             child: Text(
-                              _searchController.text.isEmpty
-                                  ? "No upcoming activities"
-                                  : 'No tests found matching "${_searchController.text}"',
+                              "No tests available",
                               style: TextStyle(
                                 color:
                                     isDark
@@ -221,7 +192,7 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                         : Column(
                           children: [
                             SizedBox(height: h * 0.02),
-                            ..._filteredTests.map((test) {
+                            ..._tests.map((test) {
                               final submission = _submissions[test.id];
                               final hasSubmitted = submission != null;
                               final now = DateTime.now();

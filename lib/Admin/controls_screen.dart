@@ -17,9 +17,9 @@ class AdminControlSelectionScreen extends StatefulWidget {
 class _AdminControlSelectionScreenState
     extends State<AdminControlSelectionScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  bool profileLoading = true;
-  String userName = 'User';
-  String userEmail = '';
+  bool profileLoading = FirebaseAuthService.cachedProfile == null;
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
 
   @override
   void initState() {

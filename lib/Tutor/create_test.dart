@@ -33,6 +33,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
       TextEditingController();
 
   String? _selectedClassId;
+  List<String> _selectedClassIds = [];
   String _selectedCourse = 'General';
   DateTime? _startDate;
   DateTime? _endDate;
@@ -88,8 +89,8 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
 
       setState(() {
         _myClasses = items;
+        _selectedClassIds = _myClasses.isNotEmpty ? [_myClasses.first.id] : [];
         if (_myClasses.isNotEmpty) {
-          _selectedClassId = _myClasses.first.id;
           _selectedCourse =
               _myClasses.first.course.isNotEmpty
                   ? _myClasses.first.course
@@ -296,10 +297,10 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
       );
       return;
     }
-    if (_selectedClassId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a class')));
+    if (_selectedClassIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one class')),
+      );
       return;
     }
 
@@ -330,20 +331,27 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
     }
 
     try {
-      await _auth.createTest(
-        projectId: 'kk360-69504',
-        title: title,
-        classId: _selectedClassId!,
-        course: _selectedCourse,
-        description: _descriptionController.text.trim(),
-        startDate: _startDate,
-        endDate: _endDate,
-        questions: validQuestions,
-      );
+      // Create test for each selected class
+      for (String classId in _selectedClassIds) {
+        await _auth.createTest(
+          projectId: 'kk360-69504',
+          title: title,
+          classId: classId,
+          course: _selectedCourse,
+          description: _descriptionController.text.trim(),
+          startDate: _startDate,
+          endDate: _endDate,
+          questions: validQuestions,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Test assigned successfully!')),
+          SnackBar(
+            content: Text(
+              'Test assigned to ${_selectedClassIds.length} class(es) successfully!',
+            ),
+          ),
         );
         goBack(context);
       }
@@ -354,6 +362,58 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
         ).showSnackBar(SnackBar(content: Text('Error creating test: $e')));
       }
     }
+  }
+
+  void _showClassSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Select Classes'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children:
+                      _myClasses.map((classInfo) {
+                        final isSelected = _selectedClassIds.contains(
+                          classInfo.id,
+                        );
+                        return CheckboxListTile(
+                          title: Text(
+                            classInfo.name.isNotEmpty
+                                ? classInfo.name
+                                : classInfo.id,
+                          ),
+                          value: isSelected,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              if (value == true) {
+                                _selectedClassIds.add(classInfo.id);
+                              } else {
+                                _selectedClassIds.remove(classInfo.id);
+                              }
+                            });
+                            // Update parent state
+                            this.setState(() {});
+                          },
+                        );
+                      }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Done'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -449,7 +509,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
 
                   // Class Selection
                   Text(
-                    "Assign to Class",
+                    "Assign to Classes",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -459,33 +519,79 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                   SizedBox(height: 8),
                   _classesLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedClassId,
-                            isExpanded: true,
-                            dropdownColor:
-                                isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
-                            icon: const Icon(Icons.arrow_drop_down),
-                            hint: const Text("Select Class"),
-                            items:
-                                _myClasses.map((c) {
-                                  return DropdownMenuItem(
-                                    value: c.id,
-                                    child: Text(c.name),
-                                  );
-                                }).toList(),
-                            onChanged: _onClassChanged,
+                      : Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _showClassSelectionDialog,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        isDark
+                                            ? const Color(0xFF2C2C2C)
+                                            : Colors.white,
+                                    foregroundColor:
+                                        isDark ? Colors.white : Colors.black,
+                                    side: BorderSide(color: Colors.grey),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _selectedClassIds.isEmpty
+                                        ? 'Select Classes'
+                                        : '${_selectedClassIds.length} class(es) selected',
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedClassIds =
+                                        _myClasses.map((c) => c.id).toList();
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text('All'),
+                              ),
+                            ],
                           ),
-                        ),
+                          if (_selectedClassIds.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Wrap(
+                                spacing: 8,
+                                children:
+                                    _selectedClassIds.map((classId) {
+                                      final classInfo = _myClasses.firstWhere(
+                                        (c) => c.id == classId,
+                                      );
+                                      return Chip(
+                                        label: Text(
+                                          classInfo.name.isNotEmpty
+                                              ? classInfo.name
+                                              : classInfo.id,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        onDeleted: () {
+                                          setState(() {
+                                            _selectedClassIds.remove(classId);
+                                          });
+                                        },
+                                        backgroundColor: Colors.blue.shade100,
+                                      );
+                                    }).toList(),
+                              ),
+                            ),
+                        ],
                       ),
                   SizedBox(height: 20),
 

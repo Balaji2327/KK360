@@ -14,11 +14,14 @@ class ActivityWallScreen extends StatefulWidget {
 class _ActivityWallScreenState extends State<ActivityWallScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   List<TestInfo> _tests = [];
+  List<TestInfo> _filteredTests = [];
   bool _loading = true;
   Map<String, TestSubmission?> _submissions = {};
   Map<String, String> _tutorNames = {};
   String _userName = "Student";
   String _userEmail = "";
+
+  final TextEditingController _searchController = TextEditingController();
 
   Future<void> _loadData() async {
     try {
@@ -67,6 +70,7 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
           _userName = name;
           _userEmail = profile?.email ?? user.email ?? "";
           _tests = items;
+          _filteredTests = List.from(_tests);
           _submissions = submissionMap;
           _tutorNames = tutorMap;
           _loading = false;
@@ -82,11 +86,32 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _searchController.addListener(_filterTests);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   String _formatDate(DateTime d) {
     final local = d.toLocal();
     return '${local.day.toString().padLeft(2, '0')}-${local.month.toString().padLeft(2, '0')}-${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _filterTests() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredTests =
+          _tests.where((test) {
+            final tutorName = _tutorNames[test.createdBy] ?? '';
+            return test.title.toLowerCase().contains(query) ||
+                test.course.toLowerCase().contains(query) ||
+                test.description.toLowerCase().contains(query) ||
+                tutorName.toLowerCase().contains(query);
+          }).toList();
+    });
   }
 
   @override
@@ -138,21 +163,26 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                     borderRadius: BorderRadius.circular(25),
                   ),
                   padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-                  child: Row(
-                    children: [
-                      Icon(
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search tests...',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
                         Icons.search,
-                        color: isDark ? Colors.white54 : Colors.grey,
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        size: 20,
                       ),
-                      SizedBox(width: 10),
-                      Text(
-                        "Search for anything",
-                        style: TextStyle(
-                          color: isDark ? Colors.white54 : Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
                   ),
                 ),
               ],
@@ -171,17 +201,27 @@ class _ActivityWallScreenState extends State<ActivityWallScreen> {
                             child: CircularProgressIndicator(),
                           ),
                         )
-                        : _tests.isEmpty
-                        ? const Center(
+                        : _filteredTests.isEmpty
+                        ? Center(
                           child: Padding(
-                            padding: EdgeInsets.only(top: 50),
-                            child: Text("No upcoming activities"),
+                            padding: const EdgeInsets.only(top: 50),
+                            child: Text(
+                              _searchController.text.isEmpty
+                                  ? "No upcoming activities"
+                                  : 'No tests found matching "${_searchController.text}"',
+                              style: TextStyle(
+                                color:
+                                    isDark
+                                        ? Colors.white70
+                                        : Colors.grey.shade600,
+                              ),
+                            ),
                           ),
                         )
                         : Column(
                           children: [
                             SizedBox(height: h * 0.02),
-                            ..._tests.map((test) {
+                            ..._filteredTests.map((test) {
                               final submission = _submissions[test.id];
                               final hasSubmitted = submission != null;
                               final now = DateTime.now();

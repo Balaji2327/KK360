@@ -488,7 +488,6 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                     child: featureTile(w, h, Icons.person, "Edit Profile"),
                   ),
                   featureTile(w, h, Icons.check_circle, "Attendance"),
-                  featureTile(w, h, Icons.bar_chart, "Results"),
                   GestureDetector(
                     onTap: () {
                       goPush(context, const TutorToDoListScreen());
@@ -502,7 +501,6 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                     child: featureTile(w, h, Icons.settings, "Settings"),
                   ),
                   featureTile(w, h, Icons.history, "My Teaching History"),
-                  featureTile(w, h, Icons.analytics, "Class Analytics"),
 
                   SizedBox(height: h * 0.12),
                 ],

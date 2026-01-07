@@ -26,7 +26,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
 
   final FirebaseAuthService _auth = FirebaseAuthService();
   List<ClassInfo> _myClasses = [];
-  String? _selectedClassId;
+  List<String> _selectedClassIds = [];
   bool _classesLoading = false;
 
   @override
@@ -50,7 +50,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
       if (!mounted) return;
       setState(() {
         _myClasses = items;
-        _selectedClassId = _myClasses.isNotEmpty ? _myClasses.first.id : null;
+        _selectedClassIds = _myClasses.isNotEmpty ? [_myClasses.first.id] : [];
         _classesLoading = false;
       });
     } catch (e) {
@@ -208,6 +208,58 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
     );
   }
 
+  void _showClassSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Select Classes'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children:
+                      _myClasses.map((classInfo) {
+                        final isSelected = _selectedClassIds.contains(
+                          classInfo.id,
+                        );
+                        return CheckboxListTile(
+                          title: Text(
+                            classInfo.name.isNotEmpty
+                                ? classInfo.name
+                                : classInfo.id,
+                          ),
+                          value: isSelected,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              if (value == true) {
+                                _selectedClassIds.add(classInfo.id);
+                              } else {
+                                _selectedClassIds.remove(classInfo.id);
+                              }
+                            });
+                            // Update parent state
+                            this.setState(() {});
+                          },
+                        );
+                      }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Done'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -253,10 +305,12 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                         );
                         return;
                       }
-                      if (_selectedClassId == null) {
+                      if (_selectedClassIds.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Please select a class to assign to'),
+                            content: Text(
+                              'Please select at least one class to assign to',
+                            ),
                           ),
                         );
                         return;
@@ -286,21 +340,26 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       }
 
                       try {
-                        await _auth.createAssignment(
-                          projectId: 'kk360-69504',
-                          title: title,
-                          classId: _selectedClassId!,
-                          course: _selectedCourse,
-                          description: _descriptionController.text.trim(),
-                          points: _pointsController.text.trim(),
-                          startDate: _startDate,
-                          endDate: _endDate,
-                          attachmentUrl: attachmentUrl,
-                        );
+                        // Create assignment for each selected class
+                        for (String classId in _selectedClassIds) {
+                          await _auth.createAssignment(
+                            projectId: 'kk360-69504',
+                            title: title,
+                            classId: classId,
+                            course: _selectedCourse,
+                            description: _descriptionController.text.trim(),
+                            points: _pointsController.text.trim(),
+                            startDate: _startDate,
+                            endDate: _endDate,
+                            attachmentUrl: attachmentUrl,
+                          );
+                        }
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Assignment assigned'),
+                            SnackBar(
+                              content: Text(
+                                'Assignment assigned to ${_selectedClassIds.length} class(es)',
+                              ),
                             ),
                           );
                           goBack(context);
@@ -368,67 +427,83 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                     ),
                     SizedBox(height: h * 0.02),
 
-                    // Class selector (so tutor can choose which class to assign to)
-                    Row(
+                    // Class selector (so tutor can choose which classes to assign to)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child:
-                              _classesLoading
-                                  ? const SizedBox(
-                                    height: 48,
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  )
-                                  : DropdownButtonFormField<String>(
-                                    value: _selectedClassId,
-                                    dropdownColor:
-                                        isDark
-                                            ? const Color(0xFF2C2C2C)
-                                            : Colors.white,
-                                    style: TextStyle(
-                                      color:
-                                          isDark ? Colors.white : Colors.black,
-                                    ),
-                                    items:
-                                        _myClasses
-                                            .map(
-                                              (c) => DropdownMenuItem(
-                                                value: c.id,
-                                                child: Text(
-                                                  c.name.isNotEmpty
-                                                      ? c.name
-                                                      : c.id,
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                    onChanged:
-                                        (v) => setState(
-                                          () => _selectedClassId = v,
-                                        ),
-                                    decoration: InputDecoration(
-                                      border: OutlineInputBorder(),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              isDark
-                                                  ? Colors.white24
-                                                  : Colors.grey,
-                                        ),
-                                      ),
-                                      labelText: 'Class',
-                                      labelStyle: TextStyle(
-                                        color:
-                                            isDark
-                                                ? Colors.white70
-                                                : Colors.grey,
-                                      ),
-                                    ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _showClassSelectionDialog,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      isDark
+                                          ? const Color(0xFF2C2C2C)
+                                          : Colors.white,
+                                  foregroundColor:
+                                      isDark ? Colors.white : Colors.black,
+                                  side: BorderSide(
+                                    color:
+                                        isDark ? Colors.white24 : Colors.grey,
                                   ),
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: h * 0.015,
+                                  ),
+                                ),
+                                child: Text(
+                                  _selectedClassIds.isEmpty
+                                      ? 'Select Classes'
+                                      : '${_selectedClassIds.length} class(es) selected',
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: w * 0.02),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _selectedClassIds =
+                                      _myClasses.map((c) => c.id).toList();
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: w * 0.03,
+                                  vertical: h * 0.015,
+                                ),
+                              ),
+                              child: const Text('All Classes'),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: w * 0.02),
-                        _chip("All students"),
+                        if (_selectedClassIds.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(top: h * 0.01),
+                            child: Wrap(
+                              spacing: 8,
+                              children:
+                                  _selectedClassIds.map((classId) {
+                                    final classInfo = _myClasses.firstWhere(
+                                      (c) => c.id == classId,
+                                    );
+                                    return Chip(
+                                      label: Text(
+                                        classInfo.name.isNotEmpty
+                                            ? classInfo.name
+                                            : classInfo.id,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      onDeleted: () {
+                                        setState(() {
+                                          _selectedClassIds.remove(classId);
+                                        });
+                                      },
+                                      backgroundColor: Colors.blue.shade100,
+                                    );
+                                  }).toList(),
+                            ),
+                          ),
                       ],
                     ),
                     SizedBox(height: h * 0.02),

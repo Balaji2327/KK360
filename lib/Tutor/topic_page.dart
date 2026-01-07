@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
 
 class TopicPage extends StatefulWidget {
-  const TopicPage({super.key});
+  final String? classId;
+  final String? className;
+
+  const TopicPage({super.key, this.classId, this.className});
 
   @override
   State<TopicPage> createState() => _TopicPageState();
@@ -93,18 +96,31 @@ class _TopicPageState extends State<TopicPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: h * 0.05),
-                  Text(
-                    "Topics",
-                    style: TextStyle(
-                      fontSize: h * 0.03,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Flexible(
+                    child: Text(
+                      widget.className != null
+                          ? "${widget.className} - Topics"
+                          : "Topics",
+                      style: TextStyle(
+                        fontSize: w * 0.045, // Made responsive
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   SizedBox(height: h * 0.006),
-                  Text(
-                    profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                  Flexible(
+                    child: Text(
+                      profileLoading ? 'Loading...' : '$userName | $userEmail',
+                      style: TextStyle(
+                        fontSize: w * 0.035, // Made responsive
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),

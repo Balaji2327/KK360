@@ -5,7 +5,10 @@ import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
 class AssignmentPage extends StatefulWidget {
-  const AssignmentPage({super.key});
+  final String? classId;
+  final String? className;
+
+  const AssignmentPage({super.key, this.classId, this.className});
 
   @override
   State<AssignmentPage> createState() => _AssignmentPageState();
@@ -43,9 +46,15 @@ class _AssignmentPageState extends State<AssignmentPage> {
   Future<void> _loadMyAssignments() async {
     setState(() => _assignmentsLoading = true);
     try {
-      final assignments = await _authService.getAssignmentsForTutor(
-        projectId: 'kk360-69504',
-      );
+      final assignments =
+          widget.classId != null
+              ? await _authService.getAssignmentsForClass(
+                projectId: 'kk360-69504',
+                classId: widget.classId!,
+              )
+              : await _authService.getAssignmentsForTutor(
+                projectId: 'kk360-69504',
+              );
       if (!mounted) return;
       setState(() {
         _myAssignments = assignments;
@@ -124,18 +133,31 @@ class _AssignmentPageState extends State<AssignmentPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: h * 0.05),
-                  Text(
-                    "Assignments",
-                    style: TextStyle(
-                      fontSize: h * 0.03,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Flexible(
+                    child: Text(
+                      widget.className != null
+                          ? "${widget.className} - Assignments"
+                          : "Assignments",
+                      style: TextStyle(
+                        fontSize: w * 0.045, // Made responsive
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   SizedBox(height: h * 0.006),
-                  Text(
-                    profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                  Flexible(
+                    child: Text(
+                      profileLoading ? 'Loading...' : '$userName | $userEmail',
+                      style: TextStyle(
+                        fontSize: w * 0.035, // Made responsive
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),

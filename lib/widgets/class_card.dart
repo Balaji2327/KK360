@@ -432,7 +432,7 @@ class ClassCard extends StatelessWidget {
 
     if (userRole == 'tutor') {
       // Navigate to Tutor works screen
-      goPush(context, const WorksScreen());
+      goPush(context, WorksScreen(classId: classId, className: classInfo.name));
     } else {
       // Navigate to Student course screen
       goPush(

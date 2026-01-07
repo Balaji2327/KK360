@@ -6,7 +6,10 @@ import 'unit_details_page.dart';
 import 'create_unit.dart';
 
 class TutorMaterialPage extends StatefulWidget {
-  const TutorMaterialPage({super.key});
+  final String? classId;
+  final String? className;
+
+  const TutorMaterialPage({super.key, this.classId, this.className});
 
   @override
   State<TutorMaterialPage> createState() => _TutorMaterialPageState();
@@ -45,9 +48,13 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
   Future<void> _loadUnits() async {
     setState(() => _unitsLoading = true);
     try {
-      final units = await _authService.getUnitsForTutor(
-        projectId: 'kk360-69504',
-      );
+      final units =
+          widget.classId != null
+              ? await _authService.getUnitsForClass(
+                projectId: 'kk360-69504',
+                classId: widget.classId!,
+              )
+              : await _authService.getUnitsForTutor(projectId: 'kk360-69504');
       if (mounted) {
         setState(() {
           _units = units;
@@ -125,18 +132,31 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: h * 0.05),
-                  Text(
-                    "Materials",
-                    style: TextStyle(
-                      fontSize: h * 0.03,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Flexible(
+                    child: Text(
+                      widget.className != null
+                          ? "${widget.className} - Materials"
+                          : "Materials",
+                      style: TextStyle(
+                        fontSize: w * 0.045, // Made responsive
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   SizedBox(height: h * 0.006),
-                  Text(
-                    profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                  Flexible(
+                    child: Text(
+                      profileLoading ? 'Loading...' : '$userName | $userEmail',
+                      style: TextStyle(
+                        fontSize: w * 0.035, // Made responsive
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),

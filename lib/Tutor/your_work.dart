@@ -8,7 +8,10 @@ import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
 class WorksScreen extends StatefulWidget {
-  const WorksScreen({super.key});
+  final String? classId;
+  final String? className;
+
+  const WorksScreen({super.key, this.classId, this.className});
 
   @override
   State<WorksScreen> createState() => _WorksScreenState();
@@ -47,117 +50,159 @@ class _WorksScreenState extends State<WorksScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
-      body: Column(
-        children: [
-          // header (same as meeting control)
-          Container(
-            width: w,
-            height: h * 0.16,
-            decoration: const BoxDecoration(
-              color: Color(0xFF4B3FA3),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // header (same as meeting control)
+            Container(
+              width: w,
+              height: h * 0.16,
+              decoration: const BoxDecoration(
+                color: Color(0xFF4B3FA3),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
               ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: h * 0.05),
-                  Text(
-                    "Your works",
-                    style: TextStyle(
-                      fontSize: h * 0.03,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: h * 0.05),
+                    Flexible(
+                      child: Text(
+                        widget.className != null
+                            ? "${widget.className} - Your works"
+                            : "Your works",
+                        style: TextStyle(
+                          fontSize: w * 0.045, // Made responsive
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: h * 0.006),
-                  Text(
-                    profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
-                  ),
-                ],
+                    SizedBox(height: h * 0.006),
+                    Flexible(
+                      child: Text(
+                        profileLoading
+                            ? 'Loading...'
+                            : '$userName | $userEmail',
+                        style: TextStyle(
+                          fontSize: w * 0.035, // Made responsive
+                          color: Colors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          SizedBox(height: h * 0.0005),
+            SizedBox(height: h * 0.0005),
 
-          // Create options
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: h * 0.02),
-                Text(
-                  "Create",
-                  style: TextStyle(
-                    fontSize: w * 0.049,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black,
+            // Create options - wrapped in SingleChildScrollView for safety
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: h * 0.02),
+                      Text(
+                        "Create",
+                        style: TextStyle(
+                          fontSize: w * 0.049,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      SizedBox(height: h * 0.02),
+                      GestureDetector(
+                        onTap:
+                            () => goPush(
+                              context,
+                              AssignmentPage(
+                                classId: widget.classId,
+                                className: widget.className,
+                              ),
+                            ),
+                        child: featureTile(
+                          w,
+                          h,
+                          Icons.assignment_outlined,
+                          "Assignment",
+                          isDark,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap:
+                            () => goPush(
+                              context,
+                              TopicPage(
+                                classId: widget.classId,
+                                className: widget.className,
+                              ),
+                            ),
+                        child: featureTile(
+                          w,
+                          h,
+                          Icons.topic_outlined,
+                          "Topic",
+                          isDark,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap:
+                            () => goPush(
+                              context,
+                              TestPage(
+                                classId: widget.classId,
+                                className: widget.className,
+                              ),
+                            ),
+                        child: featureTile(
+                          w,
+                          h,
+                          Icons.note_alt_outlined,
+                          "Test",
+                          isDark,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap:
+                            () => goPush(
+                              context,
+                              TutorMaterialPage(
+                                classId: widget.classId,
+                                className: widget.className,
+                              ),
+                            ),
+                        child: featureTile(
+                          w,
+                          h,
+                          Icons.insert_drive_file_outlined,
+                          "Material",
+                          isDark,
+                        ),
+                      ),
+                      SizedBox(height: h * 0.03),
+                    ],
                   ),
                 ),
-                SizedBox(height: h * 0.02),
-                GestureDetector(
-                  onTap: () => goPush(context, AssignmentPage()),
-                  child: featureTile(
-                    w,
-                    h,
-                    Icons.assignment_outlined,
-                    "Assignment",
-                    isDark,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => goPush(context, TopicPage()),
-                  child: featureTile(
-                    w,
-                    h,
-                    Icons.topic_outlined,
-                    "Topic",
-                    isDark,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => goPush(context, TestPage()),
-                  child: featureTile(
-                    w,
-                    h,
-                    Icons.note_alt_outlined,
-                    "Test",
-                    isDark,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => goPush(context, TutorMaterialPage()),
-                  child: featureTile(
-                    w,
-                    h,
-                    Icons.insert_drive_file_outlined,
-                    "Material",
-                    isDark,
-                  ),
-                ),
-                SizedBox(height: h * 0.03),
-              ],
+              ),
             ),
-          ),
-
-          // content
-          Expanded(child: _buildClassworkContent(h, w)),
-        ],
+          ],
+        ),
       ),
     );
-  }
-
-  Widget _buildClassworkContent(double h, double w) {
-    return const SizedBox.shrink();
   }
 
   // Feature Tile Widget

@@ -24,11 +24,14 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
 
   // Classes shown on the home screen
   List<ClassInfo> _classes = [];
+  List<ClassInfo> _filteredClasses = [];
   bool _classesLoading = true;
 
   // Pending invites for tutors
   List<InviteInfo> _pendingInvites = [];
   bool _invitesLoading = true;
+
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
     _loadUserProfile();
     _loadClasses();
     _loadPendingInvites();
+    _searchController.addListener(_filterClasses);
 
     // Also try to load classes after the widget is fully built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,6 +71,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
 
   @override
   void dispose() {
+    _searchController.dispose();
     try {
       routeObserver.unsubscribe(this);
     } catch (e) {
@@ -152,6 +157,7 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
 
       setState(() {
         _classes = classes;
+        _filteredClasses = List.from(_classes);
       });
     } catch (e, st) {
       debugPrint('[Home] Error loading classes: $e\n$st');
@@ -201,6 +207,17 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
         setState(() => _invitesLoading = false);
       }
     }
+  }
+
+  void _filterClasses() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredClasses =
+          _classes.where((classInfo) {
+            return classInfo.name.toLowerCase().contains(query) ||
+                classInfo.course.toLowerCase().contains(query);
+          }).toList();
+    });
   }
 
   Future<void> _handleInviteAction(InviteInfo invite, bool accept) async {
@@ -407,21 +424,28 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                       borderRadius: BorderRadius.circular(25),
                     ),
                     padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-                    child: Row(
-                      children: [
-                        Icon(
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Search classes...',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                        prefixIcon: Icon(
                           Icons.search,
-                          color: isDark ? Colors.white54 : Colors.grey,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          size: 20,
                         ),
-                        SizedBox(width: 10),
-                        Text(
-                          "Search for anything",
-                          style: TextStyle(
-                            color: isDark ? Colors.white54 : Colors.grey,
-                            fontSize: 14,
-                          ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15,
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -582,14 +606,30 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
                           ),
                         ),
                       )
-                    else if (_classes.isEmpty)
-                      SizedBox(height: h * 0.02)
+                    else if (_filteredClasses.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        child: Center(
+                          child: Text(
+                            _searchController.text.isEmpty
+                                ? 'No classes yet'
+                                : 'No classes found matching "${_searchController.text}"',
+                            style: TextStyle(
+                              color:
+                                  isDark
+                                      ? Colors.white70
+                                      : Colors.grey.shade600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      )
                     else
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                         child: Column(
                           children:
-                              _classes.map((classInfo) {
+                              _filteredClasses.map((classInfo) {
                                 return ClassCard(
                                   classInfo: classInfo,
                                   userRole: 'tutor',

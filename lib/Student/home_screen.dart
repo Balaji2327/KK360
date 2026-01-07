@@ -21,11 +21,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   // Classes the student is enrolled in
   List<ClassInfo> _classes = [];
+  List<ClassInfo> _filteredClasses = [];
   bool _classesLoading = true;
 
   // Pending invites
   List<InviteInfo> _pendingInvites = [];
   bool _invitesLoading = true;
+
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -34,6 +37,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     _loadUserProfile();
     _loadClasses();
     _loadPendingInvites();
+    _searchController.addListener(_filterClasses);
   }
 
   void _initTheme() {
@@ -75,6 +79,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       }
       setState(() {
         _classes = classes;
+        _filteredClasses = List.from(_classes);
         _classesLoading = false;
       });
     } catch (e) {
@@ -109,6 +114,23 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         setState(() => _invitesLoading = false);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterClasses() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredClasses =
+          _classes.where((classInfo) {
+            return classInfo.name.toLowerCase().contains(query) ||
+                classInfo.course.toLowerCase().contains(query);
+          }).toList();
+    });
   }
 
   Future<void> _clearStudentClassCache() async {
@@ -322,21 +344,26 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     borderRadius: BorderRadius.circular(25),
                   ),
                   padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-                  child: Row(
-                    children: [
-                      Icon(
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search classes...',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
                         Icons.search,
-                        color: isDark ? Colors.white54 : Colors.grey,
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        size: 20,
                       ),
-                      SizedBox(width: 10),
-                      Text(
-                        "Search for anything",
-                        style: TextStyle(
-                          color: isDark ? Colors.white54 : Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
                   ),
                 ),
               ],
@@ -500,7 +527,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           ),
                         ),
                       )
-                    else if (_classes.isEmpty)
+                    else if (_filteredClasses.isEmpty)
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                         child: Container(
@@ -532,7 +559,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                               ),
                               SizedBox(height: h * 0.02),
                               Text(
-                                'No classes yet',
+                                _searchController.text.isEmpty
+                                    ? 'No classes yet'
+                                    : 'No classes found matching "${_searchController.text}"',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -544,7 +573,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                               ),
                               SizedBox(height: h * 0.01),
                               Text(
-                                'You haven\'t been added to any classes.\nAsk your tutor to invite you!',
+                                _searchController.text.isEmpty
+                                    ? 'You haven\'t been added to any classes.\nAsk your tutor to invite you!'
+                                    : 'Try adjusting your search terms.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
@@ -563,7 +594,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                         padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                         child: Column(
                           children:
-                              _classes.map((classInfo) {
+                              _filteredClasses.map((classInfo) {
                                 return ClassCard(
                                   classInfo: classInfo,
                                   userRole: 'student',

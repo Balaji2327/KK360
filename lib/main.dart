@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'nav_observer.dart';
 import 'theme_manager.dart';
-import 'splash_screen.dart';
+import 'Authentication/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +59,7 @@ class KK360App extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
           ),
-          home: const SplashScreen(),
+          home: const AuthGate(),
         );
       },
     );

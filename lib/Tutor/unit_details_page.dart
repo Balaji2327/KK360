@@ -63,14 +63,39 @@ class _UnitDetailsPageState extends State<UnitDetailsPage> {
       // Removed standard AppBar
 
       // Kept Floating Action Button for Tutors
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await goPush(context, CreateMaterialScreen(unit: widget.unit));
-          _loadMaterials();
-        },
-        backgroundColor: const Color(0xFF4B3FA3),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: h * 0.02,
+          right: w * 0.04,
+        ), // Fixed padding
+        child: GestureDetector(
+          onTap: () async {
+            await goPush(context, CreateMaterialScreen(unit: widget.unit));
+            _loadMaterials();
+          },
+          child: Container(
+            height: h * 0.065,
+            width: h * 0.065,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDFF7E8), // Always light green
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.add,
+              size: 30,
+              color: Colors.black, // Always black
+            ),
+          ),
+        ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
 
       body: Column(
         children: [

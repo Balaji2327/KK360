@@ -270,6 +270,8 @@ class FirebaseAuthService {
 
   // Create a student account (Admin only)
   // Uses a secondary Firebase App to avoid signing out the current admin
+  // Create a student account (Admin only)
+  // Uses a secondary Firebase App to avoid signing out the current admin
   Future<void> createStudentAccount({
     required String email,
     required String password,
@@ -301,20 +303,7 @@ class FirebaseAuthService {
 
       debugPrint('[Auth] User created: ${user.uid} ($email)');
 
-      // Update display name
-      //  await user.updateDisplayName(name); // Optional, good practice
-
       // Create Firestore document
-      // Note: We use the *admin's* auth token (implicit via standard calling or explicit http)
-      // OR we just use REST API which we are using heavily here.
-      // But wait, the standard Firestore SDK would use the primary app's auth (Admin), which has write permission.
-      // The REST API calls in this file use `_auth.currentUser` which is the Admin.
-      // So we can use the existing `createUserProfile` or write a new one that doesn't rely on `_auth.currentUser` being the *new* user.
-
-      // We need to write to `users/{new_user_uid}`.
-      // Since we are Admin, we should have permission to write to any user doc (assuming rules allow).
-      // Let's use the REST API logic but targetting the NEW user's UID.
-
       final adminUser = _auth.currentUser;
       if (adminUser == null) throw 'Admin not authenticated.';
       final idToken = await adminUser.getIdToken();
@@ -363,7 +352,11 @@ class FirebaseAuthService {
     } finally {
       if (secondaryApp != null) {
         debugPrint('[Auth] Deleting secondary app...');
-        await secondaryApp.delete();
+        try {
+          await secondaryApp.delete();
+        } catch (e) {
+          debugPrint('[Auth] Error deleting secondary app: $e');
+        }
       }
     }
   }
@@ -436,7 +429,11 @@ class FirebaseAuthService {
       rethrow;
     } finally {
       if (secondaryApp != null) {
-        await secondaryApp.delete();
+        try {
+          await secondaryApp.delete();
+        } catch (e) {
+          debugPrint('[Auth] Error deleting secondary app: $e');
+        }
       }
     }
   }
@@ -509,7 +506,11 @@ class FirebaseAuthService {
       rethrow;
     } finally {
       if (secondaryApp != null) {
-        await secondaryApp.delete();
+        try {
+          await secondaryApp.delete();
+        } catch (e) {
+          debugPrint('[Auth] Error deleting secondary app: $e');
+        }
       }
     }
   }
@@ -2290,6 +2291,12 @@ class FirebaseAuthService {
         }
       }
       final createdAt = fields['createdAt']?['timestampValue'] as String?;
+      final nextMeetingLink =
+          fields['nextMeetingLink']?['stringValue'] as String?;
+      final meetingStartTimeStr =
+          fields['meetingStartTime']?['timestampValue'] as String?;
+      final meetingEndTimeStr =
+          fields['meetingEndTime']?['timestampValue'] as String?;
 
       // Extract just the document ID from the full Firestore path
       final documentId = name?.split('/').last ?? '';
@@ -2302,6 +2309,15 @@ class FirebaseAuthService {
           tutorId: tutorId,
           members: membersList,
           createdAt: createdAt != null ? DateTime.tryParse(createdAt) : null,
+          nextMeetingLink: nextMeetingLink,
+          meetingStartTime:
+              meetingStartTimeStr != null
+                  ? DateTime.tryParse(meetingStartTimeStr)
+                  : null,
+          meetingEndTime:
+              meetingEndTimeStr != null
+                  ? DateTime.tryParse(meetingEndTimeStr)
+                  : null,
         ),
       );
     }
@@ -3371,6 +3387,53 @@ class FirebaseAuthService {
     return out;
   }
 
+  // Update class meeting details
+  Future<void> updateClassMeeting({
+    required String projectId,
+    required String classId,
+    required String link,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'User not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'User not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/classes/$classId',
+      {
+        'updateMask.fieldPaths': [
+          'nextMeetingLink',
+          'meetingStartTime',
+          'meetingEndTime',
+        ],
+      },
+    );
+
+    final fields = {
+      'nextMeetingLink': {'stringValue': link},
+      'meetingStartTime': {
+        'timestampValue': startTime.toUtc().toIso8601String(),
+      },
+      'meetingEndTime': {'timestampValue': endTime.toUtc().toIso8601String()},
+    };
+
+    final resp = await http.patch(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'fields': fields}),
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to update meeting: ${resp.body}';
+    }
+  }
+
   // Delete a class document
   Future<void> deleteClass({
     required String projectId,
@@ -4244,6 +4307,9 @@ class ClassInfo {
   final String tutorId;
   final List<String> members;
   final DateTime? createdAt;
+  final String? nextMeetingLink;
+  final DateTime? meetingStartTime;
+  final DateTime? meetingEndTime;
 
   ClassInfo({
     required this.id,
@@ -4252,6 +4318,9 @@ class ClassInfo {
     required this.tutorId,
     required this.members,
     this.createdAt,
+    this.nextMeetingLink,
+    this.meetingStartTime,
+    this.meetingEndTime,
   });
 
   Map<String, dynamic> toJson() => {
@@ -4261,6 +4330,9 @@ class ClassInfo {
     'tutorId': tutorId,
     'members': members,
     'createdAt': createdAt?.toIso8601String(),
+    'nextMeetingLink': nextMeetingLink,
+    'meetingStartTime': meetingStartTime?.toIso8601String(),
+    'meetingEndTime': meetingEndTime?.toIso8601String(),
   };
 
   static ClassInfo fromJson(Map<String, dynamic> j) => ClassInfo(
@@ -4272,6 +4344,15 @@ class ClassInfo {
     createdAt:
         j['createdAt'] != null
             ? DateTime.tryParse(j['createdAt'] as String)
+            : null,
+    nextMeetingLink: j['nextMeetingLink'] as String?,
+    meetingStartTime:
+        j['meetingStartTime'] != null
+            ? DateTime.tryParse(j['meetingStartTime'] as String)
+            : null,
+    meetingEndTime:
+        j['meetingEndTime'] != null
+            ? DateTime.tryParse(j['meetingEndTime'] as String)
             : null,
   );
 }

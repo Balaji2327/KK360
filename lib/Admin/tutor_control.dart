@@ -352,6 +352,12 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     final TextEditingController tutorIdController = TextEditingController(
       text: tutor['id'],
     );
+    final TextEditingController emailController = TextEditingController(
+      text: tutor['email'],
+    );
+    final TextEditingController passwordController = TextEditingController(
+      text: tutor['password'],
+    );
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -367,38 +373,76 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
               color: isDark ? Colors.white : const Color(0xFF4B3FA3),
             ),
           ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: tutorIdController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Tutor ID',
-                    labelStyle: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.black54,
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: tutorIdController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                     ),
-                    border: const OutlineInputBorder(),
-                  ),
-                  validator:
-                      (value) => value!.isEmpty ? 'Enter Tutor ID' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: nameController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    labelStyle: TextStyle(
-                      color: isDark ? Colors.white70 : Colors.black54,
+                    decoration: InputDecoration(
+                      labelText: 'Tutor ID',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      border: const OutlineInputBorder(),
                     ),
-                    border: const OutlineInputBorder(),
+                    validator:
+                        (value) => value!.isEmpty ? 'Enter Tutor ID' : null,
                   ),
-                  validator: (value) => value!.isEmpty ? 'Enter Name' : null,
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: nameController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) => value!.isEmpty ? 'Enter Name' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: emailController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) => value!.isEmpty ? 'Enter Email' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: passwordController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    obscureText: false,
+                    validator:
+                        (value) => value!.isEmpty ? 'Enter Password' : null,
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -432,6 +476,8 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
                       updates: {
                         'name': nameController.text.trim(),
                         'tutorId': tutorIdController.text.trim(),
+                        'email': emailController.text.trim(),
+                        'password': passwordController.text,
                       },
                     );
 

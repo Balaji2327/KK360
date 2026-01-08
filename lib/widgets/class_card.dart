@@ -36,8 +36,8 @@ class ClassCard extends StatelessWidget {
                 : 'Untitled Class');
 
     final isOwner =
-        (userRole == 'tutor' || userRole == 'admin') &&
-        classInfo.tutorId == currentUserId;
+        (userRole == 'tutor' && classInfo.tutorId == currentUserId) ||
+        userRole == 'admin';
 
     return Padding(
       padding: EdgeInsets.only(bottom: h * 0.02),
@@ -121,6 +121,17 @@ class ClassCard extends StatelessWidget {
                                   'Delete Class',
                                   style: TextStyle(color: Colors.red),
                                 ),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(),
+                          const PopupMenuItem(
+                            value: 'post_link',
+                            child: Row(
+                              children: [
+                                Icon(Icons.link, size: 18),
+                                SizedBox(width: 8),
+                                Text('Post Meeting Code'),
                               ],
                             ),
                           ),
@@ -262,6 +273,9 @@ class ClassCard extends StatelessWidget {
         break;
       case 'exit':
         _showExitDialog(context);
+        break;
+      case 'post_link':
+        _showPostMeetingDialog(context);
         break;
     }
   }
@@ -414,6 +428,210 @@ class ClassCard extends StatelessWidget {
                 child: Text('Exit Class'),
               ),
             ],
+          ),
+    );
+  }
+
+  void _showPostMeetingDialog(BuildContext context) {
+    final codeController = TextEditingController(
+      text: classInfo.nextMeetingLink ?? '',
+    );
+
+    // Initial values
+    DateTime selectedDate = classInfo.meetingStartTime ?? DateTime.now();
+    TimeOfDay startTime =
+        classInfo.meetingStartTime != null
+            ? TimeOfDay.fromDateTime(classInfo.meetingStartTime!)
+            : TimeOfDay.now();
+    TimeOfDay endTime =
+        classInfo.meetingEndTime != null
+            ? TimeOfDay.fromDateTime(classInfo.meetingEndTime!)
+            : TimeOfDay.now().replacing(
+              hour: TimeOfDay.now().hour + 1,
+            ); // Default 1 hour duration
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: const Text('Post Meeting Code'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: codeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Meeting Code',
+                          border: OutlineInputBorder(),
+                          // Intentionally empty hint as requested
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Date Picker
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Date:'),
+                          TextButton(
+                            onPressed: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now().subtract(
+                                  const Duration(days: 1),
+                                ),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (date != null) {
+                                setState(() {
+                                  selectedDate = DateTime(
+                                    date.year,
+                                    date.month,
+                                    date.day,
+                                    selectedDate.hour,
+                                    selectedDate.minute,
+                                  );
+                                });
+                              }
+                            },
+                            child: Text(
+                              "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Start Time Picker
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Start Time:'),
+                          TextButton(
+                            onPressed: () async {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: startTime,
+                              );
+                              if (time != null) {
+                                setState(() {
+                                  startTime = time;
+                                });
+                              }
+                            },
+                            child: Text(startTime.format(context)),
+                          ),
+                        ],
+                      ),
+                      // End Time Picker
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('End Time:'),
+                          TextButton(
+                            onPressed: () async {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: endTime,
+                              );
+                              if (time != null) {
+                                setState(() {
+                                  endTime = time;
+                                });
+                              }
+                            },
+                            child: Text(endTime.format(context)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (codeController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter a valid code'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Combine Date + Time
+                      final startDateTime = DateTime(
+                        selectedDate.year,
+                        selectedDate.month,
+                        selectedDate.day,
+                        startTime.hour,
+                        startTime.minute,
+                      );
+                      final endDateTime = DateTime(
+                        selectedDate.year,
+                        selectedDate.month,
+                        selectedDate.day,
+                        endTime.hour,
+                        endTime.minute,
+                      );
+
+                      // Basic validation: End time should be after Start time
+                      if (endDateTime.isBefore(startDateTime)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('End time must be after start time'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      try {
+                        final authService = FirebaseAuthService();
+                        // Extract just the document ID from the class ID
+                        final classId =
+                            classInfo.id.contains('/')
+                                ? classInfo.id.split('/').last
+                                : classInfo.id;
+
+                        await authService.updateClassMeeting(
+                          projectId: 'kk360-69504',
+                          classId: classId,
+                          link: codeController.text.trim(),
+                          startTime: startDateTime,
+                          endTime: endDateTime,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(ctx);
+                          onClassUpdated?.call();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Meeting code posted successfully'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error posting meeting: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Post'),
+                  ),
+                ],
+              );
+            },
           ),
     );
   }

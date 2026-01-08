@@ -59,7 +59,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
       await prefs.setString('userRole', 'tutor');
 
       if (mounted) {
-        goPush(context, const TutorMainScreen());
+        goReplace(context, const TutorMainScreen());
       }
     } catch (e) {
       if (!mounted) return;
@@ -396,7 +396,7 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                             await prefs.setString('userRole', 'tutor');
 
                             if (mounted) {
-                              goPush(context, const TutorMainScreen());
+                              goReplace(context, const TutorMainScreen());
                             }
                           } catch (e) {
                             if (!mounted) return;

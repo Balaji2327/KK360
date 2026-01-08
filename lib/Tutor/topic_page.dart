@@ -47,7 +47,7 @@ class _TopicPageState extends State<TopicPage> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
+        padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
         child: GestureDetector(
           onTap:
               () => ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +57,7 @@ class _TopicPageState extends State<TopicPage> {
             height: h * 0.065,
             width: h * 0.065,
             decoration: BoxDecoration(
-              color: isDark ? Colors.green : const Color(0xFFDFF7E8),
+              color: const Color(0xFFDFF7E8),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -67,11 +67,7 @@ class _TopicPageState extends State<TopicPage> {
                 ),
               ],
             ),
-            child: Icon(
-              Icons.add,
-              size: 30,
-              color: isDark ? Colors.white : Colors.black,
-            ),
+            child: const Icon(Icons.add, size: 30, color: Colors.black),
           ),
         ),
       ),

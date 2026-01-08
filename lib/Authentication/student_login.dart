@@ -86,7 +86,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       await prefs.setString('userRole', 'student');
 
       if (mounted) {
-        goPush(context, const StudentMainScreen());
+        goReplace(context, const StudentMainScreen());
       }
     } catch (e) {
       _showErrorSnackbar(e.toString());
@@ -114,7 +114,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       await prefs.setString('userRole', 'student');
 
       if (mounted) {
-        goPush(context, const StudentMainScreen());
+        goReplace(context, const StudentMainScreen());
       }
     } catch (e) {
       _showErrorSnackbar(e.toString());

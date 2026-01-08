@@ -25,7 +25,8 @@ service cloud.firestore {
       allow read: if request.auth != null;
       // Allow user to write to their own document mostly for profile info, but prevent changing 'role'
       // unless they are Admin.
-      allow create: if request.auth != null && request.auth.uid == userId;
+      // FIX: Allow admins to create documents for other users
+      allow create: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow update: if request.auth != null && (
         isAdmin() || 
         (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))

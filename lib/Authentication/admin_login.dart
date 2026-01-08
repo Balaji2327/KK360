@@ -198,7 +198,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Welcome Admin!')),
                             );
-                            goPush(context, const AdminMainScreen());
+                            goReplace(context, const AdminMainScreen());
                           } catch (e) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -371,7 +371,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       if (mounted) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('userRole', 'admin');
-        goPush(context, const AdminMainScreen());
+        goReplace(context, const AdminMainScreen());
       }
     } catch (e) {
       if (!mounted) return;

@@ -3,7 +3,10 @@ import '../services/meeting_service.dart';
 import '../services/firebase_auth_service.dart';
 
 class JoinMeetScreen extends StatefulWidget {
-  const JoinMeetScreen({super.key});
+  final String? initialCode;
+  final bool autoJoin;
+
+  const JoinMeetScreen({super.key, this.initialCode, this.autoJoin = false});
 
   @override
   State<JoinMeetScreen> createState() => _JoinMeetScreenState();
@@ -12,8 +15,22 @@ class JoinMeetScreen extends StatefulWidget {
 class _JoinMeetScreenState extends State<JoinMeetScreen> {
   final MeetingService _meetingService = MeetingService();
   final FirebaseAuthService _authService = FirebaseAuthService();
-  final TextEditingController _codeController = TextEditingController();
+  late final TextEditingController _codeController;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _codeController = TextEditingController(text: widget.initialCode ?? '');
+    if (widget.autoJoin &&
+        widget.initialCode != null &&
+        widget.initialCode!.isNotEmpty) {
+      // Auto-join after the widget is built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _joinMeeting();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -39,14 +56,14 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
         forceRefresh: true, // Ensure we check the latest DB state
       );
 
-      if (profile?.role != 'student') {
+      if (profile?.role != 'student' &&
+          profile?.role != 'tutor' &&
+          profile?.role != 'admin') {
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'Access Denied: You are not authorized as a Student in the database.',
-              ),
+              content: Text('Access Denied: You are not authorized.'),
               backgroundColor: Colors.red,
             ),
           );

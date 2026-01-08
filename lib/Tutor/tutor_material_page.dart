@@ -82,7 +82,7 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
       backgroundColor: bgColor,
 
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: h * 0.09, right: w * 0.04),
+        padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
         child: GestureDetector(
           onTap: () async {
             // Navigate to Create Unit Screen and reload on return
@@ -93,7 +93,7 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
             height: h * 0.065,
             width: h * 0.065,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF00695C) : const Color(0xFFDFF7E8),
+              color: const Color(0xFFDFF7E8),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -103,11 +103,7 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
                 ),
               ],
             ),
-            child: Icon(
-              Icons.add,
-              size: 30,
-              color: isDark ? Colors.white : Colors.black,
-            ),
+            child: const Icon(Icons.add, size: 30, color: Colors.black),
           ),
         ),
       ),

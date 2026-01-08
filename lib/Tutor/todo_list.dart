@@ -297,11 +297,29 @@ class _TutorToDoListScreenState extends State<TutorToDoListScreen> {
         ],
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: const Color(0xFF4B3FA3),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
+        child: GestureDetector(
+          onTap: _showAddDialog,
+          child: Container(
+            height: h * 0.065,
+            width: h * 0.065,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDFF7E8),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.add, size: 30, color: Colors.black),
+          ),
+        ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import 'join_meet.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
@@ -47,8 +47,6 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
-      // ---------------- BOTTOM NAVIGATION BAR ----------------
-
       // ---------------- BODY (HEADER + SCROLLABLE CONTENT) ----------------
       body: Column(
         children: [
@@ -81,7 +79,7 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                   SizedBox(height: h * 0.006),
                   Text(
                     profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.012, color: Colors.white),
+                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
                   ),
                 ],
               ),
@@ -100,11 +98,8 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            builder: (_) => buildMeetingOptionsSheet(h, w),
-                          );
+                          // Directly open Google Meet web/app instead of showing options sheet
+                          _launchWebMeet('');
                         },
                         child: headerButton(
                           "New meeting",
@@ -187,49 +182,28 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
     );
   }
 
-  // ---------------- BOTTOM SHEET UI ----------------
-  Widget buildMeetingOptionsSheet(double h, double w) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: w * 0.06, vertical: h * 0.025),
-      decoration: const BoxDecoration(
-        color: Color(0xFF4A5153),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: w * 0.18,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.white54,
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          SizedBox(height: h * 0.03),
-          sheetItem(Icons.link, "Get a meeting link to share"),
-          sheetItem(Icons.video_call, "Start an instant meeting"),
-          sheetItem(Icons.calendar_month, "Schedule in Calendar"),
-          SizedBox(height: h * 0.02),
-        ],
-      ),
-    );
-  }
+  // ---------------- MEETING LOGIC ----------------
 
-  Widget sheetItem(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 22),
-          const SizedBox(width: 12),
-          Text(text, style: const TextStyle(color: Colors.white, fontSize: 15)),
-        ],
-      ),
-    );
+  Future<void> _launchWebMeet(String path) async {
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   const SnackBar(
+    //     content: Text("Opening Google Meet... Please tap 'New' inside."),
+    //   ),
+    // );
+
+    String fullUrl = 'https://meet.google.com/$path';
+    if (userEmail.isNotEmpty) {
+      fullUrl += '?authuser=$userEmail';
+    }
+
+    final Uri url = Uri.parse(fullUrl);
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Could not launch Google Meet: $e")),
+      );
+    }
   }
 
   // ---------------- BUTTON WIDGET ----------------

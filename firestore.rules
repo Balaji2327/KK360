@@ -16,10 +16,20 @@ service cloud.firestore {
       return request.auth != null && getUserRole() == 'tutor';
     }
     
+    function isStudent() {
+      return request.auth != null && getUserRole() == 'student';
+    }
+    
     // Users collection
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create, update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // Allow user to write to their own document mostly for profile info, but prevent changing 'role'
+      // unless they are Admin.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        isAdmin() || 
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+      );
       allow delete: if isAdmin();
     }
     
@@ -29,15 +39,23 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.tutorId == request.auth.uid;
       
       allow update: if request.auth != null && (
+        // Tutor owner can update anything
         resource.data.tutorId == request.auth.uid ||
+        // Members can only update the 'members' list (to join/leave specifically?)
+        // Currently your logic allows adding/removing SELF.
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
-         request.resource.data.members.hasAll(resource.data.members) &&
-         request.resource.data.members.hasAny([request.auth.uid]) &&
-         !resource.data.members.hasAny([request.auth.uid])) ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
-         resource.data.members.hasAll(request.resource.data.members) &&
-         resource.data.members.hasAny([request.auth.uid]) &&
-         !request.resource.data.members.hasAny([request.auth.uid]))
+         (
+           // Case 1: Adding self
+           (request.resource.data.members.hasAll(resource.data.members) &&
+            request.resource.data.members.hasAny([request.auth.uid]) &&
+            !resource.data.members.hasAny([request.auth.uid]))
+           ||
+           // Case 2: Removing self
+           (resource.data.members.hasAll(request.resource.data.members) &&
+            resource.data.members.hasAny([request.auth.uid]) &&
+            !request.resource.data.members.hasAny([request.auth.uid]))
+         )
+        )
       );
       
       allow delete: if request.auth != null && resource.data.tutorId == request.auth.uid;
@@ -50,10 +68,11 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
     }
 
-    // Assignment Submissions (NEW)
+    // Assignment Submissions
     match /assignment_submissions/{submissionId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
+      // Ensure student can only update their own submission
       allow update: if request.auth != null && resource.data.studentId == request.auth.uid;
     }
 
@@ -82,6 +101,20 @@ service cloud.firestore {
         resource.data.invitedByUserId == request.auth.uid || 
         isAdmin()
       );
+    }
+
+    // Units collection
+    match /units/{unitId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.tutorId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.tutorId == request.auth.uid;
+    }
+
+    // Materials collection
+    match /materials/{materialId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
     }
   }
 }

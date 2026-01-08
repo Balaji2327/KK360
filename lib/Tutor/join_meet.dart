@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/meeting_service.dart';
 
 import '../services/firebase_auth_service.dart';
 
@@ -10,28 +11,75 @@ class TutorJoinMeetingScreen extends StatefulWidget {
 }
 
 class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
+  final MeetingService _meetingService = MeetingService();
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
-  String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
-  bool profileLoading = FirebaseAuthService.cachedProfile == null;
+  final TextEditingController _codeController = TextEditingController();
+  bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadUserProfile() async {
-    final profile = await _authService.getUserProfile(projectId: 'kk360-69504');
-    final authUser = _authService.getCurrentUser();
-    final displayName = await _authService.getUserDisplayName(
-      projectId: 'kk360-69504',
-    );
-    setState(() {
-      userName = displayName;
-      userEmail = profile?.email ?? authUser?.email ?? '';
-      profileLoading = false;
-    });
+  Future<void> _joinMeeting() async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a meeting code or link')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final profile = await _authService.getUserProfile(
+        projectId: 'kk360-69504',
+        forceRefresh: true,
+      );
+
+      if (profile?.role != 'tutor') {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Access Denied: You are not authorized as a Tutor.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Verification failed: $e')));
+      }
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    String url = code;
+    if (!url.startsWith('http') && !url.contains('.')) {
+      // Assume it's a code
+      url = 'https://meet.google.com/$code';
+    }
+
+    try {
+      await _meetingService.launchMeetingUrl(url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not launch meeting: $e')));
+      }
+    }
   }
 
   @override
@@ -42,137 +90,153 @@ class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
-      // ---------------- BOTTOM NAVIGATION BAR ----------------
-
-      // ======================================================================
-      // BODY
-      // ======================================================================
-      body: Column(
-        children: [
-          // ---------------- HEADER (INTEGRATED) ----------------
-          Container(
-            width: w,
-            height: h * 0.16,
-            decoration: const BoxDecoration(
-              color: Color(0xFF4B3FA3),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-            child: Padding(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ================= TOP PURPLE HEADER =================
+            Container(
+              width: w,
+              height: h * 0.15,
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              decoration: const BoxDecoration(
+                color: Color(0xFF4B3FA3),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: h * 0.04),
+                  SizedBox(height: h * 0.085),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Meeting Control",
+                      // Title (Back button removed)
+                      const Text(
+                        "Join Meet",
                         style: TextStyle(
-                          fontSize: h * 0.03,
-                          fontWeight: FontWeight.bold,
                           color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
 
-                      // ======= JOIN BUTTON =======
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: w * 0.04,
-                          vertical: h * 0.007,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "Join",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: h * 0.017,
+                      // Join button
+                      GestureDetector(
+                        onTap: _isLoading ? null : _joinMeeting,
+                        child: Container(
+                          height: h * 0.04,
+                          width: w * 0.18,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Center(
+                            child:
+                                _isLoading
+                                    ? SizedBox(
+                                      height: h * 0.02,
+                                      width: h * 0.02,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Text(
+                                      "Join",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                           ),
                         ),
                       ),
                     ],
                   ),
-
-                  SizedBox(height: h * 0.006),
-
-                  Text(
-                    profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
-                  ),
                 ],
               ),
             ),
-          ),
 
-          SizedBox(height: h * 0.04),
+            SizedBox(height: h * 0.03),
 
-          // ---------------- Label text ----------------
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            child: Text(
-              "Enter a meeting nickname or the code provided by the meeting organizer",
-              style: TextStyle(
-                fontSize: h * 0.0165,
-                color: isDark ? Colors.white70 : Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-
-          SizedBox(height: h * 0.015),
-
-          // ---------------- Input Field ----------------
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-              height: h * 0.055,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
-                  color: isDark ? Colors.white24 : Colors.black54,
+            // Ask your tutor text
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              child: Text(
+                "Enter the meet code provided by the organizer, or paste a link.",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Example : mymeeting or abc-mnop-xyz",
-                  style: TextStyle(
-                    fontSize: h * 0.016,
+            ),
+
+            SizedBox(height: h * 0.02),
+
+            // Enter meet code
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              child: Container(
+                height: h * 0.055,
+                padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                decoration: BoxDecoration(
+                  border: Border.all(
                     color: isDark ? Colors.white54 : Colors.grey,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextField(
+                  controller: _codeController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    hintText: "Enter meet code",
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.grey,
+                    ),
+                    border: InputBorder.none,
                   ),
                 ),
               ),
             ),
-          ),
 
-          SizedBox(height: h * 0.015),
-        ],
-      ),
-    );
-  }
+            SizedBox(height: h * 0.03),
 
-  // ======================================================================
-  // CUSTOM BOTTOM NAV ITEM
-  // ======================================================================
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23, color: Colors.black),
-          Text(text, style: const TextStyle(fontSize: 11, color: Colors.black)),
-        ],
+            // To sign in text
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              child: Text(
+                "To sign in with a meet code",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+
+            SizedBox(height: h * 0.01),
+
+            // Bullet point
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+              child: Text(
+                "• Use a meet code with 6–8 letters or numbers, and\n  spaces or symbols",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+
+            SizedBox(height: h * 0.09),
+          ],
+        ),
       ),
     );
   }

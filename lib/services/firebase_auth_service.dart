@@ -11,7 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // Meeting scopes and headers helpers removed as API integration is disabled in favor of Web Meet.
 
   // Sign up with email and password
   Future<UserCredential> signUpWithEmail({

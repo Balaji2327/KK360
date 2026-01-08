@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/meeting_service.dart';
+import '../services/firebase_auth_service.dart';
 
 class JoinMeetScreen extends StatefulWidget {
   const JoinMeetScreen({super.key});
@@ -8,6 +10,78 @@ class JoinMeetScreen extends StatefulWidget {
 }
 
 class _JoinMeetScreenState extends State<JoinMeetScreen> {
+  final MeetingService _meetingService = MeetingService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  final TextEditingController _codeController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _joinMeeting() async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a meeting code or link')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    // Verify user exists in database
+    try {
+      final profile = await _authService.getUserProfile(
+        projectId: 'kk360-69504',
+        forceRefresh: true, // Ensure we check the latest DB state
+      );
+
+      if (profile?.role != 'student') {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Access Denied: You are not authorized as a Student in the database.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Verification failed: $e')));
+      }
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    String url = code;
+    if (!url.startsWith('http') && !url.contains('.')) {
+      // Assume it's a code
+      url = 'https://meet.google.com/$code';
+    }
+
+    try {
+      await _meetingService.launchMeetingUrl(url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not launch meeting: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -16,7 +90,6 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,6 +114,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Title
                       const Text(
                         "Join Meet",
                         style: TextStyle(
@@ -51,21 +125,34 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
                       ),
 
                       // Join button
-                      Container(
-                        height: h * 0.04,
-                        width: w * 0.18,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            "Join",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      GestureDetector(
+                        onTap: _isLoading ? null : _joinMeeting,
+                        child: Container(
+                          height: h * 0.04,
+                          width: w * 0.18,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Center(
+                            child:
+                                _isLoading
+                                    ? SizedBox(
+                                      height: h * 0.02,
+                                      width: h * 0.02,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Text(
+                                      "Join",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                           ),
                         ),
                       ),
@@ -81,7 +168,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: w * 0.06),
               child: Text(
-                "Ask your tutor for the meet code, then\nenter it here.",
+                "Enter the meet code provided by the organizer, or paste a link.",
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -105,6 +192,7 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextField(
+                  controller: _codeController,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: "Enter meet code",
@@ -150,8 +238,6 @@ class _JoinMeetScreenState extends State<JoinMeetScreen> {
           ],
         ),
       ),
-
-      // ⭐ NEW COMMON NAVIGATION BAR — this screen is index 1
     );
   }
 }

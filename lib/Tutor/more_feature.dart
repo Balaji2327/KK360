@@ -306,10 +306,13 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                                           TextButton(
                                             onPressed: () => goBack(ctx, false),
                                             style: TextButton.styleFrom(
-                                              backgroundColor: const Color(0xFF4B3FA3),
+                                              backgroundColor: const Color(
+                                                0xFF4B3FA3,
+                                              ),
                                               foregroundColor: Colors.white,
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
                                               ),
                                             ),
                                             child: const Text('Cancel'),

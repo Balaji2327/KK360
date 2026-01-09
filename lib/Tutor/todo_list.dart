@@ -130,7 +130,8 @@ class _TutorToDoListScreenState extends State<TutorToDoListScreen> {
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Colors.white, // Override to white since button is styled
+                  color:
+                      Colors.white, // Override to white since button is styled
                 ),
               ),
             ),

@@ -106,6 +106,13 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF4B3FA3),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 child: const Text('Cancel'),
               ),
               ElevatedButton(

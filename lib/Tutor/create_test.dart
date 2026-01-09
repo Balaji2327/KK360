@@ -535,6 +535,13 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color(0xFF4B3FA3),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                     child: const Text('OK'),
                   ),
                 ],

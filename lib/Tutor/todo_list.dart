@@ -120,10 +120,17 @@ class _TutorToDoListScreenState extends State<TutorToDoListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.black87,
+                  color: Colors.white, // Override to white since button is styled
                 ),
               ),
             ),

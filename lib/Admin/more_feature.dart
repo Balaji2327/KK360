@@ -385,7 +385,7 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                         height: h * 0.04,
                         width: w * 0.25,
                         decoration: BoxDecoration(
-                          color: Colors.green,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: Center(
@@ -402,7 +402,7 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                                   : const Text(
                                     "Log out",
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: const Color(0xFF4B3FA3),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),

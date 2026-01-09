@@ -310,7 +310,17 @@ class ClassCard extends StatelessWidget {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => goBack(ctx), child: Text('Cancel')),
+              TextButton(
+                onPressed: () => goBack(ctx),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF4B3FA3),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text('Cancel'),
+              ),
               ElevatedButton(
                 onPressed: () async {
                   try {
@@ -352,7 +362,17 @@ class ClassCard extends StatelessWidget {
               'Are you sure you want to delete "${classInfo.name}"? This cannot be undone.',
             ),
             actions: [
-              TextButton(onPressed: () => goBack(ctx), child: Text('Cancel')),
+              TextButton(
+                onPressed: () => goBack(ctx),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF4B3FA3),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text('Cancel'),
+              ),
               ElevatedButton(
                 onPressed: () async {
                   try {
@@ -396,7 +416,17 @@ class ClassCard extends StatelessWidget {
               'Are you sure you want to leave "${classInfo.name}"?',
             ),
             actions: [
-              TextButton(onPressed: () => goBack(ctx), child: Text('Cancel')),
+              TextButton(
+                onPressed: () => goBack(ctx),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF4B3FA3),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text('Cancel'),
+              ),
               ElevatedButton(
                 onPressed: () async {
                   try {
@@ -864,6 +894,13 @@ class ClassCard extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => goBack(context),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFF4B3FA3),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   child: const Text('Close'),
                 ),
               ],

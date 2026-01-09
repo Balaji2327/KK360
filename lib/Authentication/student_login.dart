@@ -256,6 +256,13 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
             actions: [
               TextButton(
                 onPressed: () => goBack(ctx),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF4B3FA3),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 child: const Text('Close'),
               ),
             ],

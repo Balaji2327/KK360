@@ -305,6 +305,13 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                                         actions: [
                                           TextButton(
                                             onPressed: () => goBack(ctx, false),
+                                            style: TextButton.styleFrom(
+                                              backgroundColor: const Color(0xFF4B3FA3),
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                            ),
                                             child: const Text('Cancel'),
                                           ),
                                           ElevatedButton(
@@ -359,7 +366,7 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                         height: h * 0.04,
                         width: w * 0.25,
                         decoration: BoxDecoration(
-                          color: Colors.green,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: Center(
@@ -376,7 +383,7 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                                   : const Text(
                                     "Log out",
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: const Color(0xFF4B3FA3),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -478,6 +485,13 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                               ),
                               TextButton(
                                 onPressed: () => Navigator.of(context).pop(),
+                                style: TextButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4B3FA3),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
                                 child: const Text('Cancel'),
                               ),
                             ],

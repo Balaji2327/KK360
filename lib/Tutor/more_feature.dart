@@ -288,112 +288,7 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                       ),
                     ),
 
-                    // Logout button
-                    GestureDetector(
-                      onTap:
-                          isLoggingOut
-                              ? null
-                              : () async {
-                                final doLogout = await showDialog<bool>(
-                                  context: context,
-                                  builder:
-                                      (ctx) => AlertDialog(
-                                        title: const Text('Log out'),
-                                        content: const Text(
-                                          'Are you sure you want to log out?',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => goBack(ctx, false),
-                                            style: TextButton.styleFrom(
-                                              backgroundColor: const Color(
-                                                0xFF4B3FA3,
-                                              ),
-                                              foregroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                              ),
-                                            ),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () => goBack(ctx, true),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                              foregroundColor: Colors.white,
-                                            ),
-                                            child: const Text('Log out'),
-                                          ),
-                                        ],
-                                      ),
-                                );
-
-                                if (doLogout != true) {
-                                  return;
-                                }
-
-                                setState(() {
-                                  isLoggingOut = true;
-                                });
-                                try {
-                                  final messenger = ScaffoldMessenger.of(
-                                    context,
-                                  );
-                                  await _authService.signOut();
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  messenger.showSnackBar(
-                                    const SnackBar(content: Text('Logged out')),
-                                  );
-                                  goReplace(context, const TutorLoginScreen());
-                                } catch (e) {
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Logout failed: $e'),
-                                    ),
-                                  );
-                                } finally {
-                                  if (mounted) {
-                                    setState(() {
-                                      isLoggingOut = false;
-                                    });
-                                  }
-                                }
-                              },
-                      child: Container(
-                        height: h * 0.04,
-                        width: w * 0.25,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Center(
-                          child:
-                              isLoggingOut
-                                  ? SizedBox(
-                                    width: h * 0.02,
-                                    height: h * 0.02,
-                                    child: const CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : const Text(
-                                    "Log out",
-                                    style: TextStyle(
-                                      color: const Color(0xFF4B3FA3),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                        ),
-                      ),
-                    ),
+                    // Logout button removed from header
                   ],
                 ),
               ],
@@ -518,6 +413,75 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                     child: featureTile(w, h, Icons.settings, "Settings"),
                   ),
                   featureTile(w, h, Icons.history, "My Teaching History"),
+                  GestureDetector(
+                    onTap:
+                        isLoggingOut
+                            ? null
+                            : () async {
+                              final doLogout = await showDialog<bool>(
+                                context: context,
+                                builder:
+                                    (ctx) => AlertDialog(
+                                      title: const Text('Log out'),
+                                      content: const Text(
+                                        'Are you sure you want to log out?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => goBack(ctx, false),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.grey,
+                                          ),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () => goBack(ctx, true),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF4B3FA3,
+                                            ),
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: const Text('Log out'),
+                                        ),
+                                      ],
+                                    ),
+                              );
+
+                              if (doLogout != true) {
+                                return;
+                              }
+
+                              setState(() {
+                                isLoggingOut = true;
+                              });
+                              try {
+                                final messenger = ScaffoldMessenger.of(context);
+                                await _authService.signOut();
+                                if (!mounted) {
+                                  return;
+                                }
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('Logged out')),
+                                );
+                                goReplace(context, const TutorLoginScreen());
+                              } catch (e) {
+                                if (!mounted) {
+                                  return;
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Logout failed: $e')),
+                                );
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    isLoggingOut = false;
+                                  });
+                                }
+                              }
+                            },
+                    child: featureTile(w, h, Icons.logout, "Log out"),
+                  ),
 
                   SizedBox(height: h * 0.12),
                 ],

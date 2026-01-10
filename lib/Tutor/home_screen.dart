@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'create_class.dart';
-
-// import 'invite_tutor.dart';
 
 import '../widgets/class_card.dart';
 import '../widgets/meeting_alert_card.dart';
-import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 import '../nav_observer.dart';
 import '../theme_manager.dart';
@@ -277,14 +273,20 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
           padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
           child: GestureDetector(
             onTap: () async {
-              // Open Create Class Page
-              final result = await goPush(context, const CreateClassScreen());
+              // Show Create Class Dialog
+              final result = await showDialog<Map<String, dynamic>>(
+                context: context,
+                builder: (BuildContext context) {
+                  return CreateClassDialog();
+                },
+              );
 
-              // Handle new class result (CreateClassScreen returns a map with id/name/course)
-              if (result is Map) {
-                final id = result['id'] as String?;
-                final name = (result['name'] as String?) ?? '';
-                final course = (result['course'] as String?) ?? '';
+              // Handle new class result (CreateClassDialog returns a map with id/name/course)
+              if (result is Map<String, dynamic>) {
+                final resultMap = result;
+                final id = resultMap['id'] as String?;
+                final name = (resultMap['name'] as String?) ?? '';
+                final course = (resultMap['course'] as String?) ?? '';
 
                 // Only proceed if we have a valid database ID
                 if (id != null && id.isNotEmpty && !id.startsWith('local-')) {
@@ -735,5 +737,151 @@ class _TutorStreamScreenState extends State<TutorStreamScreen> with RouteAware {
         ),
       );
     }
+  }
+}
+
+class CreateClassDialog extends StatefulWidget {
+  const CreateClassDialog({super.key});
+
+  @override
+  State<CreateClassDialog> createState() => _CreateClassDialogState();
+}
+
+class _CreateClassDialogState extends State<CreateClassDialog> {
+  final _nameController = TextEditingController();
+  final _courseController = TextEditingController();
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _courseController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createClass() async {
+    final name = _nameController.text.trim();
+    final course = _courseController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a class name')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      debugPrint('[CreateClass] Creating class: $name');
+      final docId = await _authService.createClass(
+        projectId: 'kk360-69504',
+        name: name,
+        course: course.isEmpty ? null : course,
+      );
+
+      if (!mounted) return;
+
+      // Verify we got a valid document ID
+      if (docId.isEmpty) {
+        throw 'No document ID returned from server';
+      }
+
+      debugPrint('[CreateClass] Class created successfully with ID: $docId');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Class created successfully (ID: $docId)')),
+      );
+
+      // Return created class info so caller can update UI immediately
+      Navigator.of(context).pop({'id': docId, 'name': name, 'course': course});
+    } catch (e) {
+      debugPrint('[CreateClass] Failed to create class: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create class: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Don't return any result on failure so home screen knows creation failed
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final h = size.height;
+    final w = size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AlertDialog(
+      title: const Text('Create Class'),
+      content: SizedBox(
+        width: w * 0.8,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                labelText: 'Class name',
+                labelStyle: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.grey,
+                ),
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.grey,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: h * 0.02),
+            TextField(
+              controller: _courseController,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                labelText: 'Course (optional)',
+                labelStyle: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.grey,
+                ),
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.grey,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4B3FA3),
+            foregroundColor: Colors.white,
+          ),
+          onPressed: _loading ? null : _createClass,
+          child:
+              _loading
+                  ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                  : const Text('Create'),
+        ),
+      ],
+    );
   }
 }

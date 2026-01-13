@@ -412,7 +412,54 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.settings, "Settings"),
                   ),
-                  featureTile(w, h, Icons.history, "My Teaching History"),
+                  // featureTile(w, h, Icons.history, "My Teaching History"),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text('Help & Support'),
+                              content: const Text(
+                                'For support, please contact the administrator.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.help_outline,
+                      "Help & Support",
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text('About App'),
+                              content: const Text(
+                                'KK360 Learning Platform\nVersion 1.0.0',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                    child: featureTile(w, h, Icons.info_outline, "About App"),
+                  ),
                   GestureDetector(
                     onTap:
                         isLoggingOut

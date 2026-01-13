@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
@@ -99,7 +100,24 @@ class FirebaseAuthService {
       throw 'Unable to verify your account. Check Firestore rules or permissions.';
     } else {
       await _auth.signOut();
-      throw 'Failed to verify role (error ${resp.statusCode}).';
+      throw 'Server error (${resp.statusCode}). Please try again later.';
+    }
+  }
+
+  // Helper handling network errors for API calls
+  Future<http.Response> _safeApiCall(
+    Future<http.Response> Function() call,
+  ) async {
+    try {
+      return await call();
+    } on SocketException {
+      throw 'Unstable network connection. Please check your internet.';
+    } on TimeoutException {
+      throw 'Unstable network connection. Please check your internet.';
+    } catch (e) {
+      // Re-throw if it matches our custom message, otherwise let it propagate or wrap it
+      if (e.toString().contains('Unstable network connection')) rethrow;
+      throw e; // Use the original error if not network related
     }
   }
 
@@ -330,16 +348,18 @@ class FirebaseAuthService {
 
       debugPrint('[Auth] Creating student profile in Firestore: ${user.uid}');
 
-      final resp = await http
-          .patch(
-            url,
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({'fields': fields}),
-          )
-          .timeout(const Duration(seconds: 10));
+      final resp = await _safeApiCall(
+        () => http
+            .patch(
+              url,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({'fields': fields}),
+            )
+            .timeout(const Duration(seconds: 10)),
+      );
 
       if (resp.statusCode != 200) {
         throw 'Failed to create student profile (status ${resp.statusCode}): ${resp.body}';
@@ -410,16 +430,18 @@ class FirebaseAuthService {
         'createdBy': {'stringValue': adminUser.uid},
       };
 
-      final resp = await http
-          .patch(
-            url,
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({'fields': fields}),
-          )
-          .timeout(const Duration(seconds: 10));
+      final resp = await _safeApiCall(
+        () => http
+            .patch(
+              url,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({'fields': fields}),
+            )
+            .timeout(const Duration(seconds: 10)),
+      );
 
       if (resp.statusCode != 200) {
         throw 'Failed to create tutor profile: ${resp.body}';
@@ -487,16 +509,18 @@ class FirebaseAuthService {
         'createdBy': {'stringValue': adminUser.uid},
       };
 
-      final resp = await http
-          .patch(
-            url,
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({'fields': fields}),
-          )
-          .timeout(const Duration(seconds: 10));
+      final resp = await _safeApiCall(
+        () => http
+            .patch(
+              url,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({'fields': fields}),
+            )
+            .timeout(const Duration(seconds: 10)),
+      );
 
       if (resp.statusCode != 200) {
         throw 'Failed to create admin profile: ${resp.body}';
@@ -700,16 +724,18 @@ class FirebaseAuthService {
     };
 
     try {
-      final resp = await http
-          .post(
-            url,
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode(q),
-          )
-          .timeout(const Duration(seconds: 10));
+      final resp = await _safeApiCall(
+        () => http
+            .post(
+              url,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(q),
+            )
+            .timeout(const Duration(seconds: 10)),
+      );
 
       if (resp.statusCode != 200) {
         throw 'Failed to fetch students: ${resp.body}';
@@ -2112,6 +2138,118 @@ class FirebaseAuthService {
       // Return null on error so we don't block the UI, but ideally logs should catch this
       return null;
     }
+  }
+
+  // Get all test submissions for the current student
+  Future<List<TestSubmission>> getAllStudentTestSubmissions({
+    required String projectId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'test_submissions'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'studentId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': user.uid},
+          },
+        },
+      },
+    };
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(q),
+    );
+
+    if (resp.statusCode != 200) {
+      debugPrint('[Auth] Failed to fetch student submissions: ${resp.body}');
+      return [];
+    }
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final submissions = <TestSubmission>[];
+
+    for (final item in body) {
+      final doc = item['document'];
+      if (doc == null) continue;
+      final fields = doc['fields'];
+      if (fields == null) continue;
+
+      submissions.add(
+        TestSubmission(
+          id: (doc['name'] as String).split('/').last,
+          testId: fields['testId']?['stringValue'] ?? '',
+          studentId: fields['studentId']?['stringValue'] ?? '',
+          studentName: fields['studentName']?['stringValue'] ?? 'Unknown',
+          score: int.tryParse(fields['score']?['integerValue'] ?? '0') ?? 0,
+          totalQuestions:
+              int.tryParse(fields['totalQuestions']?['integerValue'] ?? '0') ??
+              0,
+          submittedAt:
+              DateTime.tryParse(
+                fields['submittedAt']?['timestampValue'] ?? '',
+              ) ??
+              DateTime.now(),
+        ),
+      );
+    }
+
+    // Sort by submittedAt descending
+    submissions.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+
+    return submissions;
+  }
+
+  // Get test details by ID
+  Future<TestInfo?> getTestById({
+    required String projectId,
+    required String testId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    final idToken = await user.getIdToken();
+    if (idToken == null) return null;
+
+    final simpleId = testId.contains('/') ? testId.split('/').last : testId;
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/tests/$simpleId',
+    );
+
+    final resp = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (resp.statusCode != 200) return null;
+
+    final body = jsonDecode(resp.body) as Map<String, dynamic>;
+    final oneItemList = [
+      {'document': body},
+    ];
+    final parsed = _parseTestsFromRunQuery(oneItemList);
+    return parsed.isNotEmpty ? parsed.first : null;
   }
 
   Future<List<TestInfo>> getTestsForTutor({required String projectId}) async {

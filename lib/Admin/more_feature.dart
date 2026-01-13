@@ -410,8 +410,8 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.person, "Edit Profile"),
                   ),
-                  featureTile(w, h, Icons.dashboard, "System Dashboard"),
-                  featureTile(w, h, Icons.analytics, "Analytics"),
+                  // featureTile(w, h, Icons.dashboard, "System Dashboard"),
+                  // featureTile(w, h, Icons.analytics, "Analytics"),
                   GestureDetector(
                     onTap: () {
                       goPush(context, const AdminToDoListScreen());
@@ -424,8 +424,55 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.settings, "Settings"),
                   ),
-                  featureTile(w, h, Icons.security, "Security Logs"),
-                  featureTile(w, h, Icons.backup, "System Backup"),
+                  // featureTile(w, h, Icons.security, "Security Logs"),
+                  // featureTile(w, h, Icons.backup, "System Backup"),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text('Help & Support'),
+                              content: const Text(
+                                'For support, please contact system maintenance.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.help_outline,
+                      "Help & Support",
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text('About App'),
+                              content: const Text(
+                                'KK360 Learning Platform\nVersion 1.0.0',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                    child: featureTile(w, h, Icons.info_outline, "About App"),
+                  ),
                   GestureDetector(
                     onTap:
                         isLoggingOut

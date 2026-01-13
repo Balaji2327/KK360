@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'todo_list.dart';
+import 'my_test_history.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/student_login.dart';
 
@@ -346,7 +347,8 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                     child: featureTile(w, h, Icons.person, "Edit Profile"),
                   ),
                   featureTile(w, h, Icons.check_circle, "Attendance"),
-                  featureTile(w, h, Icons.bar_chart, "Results"),
+
+                  // Result tile removed
                   GestureDetector(
                     onTap: () {
                       goPush(context, const ToDoListScreen());
@@ -359,7 +361,59 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.settings, "Settings"),
                   ),
-                  featureTile(w, h, Icons.history, "My Test History"),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const MyTestHistoryScreen());
+                    },
+                    child: featureTile(w, h, Icons.history, "My Test History"),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text('Help & Support'),
+                              content: const Text(
+                                'For support, please contact your tutor or administrator.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.help_outline,
+                      "Help & Support",
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text('About App'),
+                              content: const Text(
+                                'KK360 Learning Platform\nVersion 1.0.0',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                    child: featureTile(w, h, Icons.info_outline, "About App"),
+                  ),
                   GestureDetector(
                     onTap:
                         isLoggingOut

@@ -67,25 +67,11 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       );
       _showSuccessSnackbar('Login successful!');
 
-      // Check for pending invites after successful login
-      await _checkPendingInvites();
-
       // Save role locally
       if (mounted) {
-        // Assuming you can get SharedPreferences instance here, or add the import
-        // I'll add the import in a separate multi_replace or use full qualification if needed,
-        // but replace_file_content is better with context.
-        // Let's assume I need to add the import first.
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userRole', 'student');
 
-        // Actually, let's just use the logic here, I will add the import next.
-      }
-
-      // ... wait, I need to add import 'package:shared_preferences/shared_preferences.dart';
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userRole', 'student');
-
-      if (mounted) {
         goReplace(context, const StudentMainScreen());
       }
     } catch (e) {
@@ -104,12 +90,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       await authService.signInStudentWithGoogle(projectId: 'kk360-69504');
       _showSuccessSnackbar('Google Sign-In successful!');
 
-      // Check for pending invites after successful login
-      final user = authService.getCurrentUser();
-      if (user?.email != null) {
-        await _checkPendingInvites();
-      }
-
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userRole', 'student');
 
@@ -123,151 +103,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
         setState(() => isLoading = false);
       }
     }
-  }
-
-  Future<void> _checkPendingInvites() async {
-    try {
-      final user = authService.getCurrentUser();
-      final email = user?.email ?? emailController.text.trim();
-
-      final invites = await authService.getPendingInvites(
-        projectId: 'kk360-69504',
-        userEmail: email,
-      );
-
-      if (invites.isNotEmpty && mounted) {
-        _showInviteDialog(invites);
-      }
-    } catch (e) {
-      debugPrint('Error checking pending invites: $e');
-      // Don't show error to user, just log it
-    }
-  }
-
-  void _showInviteDialog(List<InviteInfo> invites) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('Class Invitations (${invites.length})'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: invites.length,
-                itemBuilder: (context, index) {
-                  final invite = invites[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            invite.className,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Invited by: ${invite.invitedByUserName}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                onPressed: () async {
-                                  try {
-                                    await authService.declineInvite(
-                                      projectId: 'kk360-69504',
-                                      inviteId: invite.id,
-                                    );
-                                    if (mounted) {
-                                      goBack(ctx);
-                                      _showSuccessSnackbar(
-                                        'Invitation declined',
-                                      );
-                                      // Refresh the dialog with remaining invites
-                                      final remainingInvites =
-                                          invites
-                                              .where((i) => i.id != invite.id)
-                                              .toList();
-                                      if (remainingInvites.isNotEmpty) {
-                                        _showInviteDialog(remainingInvites);
-                                      }
-                                    }
-                                  } catch (e) {
-                                    _showErrorSnackbar(
-                                      'Failed to decline invitation: $e',
-                                    );
-                                  }
-                                },
-                                child: const Text('Decline'),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  try {
-                                    await authService.acceptInvite(
-                                      projectId: 'kk360-69504',
-                                      inviteId: invite.id,
-                                      classId: invite.classId,
-                                    );
-                                    if (mounted) {
-                                      goBack(ctx);
-                                      _showSuccessSnackbar(
-                                        'Joined ${invite.className}!',
-                                      );
-                                      // Refresh the dialog with remaining invites
-                                      final remainingInvites =
-                                          invites
-                                              .where((i) => i.id != invite.id)
-                                              .toList();
-                                      if (remainingInvites.isNotEmpty) {
-                                        _showInviteDialog(remainingInvites);
-                                      }
-                                    }
-                                  } catch (e) {
-                                    _showErrorSnackbar(
-                                      'Failed to accept invitation: $e',
-                                    );
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                ),
-                                child: const Text('Accept'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => goBack(ctx),
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF4B3FA3),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-    );
   }
 
   @override

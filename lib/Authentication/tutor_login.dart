@@ -22,22 +22,6 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   bool isLoading = false;
 
-  Future<void> _checkPendingInvites(String email) async {
-    try {
-      final invites = await _authService.getPendingInvites(
-        projectId: 'kk360-69504',
-        userEmail: email,
-      );
-
-      if (invites.isNotEmpty && mounted) {
-        _showInviteDialog(invites);
-      }
-    } catch (e) {
-      debugPrint('Error checking pending invites: $e');
-      // Don't show error to user, just log it
-    }
-  }
-
   Future<void> _handleGoogleLogin() async {
     setState(() => isLoading = true);
 
@@ -48,12 +32,6 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Google Sign-In successful!')),
       );
-
-      // Check for pending invites after successful login
-      final user = _authService.getCurrentUser();
-      if (user?.email != null) {
-        await _checkPendingInvites(user!.email!);
-      }
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userRole', 'tutor');
@@ -69,154 +47,6 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
-  }
-
-  void _showInviteDialog(List<InviteInfo> invites) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('Class Invitations (${invites.length})'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: invites.length,
-                itemBuilder: (context, index) {
-                  final invite = invites[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            invite.className,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Invited by: ${invite.invitedByUserName}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            'Role: ${invite.role}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                onPressed: () async {
-                                  try {
-                                    await _authService.declineInvite(
-                                      projectId: 'kk360-69504',
-                                      inviteId: invite.id,
-                                    );
-                                    if (mounted) {
-                                      goBack(ctx);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Invitation declined'),
-                                        ),
-                                      );
-                                      // Refresh the dialog with remaining invites
-                                      final remainingInvites =
-                                          invites
-                                              .where((i) => i.id != invite.id)
-                                              .toList();
-                                      if (remainingInvites.isNotEmpty) {
-                                        _showInviteDialog(remainingInvites);
-                                      }
-                                    }
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Failed to decline invitation: $e',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: const Text('Decline'),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  try {
-                                    await _authService.acceptInvite(
-                                      projectId: 'kk360-69504',
-                                      inviteId: invite.id,
-                                      classId: invite.classId,
-                                    );
-                                    if (mounted) {
-                                      goBack(ctx);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Joined ${invite.className}!',
-                                          ),
-                                        ),
-                                      );
-                                      // Refresh the dialog with remaining invites
-                                      final remainingInvites =
-                                          invites
-                                              .where((i) => i.id != invite.id)
-                                              .toList();
-                                      if (remainingInvites.isNotEmpty) {
-                                        _showInviteDialog(remainingInvites);
-                                      }
-                                    }
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Failed to accept invitation: $e',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                ),
-                                child: const Text('Accept'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => goBack(ctx),
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF4B3FA3),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-    );
   }
 
   @override
@@ -395,9 +225,6 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Welcome Tutor!')),
                             );
-
-                            // Check for pending invites after successful login
-                            await _checkPendingInvites(email);
 
                             final prefs = await SharedPreferences.getInstance();
                             await prefs.setString('userRole', 'tutor');

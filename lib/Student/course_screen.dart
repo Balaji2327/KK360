@@ -237,21 +237,21 @@ class _CoursesScreenState extends State<CoursesScreen> {
                               "Assignments",
                             ),
                           ),
-                          GestureDetector(
-                            onTap:
-                                () =>
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Topics coming soon'),
-                                      ),
-                                    ),
-                            child: featureTile(
-                              w,
-                              h,
-                              Icons.topic_outlined,
-                              "Topics",
-                            ),
-                          ),
+                          // GestureDetector(
+                          //   onTap:
+                          //       () =>
+                          //           ScaffoldMessenger.of(context).showSnackBar(
+                          //             const SnackBar(
+                          //               content: Text('Topics coming soon'),
+                          //             ),
+                          //           ),
+                          //   child: featureTile(
+                          //     w,
+                          //     h,
+                          //     Icons.topic_outlined,
+                          //     "Topics",
+                          //   ),
+                          // ),
                           GestureDetector(
                             onTap:
                                 () => goPush(

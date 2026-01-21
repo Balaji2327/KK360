@@ -6,6 +6,8 @@ import 'nav_observer.dart';
 import 'theme_manager.dart';
 import 'Authentication/auth_gate.dart';
 
+import 'widgets/responsive_wrapper.dart'; // Add import
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -59,6 +61,10 @@ class KK360App extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
           ),
+          // Use builder to wrap all screens in ResponsiveWrapper
+          builder: (context, child) {
+            return ResponsiveWrapper(child: child!);
+          },
           home: const AuthGate(),
         );
       },

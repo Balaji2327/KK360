@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../services/firebase_auth_service.dart';
 
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import '../widgets/assignment_card.dart';
 
@@ -120,10 +119,13 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
     }
 
     // 1. Pick file
-    final result = await FilePicker.platform.pickFiles();
+    final result = await FilePicker.platform.pickFiles(withData: true);
     if (result == null || result.files.isEmpty) return;
 
-    final file = File(result.files.first.path!);
+    final fileBytes = result.files.first.bytes;
+    final fileName = result.files.first.name;
+
+    if (fileBytes == null) return;
 
     if (!mounted) return;
     setState(() => _submissionLoading = true);
@@ -133,7 +135,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Uploading submission...")));
-      final url = await _authService.uploadFile(file);
+      final url = await _authService.uploadFile(fileBytes, fileName);
 
       // 3. Submit
       await _authService.submitAssignment(

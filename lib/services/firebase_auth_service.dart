@@ -6,8 +6,8 @@ import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
@@ -110,8 +110,6 @@ class FirebaseAuthService {
   ) async {
     try {
       return await call();
-    } on SocketException {
-      throw 'Unstable network connection. Please check your internet.';
     } on TimeoutException {
       throw 'Unstable network connection. Please check your internet.';
     } catch (e) {
@@ -597,19 +595,30 @@ class FirebaseAuthService {
     try {
       debugPrint('[Auth] Deleting student account: $email ($uid)');
 
-      // 1. Delete Firestore Document (First, so even if Auth deletion fails, they can't login conceptually)
-      await _deleteFirestoreUser(projectId: projectId, uid: uid);
-
-      // 2. Delete Authenticated User (Requires password)
+      // 1. Delete Authenticated User (Requires password)
+      // We do this FIRST so if it fails (wrong password), we don't orphan the Firestore data.
       if (password.isNotEmpty && password != 'N/A') {
         debugPrint('[Auth] Signing in as student to delete Auth account...');
         final appName = 'deletionApp_${DateTime.now().millisecondsSinceEpoch}';
+
+        // On Web, we must be careful not to sign out the main user.
+        // Persistence.NONE helps keep it isolated in memory.
         secondaryApp = await Firebase.initializeApp(
           name: appName,
           options: DefaultFirebaseOptions.currentPlatform,
         );
 
         final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+
+        // Try to set persistence to NONE to avoid affecting main auth state (Web primarily)
+        // Note: setPersistence is not always available on all platforms/versions in the same way,
+        // but for web it's critical. If it fails, we catch it.
+        try {
+          await secondaryAuth.setPersistence(Persistence.NONE);
+        } catch (e) {
+          debugPrint('[Auth] Could not set persistence (minor): $e');
+        }
+
         final userCredential = await secondaryAuth.signInWithEmailAndPassword(
           email: email,
           password: password,
@@ -622,13 +631,16 @@ class FirebaseAuthService {
         }
       } else {
         debugPrint(
-          '[Auth] Password not available. Skipping Auth account deletion. User blocked via Firestore removal.',
+          '[Auth] Password not available or empty. Skipping Auth deletion. Only Firestore data will be removed.',
         );
+        // Note: This leaves a "Ghost" Auth user if one actually exists.
+        // But since we can't sign in, we can't delete them.
       }
+
+      // 2. Delete Firestore Document
+      await _deleteFirestoreUser(projectId: projectId, uid: uid);
     } catch (e) {
       debugPrint('[Auth] Error deleting student account: $e');
-      // If we failed to delete Auth but deleted Firestore, that's partial success for the app logic.
-      // But we rethrow so UI knows there was an issue.
       rethrow;
     } finally {
       if (secondaryApp != null) {
@@ -1224,15 +1236,14 @@ class FirebaseAuthService {
 
   // ---------------- Assignments API ----------------
   // Upload a file to Firebase Storage
-  Future<String> uploadFile(File file) async {
+  Future<String> uploadFile(Uint8List data, String fileName) async {
     try {
       final ref = FirebaseStorage.instance
           .ref()
           .child('assignments')
-          .child(
-            '${DateTime.now().millisecondsSinceEpoch}_${file.path.split(Platform.pathSeparator).last}',
-          );
-      final uploadTask = await ref.putFile(file);
+          .child('${DateTime.now().millisecondsSinceEpoch}_$fileName');
+      // Use putData for cross-platform support (Web & Mobile with bytes)
+      final uploadTask = await ref.putData(data);
       final url = await uploadTask.ref.getDownloadURL();
       return url;
     } catch (e) {

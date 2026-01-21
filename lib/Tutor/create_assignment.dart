@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../services/firebase_auth_service.dart';
 import '../widgets/nav_helper.dart';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 
 class CreateAssignmentScreen extends StatefulWidget {
@@ -187,7 +186,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
+    final result = await FilePicker.platform.pickFiles(withData: true);
     if (result != null) {
       setState(() {
         _pickedFile = result.files.first;
@@ -453,14 +452,15 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
 
                       String? attachmentUrl;
                       try {
-                        if (_pickedFile != null && _pickedFile!.path != null) {
+                        if (_pickedFile != null && _pickedFile!.bytes != null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text("Uploading attachment..."),
                             ),
                           );
                           attachmentUrl = await _auth.uploadFile(
-                            File(_pickedFile!.path!),
+                            _pickedFile!.bytes!,
+                            _pickedFile!.name,
                           );
                         }
                       } catch (e) {

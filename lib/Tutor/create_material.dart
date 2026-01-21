@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 
 class CreateMaterialScreen extends StatefulWidget {
@@ -124,7 +123,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
+    final result = await FilePicker.platform.pickFiles(withData: true);
     if (result != null) {
       if (mounted) {
         setState(() {
@@ -208,8 +207,11 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
 
     String? attachmentUrl;
     try {
-      if (_pickedFile != null && _pickedFile!.path != null) {
-        attachmentUrl = await _auth.uploadFile(File(_pickedFile!.path!));
+      if (_pickedFile != null && _pickedFile!.bytes != null) {
+        attachmentUrl = await _auth.uploadFile(
+          _pickedFile!.bytes!,
+          _pickedFile!.name,
+        );
       }
 
       for (final classId in _selectedClassIds) {

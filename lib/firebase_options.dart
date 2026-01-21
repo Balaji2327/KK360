@@ -2,29 +2,41 @@
 // Firebase configuration for KK360 project
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
-    if (Platform.isAndroid) {
-      return android;
+    if (kIsWeb) {
+      return web;
     }
-    if (Platform.isIOS) {
-      return ios;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.macOS:
+        return macos;
+      case TargetPlatform.windows:
+        return windows;
+      case TargetPlatform.linux:
+        return linux;
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
     }
-    if (Platform.isWindows) {
-      return windows;
-    }
-    if (Platform.isLinux) {
-      return linux;
-    }
-    if (Platform.isMacOS) {
-      return macos;
-    }
-    throw UnsupportedError(
-      'DefaultFirebaseOptions are not supported for this platform.',
-    );
   }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyD8rwUKxy6lQ_1vCX4R3BFNrGdi-QTnPcg',
+    appId:
+        '1:599863270326:web:INSERT_YOUR_WEB_APP_ID_HERE', // TODO: Update with your Web App ID
+    messagingSenderId: '599863270326',
+    projectId: 'kk360-69504',
+    authDomain: 'kk360-69504.firebaseapp.com',
+    storageBucket: 'kk360-69504.firebasestorage.app',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyD8rwUKxy6lQ_1vCX4R3BFNrGdi-QTnPcg',

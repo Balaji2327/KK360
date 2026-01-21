@@ -2496,7 +2496,7 @@ class FirebaseAuthService {
       '/v1/projects/$projectId/databases/(default)/documents:runQuery',
     );
 
-    final q = {
+    final qOwner = {
       'structuredQuery': {
         'from': [
           {'collectionId': 'classes'},
@@ -2508,33 +2508,81 @@ class FirebaseAuthService {
             'value': {'stringValue': user.uid},
           },
         },
-        // Remove the orderBy to avoid needing a composite index
-        // We can sort the results in the app instead
       },
     };
 
-    debugPrint('[Auth] getClassesForTutor: Query: ${jsonEncode(q)}');
+    final qMember = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'classes'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'members'},
+            'op': 'ARRAY_CONTAINS',
+            'value': {'stringValue': user.uid},
+          },
+        },
+      },
+    };
 
-    final resp = await http
-        .post(
+    List<ClassInfo> parsed = [];
+
+    try {
+      // Run both queries in parallel
+      final results = await Future.wait([
+        http.post(
           url,
           headers: {
             'Authorization': 'Bearer $idToken',
             'Content-Type': 'application/json',
           },
-          body: jsonEncode(q),
-        )
-        .timeout(const Duration(seconds: 10));
+          body: jsonEncode(qOwner),
+        ),
+        http.post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(qMember),
+        ),
+      ]);
 
-    debugPrint(
-      '[Auth] getClassesForTutor: Response status: ${resp.statusCode}',
-    );
-    debugPrint('[Auth] getClassesForTutor: Response body: ${resp.body}');
+      final respOwner = results[0];
+      final respMember = results[1];
 
-    if (resp.statusCode != 200)
-      throw 'Failed to fetch classes (status ${resp.statusCode}): ${resp.body}';
-    final body = jsonDecode(resp.body) as List<dynamic>;
-    final parsed = _parseClassesFromRunQuery(body);
+      if (respOwner.statusCode != 200) {
+        debugPrint('[Auth] Error fetching owned classes: ${respOwner.body}');
+      }
+      if (respMember.statusCode != 200) {
+        debugPrint('[Auth] Error fetching member classes: ${respMember.body}');
+      }
+
+      List<ClassInfo> allParsed = [];
+
+      if (respOwner.statusCode == 200) {
+        final body = jsonDecode(respOwner.body) as List<dynamic>;
+        allParsed.addAll(_parseClassesFromRunQuery(body));
+      }
+
+      if (respMember.statusCode == 200) {
+        final body = jsonDecode(respMember.body) as List<dynamic>;
+        // Add only unique classes (avoid duplicates if user is both owner and member, though logically owner should be implicit member)
+        final existingIds = allParsed.map((c) => c.id).toSet();
+        final memberClasses = _parseClassesFromRunQuery(body);
+        for (final c in memberClasses) {
+          if (!existingIds.contains(c.id)) {
+            allParsed.add(c);
+          }
+        }
+      }
+
+      parsed = allParsed;
+    } catch (e) {
+      debugPrint('[Auth] getClassesForTutor: Error fetching classes: $e');
+      return [];
+    }
 
     // Sort by createdAt in descending order (newest first) on the client side
     parsed.sort((a, b) {
@@ -2967,6 +3015,16 @@ class FirebaseAuthService {
       );
     }
 
+    // Check if all users are already in the class
+    final newMembers =
+        memberUids.where((uid) => !existing.contains(uid)).toList();
+    if (newMembers.isEmpty) {
+      debugPrint(
+        '[Auth] addMembersToClass: All users already in class. Skipping update.',
+      );
+      return;
+    }
+
     final finalSet = {...existing, ...memberUids};
     debugPrint('[Auth] addMembersToClass: Final members set: $finalSet');
 
@@ -3210,6 +3268,68 @@ class FirebaseAuthService {
       }
     } catch (e) {
       debugPrint('[Auth] ❌ Exception during invite creation: $e');
+      rethrow;
+    }
+  }
+
+  // Fetch all classes (for Admin)
+  Future<List<ClassInfo>> getAllClasses({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      debugPrint('[Auth] getAllClasses: No current user');
+      return [];
+    }
+
+    final idToken = await user.getIdToken();
+    if (idToken == null) {
+      debugPrint('[Auth] getAllClasses: No ID token available');
+      return [];
+    }
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'classes'},
+        ],
+        // No filter, fetch all
+      },
+    };
+
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(q),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to fetch classes (status ${resp.statusCode}): ${resp.body}';
+      }
+
+      final body = jsonDecode(resp.body) as List<dynamic>;
+      final parsed = _parseClassesFromRunQuery(body);
+
+      // Sort by createdAt desc
+      parsed.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+
+      return parsed;
+    } catch (e) {
+      debugPrint('[Auth] Error fetching all classes: $e');
       rethrow;
     }
   }

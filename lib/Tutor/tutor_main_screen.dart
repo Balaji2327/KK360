@@ -21,7 +21,8 @@ class _TutorMainScreenState extends State<TutorMainScreen> {
   // 0: Home, 1: Join Meet, 2: Classwork, 3: More
   final List<Widget> _pages = [
     const TutorStreamScreen(),
-    const TutorMeetingControlScreen(),
+    // Updated meeting control screen
+    TutorMeetingControlScreen(),
     const WorksScreen(),
     const TutorMoreFeaturesScreen(),
   ];

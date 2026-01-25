@@ -1295,8 +1295,12 @@ class FirebaseAuthService {
       fields['startDate'] = {
         'timestampValue': startDate.toUtc().toIso8601String(),
       };
-    if (endDate != null)
-      fields['endDate'] = {'timestampValue': endDate.toUtc().toIso8601String()};
+    if (endDate != null) {
+      final isoDate = endDate.toUtc().toIso8601String();
+      fields['endDate'] = {'timestampValue': isoDate};
+      // Save as dueDate as well for website compatibility
+      fields['dueDate'] = {'timestampValue': isoDate};
+    }
     if (attachmentUrl != null && attachmentUrl.isNotEmpty)
       fields['attachmentUrl'] = {'stringValue': attachmentUrl};
     if (assignedTo != null && assignedTo.isNotEmpty) {
@@ -1331,12 +1335,19 @@ class FirebaseAuthService {
     debugPrint('[Auth] createAssignment: Successfully created assignment');
   }
 
-  // Submit an assignment
-  Future<void> submitAssignment({
+  // Update an existing assignment
+  Future<void> updateAssignmentDetails({
     required String projectId,
     required String assignmentId,
-    required String studentName,
+    String? title,
+    String? description,
+    String? points,
+    DateTime? startDate,
+    DateTime? endDate,
     String? attachmentUrl,
+    List<String>? assignedTo,
+    String? classId, // Only if updating class association is allowed
+    String? course,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
@@ -1345,8 +1356,94 @@ class FirebaseAuthService {
 
     final url = Uri.https(
       'firestore.googleapis.com',
-      '/v1/projects/$projectId/databases/(default)/documents/assignment_submissions',
+      '/v1/projects/$projectId/databases/(default)/documents/assignments/$assignmentId',
     );
+
+    final fields = <String, dynamic>{};
+    if (title != null) fields['title'] = {'stringValue': title};
+    if (description != null)
+      fields['description'] = {'stringValue': description};
+    if (points != null) fields['points'] = {'stringValue': points};
+    if (startDate != null)
+      fields['startDate'] = {
+        'timestampValue': startDate.toUtc().toIso8601String(),
+      };
+    if (endDate != null) {
+      final isoDate = endDate.toUtc().toIso8601String();
+      fields['endDate'] = {'timestampValue': isoDate};
+      fields['dueDate'] = {'timestampValue': isoDate};
+    }
+    if (attachmentUrl != null)
+      fields['attachmentUrl'] = {'stringValue': attachmentUrl};
+    if (course != null) fields['course'] = {'stringValue': course};
+    // Note: updating assignedTo logic might need merge or replace.
+    // Here we replace if provided.
+    if (assignedTo != null) {
+      fields['assignedTo'] = {
+        'arrayValue': {
+          'values': assignedTo.map((id) => {'stringValue': id}).toList(),
+        },
+      };
+    }
+
+    final fieldKeys = fields.keys.toList();
+
+    // Construct URL with updateMask query params.
+    var queryString = '';
+    for (var key in fieldKeys) {
+      if (queryString.isEmpty)
+        queryString = '?';
+      else
+        queryString += '&';
+      queryString += 'updateMask.fieldPaths=$key';
+    }
+
+    final patchUrl = Uri.parse(url.toString() + queryString);
+
+    final body = jsonEncode({'fields': fields});
+
+    final resp = await http.patch(
+      patchUrl,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to update assignment: ${resp.body}';
+    }
+  }
+
+  // Submit or Update an assignment
+  Future<void> submitAssignment({
+    required String projectId,
+    required String assignmentId,
+    required String studentName,
+    String? attachmentUrl,
+    String? submissionLink,
+    String? privateComment,
+    String? submissionId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final idToken = await user.getIdToken();
+    if (idToken == null) throw 'Not authenticated';
+
+    // If ID provided, update existing. Else create new.
+    final isUpdate = submissionId != null && submissionId.isNotEmpty;
+
+    final url =
+        isUpdate
+            ? Uri.https(
+              'firestore.googleapis.com',
+              '/v1/projects/$projectId/databases/(default)/documents/assignment_submissions/$submissionId',
+            )
+            : Uri.https(
+              'firestore.googleapis.com',
+              '/v1/projects/$projectId/databases/(default)/documents/assignment_submissions',
+            );
 
     final fields = <String, dynamic>{
       'assignmentId': {'stringValue': assignmentId},
@@ -1360,21 +1457,41 @@ class FirebaseAuthService {
     if (attachmentUrl != null && attachmentUrl.isNotEmpty) {
       fields['attachmentUrl'] = {'stringValue': attachmentUrl};
     }
+    if (submissionLink != null && submissionLink.isNotEmpty) {
+      fields['submissionLink'] = {'stringValue': submissionLink};
+    }
+    if (privateComment != null && privateComment.isNotEmpty) {
+      fields['privateComment'] = {'stringValue': privateComment};
+    }
+
+    // For PATCH (update), the structure is slightly different for the body helper,
+    // but the main difference is the method and URL.
+    // However, the REST API for patch expects the `fields` key just like create.
+    // Important: For PATCH, we should probably specify updateMask if we only want to update specific fields,
+    // but here we are replacing the submission content mostly.
 
     try {
-      final resp = await http
-          .post(
-            url,
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({'fields': fields}),
-          )
-          .timeout(const Duration(seconds: 10));
+      final resp =
+          isUpdate
+              ? await http.patch(
+                url,
+                headers: {
+                  'Authorization': 'Bearer $idToken',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({'fields': fields}),
+              )
+              : await http.post(
+                url,
+                headers: {
+                  'Authorization': 'Bearer $idToken',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({'fields': fields}),
+              );
 
       if (resp.statusCode != 200) {
-        throw 'Failed to submit assignment (status ${resp.statusCode}): ${resp.body}';
+        throw 'Failed to ${isUpdate ? 'update' : 'submit'} assignment (status ${resp.statusCode}): ${resp.body}';
       }
     } catch (e) {
       debugPrint('[Auth] submitAssignment error: $e');
@@ -1459,6 +1576,8 @@ class FirebaseAuthService {
         studentId: fields['studentId']?['stringValue'] ?? '',
         studentName: fields['studentName']?['stringValue'] ?? '',
         attachmentUrl: fields['attachmentUrl']?['stringValue'],
+        submissionLink: fields['submissionLink']?['stringValue'],
+        privateComment: fields['privateComment']?['stringValue'],
         submittedAt:
             DateTime.tryParse(fields['submittedAt']?['timestampValue'] ?? '') ??
             DateTime.now(),
@@ -1466,6 +1585,86 @@ class FirebaseAuthService {
     } catch (e) {
       debugPrint('[Auth] getMyAssignmentSubmission error: $e');
       return null;
+    }
+  }
+
+  // Get all submissions for a specific assignment (Tutor view)
+  Future<List<AssignmentSubmission>> getAssignmentSubmissions({
+    required String projectId,
+    required String assignmentId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'assignment_submissions'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'assignmentId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': assignmentId},
+          },
+        },
+      },
+    };
+
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(q),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) return [];
+
+      final body = jsonDecode(resp.body) as List<dynamic>;
+      final submissions = <AssignmentSubmission>[];
+
+      for (final item in body) {
+        final doc = item['document'];
+        if (doc == null) continue;
+        final fields = doc['fields'] as Map<String, dynamic>?;
+        if (fields == null) continue;
+
+        final name = doc['name'] as String?;
+        final id = name?.split('/').last ?? '';
+
+        submissions.add(
+          AssignmentSubmission(
+            id: id,
+            assignmentId: fields['assignmentId']?['stringValue'] ?? '',
+            studentId: fields['studentId']?['stringValue'] ?? '',
+            studentName: fields['studentName']?['stringValue'] ?? '',
+            attachmentUrl: fields['attachmentUrl']?['stringValue'],
+            submissionLink: fields['submissionLink']?['stringValue'],
+            privateComment: fields['privateComment']?['stringValue'],
+            submittedAt:
+                DateTime.tryParse(
+                  fields['submittedAt']?['timestampValue'] ?? '',
+                ) ??
+                DateTime.now(),
+          ),
+        );
+      }
+      return submissions;
+    } catch (e) {
+      debugPrint('[Auth] getAssignmentSubmissions error: $e');
+      return [];
     }
   }
 
@@ -1497,12 +1696,26 @@ class FirebaseAuthService {
 
       // Keep backward compatibility if needed, map dueDate to endDate if endDate missing?
       // For now, let's parse what's there.
-      final dueDateStr = fields['dueDate']?['timestampValue'] as String?;
-      final endDateStr = fields['endDate']?['timestampValue'] as String?;
-      final startDateStr = fields['startDate']?['timestampValue'] as String?;
+      // Check endDate (timestamp or string)
+      var endDateStr = fields['endDate']?['timestampValue'] as String?;
+      if (endDateStr == null) {
+        endDateStr = fields['endDate']?['stringValue'] as String?;
+      }
 
-      // Use endDate if available, else fallback to dueDate (legacy)
+      // Check dueDate (timestamp or string) - Legacy/Web compatibility
+      var dueDateStr = fields['dueDate']?['timestampValue'] as String?;
+      if (dueDateStr == null) {
+        dueDateStr = fields['dueDate']?['stringValue'] as String?;
+      }
+
+      // Use endDate if available, else fallback to dueDate
       final effectiveEndDateStr = endDateStr ?? dueDateStr;
+
+      // Check startDate (timestamp or string)
+      var startDateStr = fields['startDate']?['timestampValue'] as String?;
+      if (startDateStr == null) {
+        startDateStr = fields['startDate']?['stringValue'] as String?;
+      }
 
       final createdAt = fields['createdAt']?['timestampValue'] as String?;
       out.add(
@@ -4433,6 +4646,197 @@ class FirebaseAuthService {
     }
   }
 
+  // ---------------- Meetings API ----------------
+
+  Future<void> createMeeting({
+    required String projectId,
+    required String title,
+    required String description,
+    required DateTime dateTime,
+    required String meetLink,
+    required String? classId,
+    required String? className,
+    int? durationMinutes,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final token = await user.getIdToken();
+    if (token == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/meetings',
+    );
+
+    final fields = <String, dynamic>{
+      'title': {'stringValue': title},
+      'description': {'stringValue': description},
+      'dateTime': {'timestampValue': dateTime.toUtc().toIso8601String()},
+      'meetLink': {'stringValue': meetLink},
+      'createdBy': {'stringValue': user.uid},
+      'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+    };
+    if (classId != null && classId.isNotEmpty) {
+      fields['classId'] = {'stringValue': classId};
+    }
+    if (className != null && className.isNotEmpty) {
+      fields['className'] = {'stringValue': className};
+    }
+    if (durationMinutes != null) {
+      fields['durationMinutes'] = {'integerValue': durationMinutes.toString()};
+    }
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'fields': fields}),
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to create meeting: ${resp.body}';
+    }
+  }
+
+  Future<List<MeetingInfo>> getMeetings({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final token = await user.getIdToken();
+    if (token == null) return [];
+
+    // Simple get (list)
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/meetings',
+    );
+
+    final resp = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (resp.statusCode != 200) throw 'Failed to fetch meetings';
+
+    final body = jsonDecode(resp.body);
+    final documents = body['documents'] as List<dynamic>?;
+    if (documents == null) return [];
+
+    return documents.map((doc) {
+      final name = doc['name'] as String;
+      final fields = doc['fields'] as Map<String, dynamic>;
+      return MeetingInfo(
+        id: name.split('/').last,
+        title: fields['title']?['stringValue'] ?? '',
+        description: fields['description']?['stringValue'] ?? '',
+        dateTime:
+            DateTime.tryParse(fields['dateTime']?['timestampValue'] ?? '') ??
+            DateTime.now(),
+        meetLink: fields['meetLink']?['stringValue'] ?? '',
+        createdBy: fields['createdBy']?['stringValue'] ?? '',
+        createdAt:
+            DateTime.tryParse(fields['createdAt']?['timestampValue'] ?? '') ??
+            DateTime.now(),
+        classId: fields['classId']?['stringValue'],
+        className: fields['className']?['stringValue'],
+        durationMinutes:
+            fields['durationMinutes']?['integerValue'] != null
+                ? int.tryParse(
+                  fields['durationMinutes']!['integerValue'] as String,
+                )
+                : null,
+      );
+    }).toList();
+  }
+
+  Future<void> deleteMeeting({
+    required String projectId,
+    required String meetingId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final token = await user.getIdToken();
+    if (token == null) throw 'Not authenticated';
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents/meetings/$meetingId',
+    );
+
+    final resp = await http.delete(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to delete meeting: ${resp.body}';
+    }
+  }
+
+  Future<void> updateMeeting({
+    required String projectId,
+    required String meetingId,
+    required String title,
+    required String description,
+    required DateTime dateTime,
+    required String meetLink,
+    required String? classId,
+    required String? className,
+    int? durationMinutes,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw 'Not authenticated';
+    final token = await user.getIdToken();
+    if (token == null) throw 'Not authenticated';
+
+    // Construct query parameters manually for repeated keys
+    final queryParams = [
+      'updateMask.fieldPaths=title',
+      'updateMask.fieldPaths=description',
+      'updateMask.fieldPaths=dateTime',
+      'updateMask.fieldPaths=meetLink',
+      'updateMask.fieldPaths=classId',
+      'updateMask.fieldPaths=className',
+      'updateMask.fieldPaths=durationMinutes',
+    ].join('&');
+
+    final urlStr =
+        'https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents/meetings/$meetingId?$queryParams';
+    final url = Uri.parse(urlStr);
+
+    final fields = <String, dynamic>{
+      'title': {'stringValue': title},
+      'description': {'stringValue': description},
+      'dateTime': {'timestampValue': dateTime.toUtc().toIso8601String()},
+      'meetLink': {'stringValue': meetLink},
+      'classId': {'stringValue': classId ?? ''},
+      'className': {'stringValue': className ?? ''},
+    };
+    if (durationMinutes != null) {
+      fields['durationMinutes'] = {'integerValue': durationMinutes.toString()};
+    }
+
+    try {
+      final resp = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'fields': fields}),
+      );
+
+      if (resp.statusCode != 200) {
+        debugPrint('Failed to update meeting: ${resp.body}');
+        throw 'Failed to update meeting: ${resp.body}';
+      }
+    } catch (e) {
+      debugPrint('Exception in updateMeeting: $e');
+      rethrow;
+    }
+  }
+
   // Get Materials for Unit
   Future<List<MaterialInfo>> getMaterialsForUnit({
     required String projectId,
@@ -4739,16 +5143,79 @@ class AssignmentSubmission {
   final String studentId;
   final String studentName;
   final String? attachmentUrl;
+  final String? submissionLink;
+  final String? privateComment;
   final DateTime submittedAt;
+  // TODO: Add more fields if needed (e.g. status, score)
 
   AssignmentSubmission({
     required this.id,
     required this.assignmentId,
     required this.studentId,
     required this.studentName,
-    this.attachmentUrl,
     required this.submittedAt,
+    this.attachmentUrl,
+    this.submissionLink,
+    this.privateComment,
   });
+}
+
+class MeetingInfo {
+  final String id;
+  final String title;
+  final String description;
+  final DateTime dateTime;
+  final String meetLink;
+  final String createdBy;
+  final DateTime createdAt;
+  final String? classId;
+  final String? className;
+  final int? durationMinutes; // Duration in minutes
+
+  MeetingInfo({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.dateTime,
+    required this.meetLink,
+    required this.createdBy,
+    required this.createdAt,
+    this.classId,
+    this.className,
+    this.durationMinutes,
+  });
+
+  // Helper to get end time
+  DateTime? get endTime {
+    if (durationMinutes == null) return null;
+    return dateTime.add(Duration(minutes: durationMinutes!));
+  }
+
+  // Check if meeting is currently active
+  bool get isActive {
+    final now = DateTime.now();
+    if (durationMinutes == null) {
+      // If no duration set, check if it's within 24 hours
+      return now.isAfter(dateTime) &&
+          now.isBefore(dateTime.add(const Duration(hours: 24)));
+    }
+    final end = endTime!;
+    return now.isAfter(dateTime) && now.isBefore(end);
+  }
+
+  // Check if meeting has ended
+  bool get hasEnded {
+    final now = DateTime.now();
+    if (durationMinutes == null) return false;
+    final end = endTime!;
+    return now.isAfter(end);
+  }
+
+  // Check if meeting hasn't started yet
+  bool get notStarted {
+    final now = DateTime.now();
+    return now.isBefore(dateTime);
+  }
 }
 
 class UnitInfo {

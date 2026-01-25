@@ -6,7 +6,8 @@ import 'package:file_picker/file_picker.dart';
 
 class CreateAssignmentScreen extends StatefulWidget {
   final String? classId;
-  const CreateAssignmentScreen({super.key, this.classId});
+  final AssignmentInfo? assignment; // Added for editing
+  const CreateAssignmentScreen({super.key, this.classId, this.assignment});
 
   @override
   State<CreateAssignmentScreen> createState() => _CreateAssignmentScreenState();
@@ -32,6 +33,20 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.assignment != null) {
+      _titleController.text = widget.assignment!.title;
+      _descriptionController.text = widget.assignment!.description;
+      _pointsController.text = widget.assignment!.points;
+      // If points exists, save it
+      if (widget.assignment!.points.isNotEmpty) {
+        _savedPoints = widget.assignment!.points;
+      }
+      _startDate = widget.assignment!.startDate;
+      _endDate = widget.assignment!.endDate;
+      if (widget.assignment!.course.isNotEmpty) {
+        _selectedCourse = widget.assignment!.course;
+      }
+    }
     _loadMyClasses();
   }
 
@@ -50,7 +65,12 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
       if (!mounted) return;
       setState(() {
         _myClasses = items;
-        if (widget.classId != null &&
+        if (widget.assignment != null) {
+          // If editing, pre-select the assignment's class if valid
+          if (items.any((c) => c.id == widget.assignment!.classId)) {
+            _selectedClassIds = [widget.assignment!.classId];
+          }
+        } else if (widget.classId != null &&
             items.any((c) => c.id == widget.classId)) {
           _selectedClassIds = [widget.classId!];
         } else {
@@ -475,61 +495,92 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                       }
 
                       try {
-                        // Create assignment for each selected class
-                        for (String classId in _selectedClassIds) {
-                          // Determine assigned students for THIS class
-                          List<String>? assignedToForClass;
-                          if (_selectedStudentIds.isNotEmpty) {
-                            final classInfo = _myClasses.firstWhere(
-                              (c) => c.id == classId,
-                            );
-                            assignedToForClass =
-                                _selectedStudentIds
-                                    .where(
-                                      (sid) => classInfo.members.contains(sid),
-                                    )
-                                    .toList();
-
-                            // If specific students were selected, but none are in this class,
-                            // we skip creating the assignment for this class.
-                            if (assignedToForClass.isEmpty) {
-                              continue;
-                            }
-                          }
-
-                          await _auth.createAssignment(
+                        if (widget.assignment != null) {
+                          // UPDATE MODE
+                          await _auth.updateAssignmentDetails(
                             projectId: 'kk360-69504',
+                            assignmentId: widget.assignment!.id,
                             title: title,
-                            classId: classId,
-                            course: _selectedCourse,
                             description: _descriptionController.text.trim(),
                             points: _pointsController.text.trim(),
                             startDate: _startDate,
                             endDate: _endDate,
-                            attachmentUrl: attachmentUrl,
-                            assignedTo: assignedToForClass,
+                            attachmentUrl:
+                                attachmentUrl, // If null, won't update
+                            course: _selectedCourse,
+                            // We don't update classId or assignedTo for single assignment edit simplicity
+                            // unless we want to support re-assigning students.
+                            // For now, assume simple metadata update.
                           );
-                        }
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Assignment assigned to ${_selectedClassIds.length} class(es)',
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Assignment updated successfully',
+                                ),
                               ),
-                            ),
-                          );
-                          goBack(context);
+                            );
+                            goBack(context);
+                          }
+                        } else {
+                          // CREATE MODE
+                          // Create assignment for each selected class
+                          for (String classId in _selectedClassIds) {
+                            // Determine assigned students for THIS class
+                            List<String>? assignedToForClass;
+                            if (_selectedStudentIds.isNotEmpty) {
+                              final classInfo = _myClasses.firstWhere(
+                                (c) => c.id == classId,
+                              );
+                              assignedToForClass =
+                                  _selectedStudentIds
+                                      .where(
+                                        (sid) =>
+                                            classInfo.members.contains(sid),
+                                      )
+                                      .toList();
+
+                              if (assignedToForClass.isEmpty) {
+                                continue;
+                              }
+                            }
+
+                            await _auth.createAssignment(
+                              projectId: 'kk360-69504',
+                              title: title,
+                              classId: classId,
+                              course: _selectedCourse,
+                              description: _descriptionController.text.trim(),
+                              points: _pointsController.text.trim(),
+                              startDate: _startDate,
+                              endDate: _endDate,
+                              attachmentUrl: attachmentUrl,
+                              assignedTo: assignedToForClass,
+                            );
+                          }
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Assignment assigned to ${_selectedClassIds.length} class(es)',
+                                ),
+                              ),
+                            );
+                            goBack(context);
+                          }
                         }
                       } catch (e) {
                         if (mounted)
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to assign: $e')),
+                            SnackBar(
+                              content: Text('Failed to save assignment: $e'),
+                            ),
                           );
                       }
                     },
-                    child: const Text(
-                      "Assign",
-                      style: TextStyle(
+                    child: Text(
+                      widget.assignment != null ? "Update" : "Assign",
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -734,6 +785,12 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                             child: Text(
                               _pickedFile != null
                                   ? _pickedFile!.name
+                                  : (widget.assignment?.attachmentUrl != null &&
+                                      widget
+                                          .assignment!
+                                          .attachmentUrl!
+                                          .isNotEmpty)
+                                  ? "Change attachment (Current: Has file)"
                                   : "Add attachment",
                               style: TextStyle(
                                 fontSize: 15,

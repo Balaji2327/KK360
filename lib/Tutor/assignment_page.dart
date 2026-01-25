@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'create_assignment.dart';
+import 'assignment_submissions_page.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
@@ -325,6 +326,29 @@ class _AssignmentPageState extends State<AssignmentPage> {
                       itemBuilder:
                           (context) => [
                             PopupMenuItem(
+                              value: 'view_submissions',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.people,
+                                    size: 18,
+                                    color:
+                                        isDark
+                                            ? Colors.white70
+                                            : Colors.black87,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Submissions',
+                                    style: TextStyle(
+                                      color:
+                                          isDark ? Colors.white : Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
                               value: 'edit',
                               child: Row(
                                 children: [
@@ -468,11 +492,17 @@ class _AssignmentPageState extends State<AssignmentPage> {
 
   void _handleAssignmentAction(AssignmentInfo assignment, String action) {
     switch (action) {
+      case 'view_submissions':
+        goPush(context, AssignmentSubmissionsPage(assignment: assignment));
+        break;
       case 'edit':
-        // TODO: Navigate to edit assignment screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Edit assignment: ${assignment.title}')),
-        );
+        goPush(
+          context,
+          CreateAssignmentScreen(
+            classId: assignment.classId,
+            assignment: assignment,
+          ),
+        ).then((_) => _refreshAssignments());
         break;
       case 'delete':
         _showDeleteAssignmentDialog(assignment);

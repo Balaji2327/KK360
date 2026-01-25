@@ -186,7 +186,7 @@ class ClassCard extends StatelessWidget {
                 ),
                 SizedBox(width: 6),
                 Text(
-                  '${classInfo.members.length} member${classInfo.members.length != 1 ? 's' : ''}',
+                  '${classInfo.members.length + 1} member${(classInfo.members.length + 1) != 1 ? 's' : ''}',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
                 SizedBox(width: 16),

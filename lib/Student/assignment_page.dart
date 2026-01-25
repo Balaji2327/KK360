@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../services/firebase_auth_service.dart';
 
-import 'package:file_picker/file_picker.dart';
+import 'dart:typed_data';
 import '../widgets/assignment_card.dart';
+import '../widgets/submission_dialog.dart';
 
 class StudentAssignmentPage extends StatefulWidget {
   final String classId;
@@ -104,8 +105,10 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
   }
 
   Future<void> _submitWork(String assignmentId) async {
-    // 0. Check for expiration
     final assignment = _myAssignments.firstWhere((a) => a.id == assignmentId);
+
+    // Check for expiration
+    // Note: If you want to allow late submissions, comment out this check.
     if (assignment.endDate != null &&
         DateTime.now().isAfter(assignment.endDate!)) {
       if (mounted) {
@@ -118,44 +121,113 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
       return;
     }
 
-    // 1. Pick file
-    final result = await FilePicker.platform.pickFiles(withData: true);
-    if (result == null || result.files.isEmpty) return;
+    // Get existing submission if any
+    final existingSubmission = _mySubmissions[assignmentId];
 
-    final fileBytes = result.files.first.bytes;
-    final fileName = result.files.first.name;
+    await showDialog(
+      context: context,
+      builder:
+          (context) => SubmissionDialog(
+            assignment: assignment,
+            isLoading: _submissionLoading,
+            onSubmit: (fileBytes, fileName, link, comment) {
+              Navigator.of(context).pop();
+              _processSubmission(
+                assignmentId,
+                fileBytes,
+                fileName,
+                link,
+                comment,
+                existingSubmission?.id, // Pass existing ID if present
+              );
+            },
+          ),
+    );
+  }
 
-    if (fileBytes == null) return;
+  Future<void> _processSubmission(
+    String assignmentId,
+    Uint8List? fileBytes,
+    String? fileName,
+    String? link,
+    String? comment,
+    String? submissionId,
+  ) async {
+    if (fileBytes == null &&
+        (link == null || link.isEmpty) &&
+        (comment == null || comment.isEmpty)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please add a file, link, or comment to submit."),
+          ),
+        );
+      }
+      return;
+    }
 
     if (!mounted) return;
     setState(() => _submissionLoading = true);
 
     try {
-      // 2. Upload
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Uploading submission...")));
-      final url = await _authService.uploadFile(fileBytes, fileName);
+      String? attachmentUrl;
 
-      // 3. Submit
+      // 1. Upload File if present
+      if (fileBytes != null && fileName != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Uploading file...")));
+        }
+        attachmentUrl = await _authService.uploadFile(fileBytes, fileName);
+      } else {
+        // If updating and no new file, keep old url?
+        // Logic currently replaces it if we are submitting fresh.
+        // If we want to keep old attachment when only updating link, we'd need to fetch it or pass it.
+        // For now, simplicity: if no new file, attachment is null unless we explicitly handle retaining.
+        // However, user might expect to just add a link.
+        // Let's rely on the user re-uploading if they want to change file,
+        // or we need to pass the existing attachmentUrl to submitAssignment if we want to keep it.
+        // Currently submitAssignment accepts attachmentUrl. If null, it might clear it in Firestore?
+        // Let's check submitAssignment logic. It adds field if not null.
+        // If we want to CLEAR it, we might need to send null value, but Firestore REST API is tricky with delete fields.
+        // For this task, let's assume if they don't upload a file, they might be just submitting a link.
+        // But if they *had* a file, they might lose it if we don't pass it back.
+
+        // Better approach: Grab existing submission
+        final existing = _mySubmissions[assignmentId];
+        if (existing != null && submissionId != null) {
+          attachmentUrl = existing.attachmentUrl;
+        }
+      }
+
+      // 2. Submit
       await _authService.submitAssignment(
         projectId: 'kk360-69504',
         assignmentId: assignmentId,
         studentName: userName,
-        attachmentUrl: url,
+        attachmentUrl: attachmentUrl,
+        submissionLink: link,
+        privateComment: comment,
+        submissionId: submissionId,
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Work submitted!")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              submissionId != null ? "Submission updated!" : "Work submitted!",
+            ),
+          ),
+        );
       }
       await _loadMySubmissions(); // refresh status
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
+      }
     } finally {
       if (mounted) setState(() => _submissionLoading = false);
     }
@@ -283,6 +355,7 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
             submission: _mySubmissions[assignment.id],
             onSubmit: () => _submitWork(assignment.id),
             isSubmissionLoading: _submissionLoading,
+            className: widget.className, // Pass explicit class name
           );
         },
       ),

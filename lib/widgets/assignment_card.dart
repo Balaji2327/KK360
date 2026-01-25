@@ -8,6 +8,7 @@ class AssignmentCard extends StatelessWidget {
   final VoidCallback? onSubmit;
   final bool isSubmissionLoading;
   final Color appColor;
+  final String? className;
 
   const AssignmentCard({
     Key? key,
@@ -16,18 +17,11 @@ class AssignmentCard extends StatelessWidget {
     this.onSubmit,
     this.isSubmissionLoading = false,
     this.appColor = const Color(0xFF4B3FA3),
+    this.className,
   }) : super(key: key);
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    if (difference.inDays > 0) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours ago';
-    } else {
-      return 'Just now';
-    }
+  String _getDueDate(DateTime date) {
+    return "${date.month}/${date.day} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
   }
 
   Future<void> _launchAttachment(BuildContext context, String url) async {
@@ -45,284 +39,368 @@ class AssignmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final h = MediaQuery.of(context).size.height;
-    final w = MediaQuery.of(context).size.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF333333);
-    final subTextColor = isDark ? Colors.white70 : Colors.grey.shade700;
-    final detailsColor = isDark ? Colors.white70 : Colors.grey.shade800;
+
+    final isSubmitted = submission != null;
+    final isExpired =
+        assignment.endDate != null &&
+        DateTime.now().isAfter(assignment.endDate!);
+
+    Color statusColor = Colors.orange;
+    String statusText = "Pending";
+    IconData statusIcon = Icons.pending_outlined;
+
+    if (isSubmitted) {
+      statusColor = Colors.green;
+      statusText = "Submitted";
+      statusIcon = Icons.check_circle;
+    } else if (isExpired) {
+      statusColor = Colors.red;
+      statusText = "Expired";
+      statusIcon = Icons.cancel;
+    }
 
     return Container(
-      margin: EdgeInsets.only(bottom: h * 0.015),
+      margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.15),
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
             blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(left: BorderSide(color: appColor, width: 6)),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: h * 0.02,
-              horizontal: w * 0.04,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Section
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: appColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.assignment_outlined,
+                    color: appColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        assignment.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      if (className != null && className!.isNotEmpty)
+                        Text(
+                          className!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                isDark ? Colors.white54 : Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        )
+                      else if (assignment.course.isNotEmpty)
+                        Text(
+                          assignment.course,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                isDark ? Colors.white54 : Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, size: 12, color: statusColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+          ),
+
+          // Divider
+          Divider(
+            height: 1,
+            color: isDark ? Colors.white10 : Colors.grey.shade100,
+          ),
+
+          // Body Section
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title
-                Text(
-                  assignment.title,
-                  style: TextStyle(
-                    fontSize: h * 0.02,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-
                 if (assignment.description.isNotEmpty) ...[
-                  SizedBox(height: h * 0.012),
                   Text(
                     assignment.description,
                     style: TextStyle(
-                      fontSize: h * 0.015,
-                      color: subTextColor,
-                      height: 1.4,
+                      fontSize: 13,
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                      height: 1.5,
                     ),
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 16),
                 ],
+
+                // Metadata Cards
+                Row(
+                  children: [
+                    if (assignment.points.isNotEmpty)
+                      Expanded(
+                        child: _buildInfoChip(
+                          icon: Icons.star_outline,
+                          label: "${assignment.points} pts",
+                          isDark: isDark,
+                          color: Colors.amber.shade700,
+                        ),
+                      ),
+                    if (assignment.points.isNotEmpty) const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: _buildInfoChip(
+                        icon: Icons.access_time,
+                        label:
+                            assignment.endDate != null
+                                ? "Due ${_getDueDate(assignment.endDate!)}"
+                                : "No Due Date",
+                        isDark: isDark,
+                        color: isExpired ? Colors.red : Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
 
                 if (assignment.attachmentUrl != null &&
                     assignment.attachmentUrl!.isNotEmpty) ...[
-                  SizedBox(height: h * 0.015),
+                  const SizedBox(height: 12),
                   InkWell(
                     onTap:
                         () => _launchAttachment(
                           context,
                           assignment.attachmentUrl!,
                         ),
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: appColor.withOpacity(0.1),
+                        border: Border.all(
+                          color: isDark ? Colors.white12 : Colors.grey.shade200,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.attachment, size: 16, color: appColor),
+                          Icon(Icons.attach_file, size: 16, color: appColor),
                           const SizedBox(width: 8),
-                          Text(
-                            "View Attachment",
-                            style: TextStyle(
-                              fontSize: h * 0.014,
-                              fontWeight: FontWeight.w600,
-                              color: appColor,
+                          Expanded(
+                            child: Text(
+                              "View Attachment",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: appColor,
+                              ),
                             ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 10,
+                            color: appColor,
                           ),
                         ],
                       ),
                     ),
                   ),
                 ],
+              ],
+            ),
+          ),
 
-                SizedBox(height: h * 0.02),
-                Divider(
-                  height: 1,
-                  color: isDark ? Colors.white24 : Colors.grey.shade300,
-                ),
-                SizedBox(height: h * 0.015),
-
-                // Assignment details
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    if (assignment.points.isNotEmpty)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.verified_outlined,
-                            size: 18,
-                            color: appColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${assignment.points} pts',
+          // Footer Action
+          if (!isSubmitted && !isExpired)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isSubmissionLoading ? null : onSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: appColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child:
+                      isSubmissionLoading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                          : const Text(
+                            "Submit Work",
                             style: TextStyle(
-                              fontSize: h * 0.014,
-                              fontWeight: FontWeight.w500,
-                              color: detailsColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
-                      ),
+                ),
+              ),
+            ),
 
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+          if (isSubmitted)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.calendar_today_outlined,
-                          size: 16,
-                          color: appColor,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          assignment.endDate != null
-                              ? 'Due ${_formatDate(assignment.endDate!)}'
-                              : 'No due date',
+                          "Submitted",
                           style: TextStyle(
-                            fontSize: h * 0.014,
-                            fontWeight: FontWeight.w500,
-                            color: detailsColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade600,
+                          ),
+                        ),
+                        Text(
+                          _getDueDate(submission!.submittedAt),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : Colors.black87,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-
-                SizedBox(height: h * 0.02),
-
-                // Submission Status
-                Divider(
-                  height: 1,
-                  color: isDark ? Colors.white24 : Colors.grey.shade300,
-                ),
-                SizedBox(height: h * 0.015),
-
-                _buildSubmissionSection(context, h, isDark, appColor),
-              ],
+                  ),
+                  if (!isExpired)
+                    TextButton.icon(
+                      onPressed: onSubmit,
+                      style: TextButton.styleFrom(
+                        foregroundColor: appColor,
+                        backgroundColor: appColor.withOpacity(0.1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text("Edit"),
+                    ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () {
+                      if (submission?.attachmentUrl != null) {
+                        _launchAttachment(context, submission!.attachmentUrl!);
+                      } else if (submission?.submissionLink != null) {
+                        _launchAttachment(context, submission!.submissionLink!);
+                      }
+                    },
+                    icon: Icon(
+                      Icons.visibility_outlined,
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                    ),
+                    tooltip: "View Submission",
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildSubmissionSection(
-    BuildContext context,
-    double h,
-    bool isDark,
-    Color appColor,
-  ) {
-    final isSubmitted = submission != null;
-    final isExpired =
-        assignment.endDate != null &&
-        DateTime.now().isAfter(assignment.endDate!);
-
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 8,
-      runSpacing: 12,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSubmitted
-                  ? Icons.check_circle
-                  : isExpired
-                  ? Icons.cancel
-                  : Icons.pending_outlined,
-              size: 20,
-              color:
-                  isSubmitted
-                      ? Colors.green
-                      : isExpired
-                      ? Colors.red
-                      : Colors.orange,
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
-            const SizedBox(width: 8),
-            Text(
-              isSubmitted
-                  ? "Submitted"
-                  : isExpired
-                  ? "Expired"
-                  : "Pending",
-              style: TextStyle(
-                fontSize: h * 0.016,
-                fontWeight: FontWeight.w600,
-                color:
-                    isSubmitted
-                        ? Colors.green
-                        : isExpired
-                        ? Colors.red
-                        : Colors.orange,
-              ),
-            ),
-          ],
-        ),
-
-        if (!isSubmitted)
-          if (isExpired)
-            ElevatedButton.icon(
-              onPressed: null, // Disabled
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: const Icon(Icons.timer_off, size: 18, color: Colors.white),
-              label: Text(
-                "Expired",
-                style: TextStyle(color: Colors.white, fontSize: h * 0.014),
-              ),
-            )
-          else
-            ElevatedButton.icon(
-              onPressed: isSubmissionLoading ? null : onSubmit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: appColor,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: const Icon(
-                Icons.upload_file,
-                size: 18,
-                color: Colors.white,
-              ),
-              label: Text(
-                "Submit Work",
-                style: TextStyle(color: Colors.white, fontSize: h * 0.014),
-              ),
-            )
-        else if (submission?.attachmentUrl != null)
-          TextButton.icon(
-            onPressed:
-                () => _launchAttachment(context, submission!.attachmentUrl!),
-            icon: Icon(Icons.file_present, size: 18, color: appColor),
-            label: Text("View My Work", style: TextStyle(color: appColor)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-      ],
+        ],
+      ),
     );
   }
 }

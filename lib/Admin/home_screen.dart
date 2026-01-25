@@ -121,10 +121,8 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
       }
 
       // Fetch from server to get latest data
-      // Using same getClassesForTutor as Admin acts as a Tutor/Owner here
-      var classes = await _authService.getClassesForTutor(
-        projectId: 'kk360-69504',
-      );
+      // Admin sees ALL classes in the database, not just ones they're a member of
+      var classes = await _authService.getAllClasses(projectId: 'kk360-69504');
 
       if (!mounted) return;
       setState(() {

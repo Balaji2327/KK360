@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../widgets/class_card.dart';
 import '../widgets/meeting_alert_card.dart';
 import '../services/firebase_auth_service.dart';
@@ -393,260 +392,275 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
 
           // ================= SCROLLABLE BODY =================
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(height: h * 0.02),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await Future.wait([_loadClasses(), _loadPendingInvites()]);
+              },
+              color: const Color(0xFF4B3FA3),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    SizedBox(height: h * 0.02),
 
-                  // ================= MEETING ALERT SECTION =================
-                  MeetingAlertCard(classes: _classes),
-                  SizedBox(height: h * 0.02),
+                    // ================= MEETING ALERT SECTION =================
+                    MeetingAlertCard(classes: _classes),
+                    SizedBox(height: h * 0.02),
 
-                  // ================= PENDING INVITES SECTION =================
-                  if (!_invitesLoading && _pendingInvites.isNotEmpty)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.mail,
-                                color: Colors.orange,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                "Class Invitations (${_pendingInvites.length})",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange.shade700,
+                    // ================= PENDING INVITES SECTION =================
+                    if (!_invitesLoading && _pendingInvites.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.mail,
+                                  color: Colors.orange,
+                                  size: 20,
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: h * 0.015),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Class Invitations (${_pendingInvites.length})",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: h * 0.015),
 
-                          // Invite cards
-                          ...List.generate(_pendingInvites.length, (index) {
-                            final invite = _pendingInvites[index];
-                            return Container(
-                              margin: EdgeInsets.only(bottom: h * 0.015),
-                              padding: EdgeInsets.all(w * 0.04),
-                              decoration: BoxDecoration(
-                                color:
-                                    isDark
-                                        ? const Color(0xFF2C2C2C)
-                                        : Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
+                            // Invite cards
+                            ...List.generate(_pendingInvites.length, (index) {
+                              final invite = _pendingInvites[index];
+                              return Container(
+                                margin: EdgeInsets.only(bottom: h * 0.015),
+                                padding: EdgeInsets.all(w * 0.04),
+                                decoration: BoxDecoration(
                                   color:
                                       isDark
-                                          ? Colors.orange.shade900
-                                          : Colors.orange.shade200,
+                                          ? const Color(0xFF2C2C2C)
+                                          : Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color:
+                                        isDark
+                                            ? Colors.orange.shade900
+                                            : Colors.orange.shade200,
+                                  ),
                                 ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.class_,
-                                        color: Colors.orange.shade700,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          invite.className,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.orange.shade700,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.class_,
+                                          color: Colors.orange.shade700,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            invite.className,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade700,
+                                            ),
                                           ),
                                         ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Invited by: ${invite.invitedByUserName}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color:
+                                            isDark
+                                                ? Colors.white70
+                                                : Colors.grey.shade600,
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Invited by: ${invite.invitedByUserName}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color:
-                                          isDark
-                                              ? Colors.white70
-                                              : Colors.grey.shade600,
                                     ),
-                                  ),
-                                  Text(
-                                    'Role: ${invite.role}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color:
-                                          isDark
-                                              ? Colors.white70
-                                              : Colors.grey.shade600,
+                                    Text(
+                                      'Role: ${invite.role}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color:
+                                            isDark
+                                                ? Colors.white70
+                                                : Colors.grey.shade600,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      TextButton(
-                                        onPressed:
-                                            () => _handleInviteAction(
-                                              invite,
-                                              false,
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed:
+                                              () => _handleInviteAction(
+                                                invite,
+                                                false,
+                                              ),
+                                          child: Text(
+                                            'Decline',
+                                            style: TextStyle(
+                                              color:
+                                                  isDark
+                                                      ? Colors.white70
+                                                      : Colors.grey.shade600,
                                             ),
-                                        child: Text(
-                                          'Decline',
-                                          style: TextStyle(
-                                            color:
-                                                isDark
-                                                    ? Colors.white70
-                                                    : Colors.grey.shade600,
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        onPressed:
-                                            () => _handleInviteAction(
-                                              invite,
-                                              true,
-                                            ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          foregroundColor: Colors.white,
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed:
+                                              () => _handleInviteAction(
+                                                invite,
+                                                true,
+                                              ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: const Text('Accept'),
                                         ),
-                                        child: const Text('Accept'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-
-                          SizedBox(height: h * 0.02),
-                        ],
-                      ),
-                    ),
-
-                  SizedBox(height: h * 0.01),
-
-                  // ================= CLASSES SECTION =================
-                  if (_classesLoading)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF4B3FA3),
-                        ),
-                      ),
-                    )
-                  else if (_filteredClasses.isEmpty)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: Center(
-                        child: Text(
-                          _searchController.text.isEmpty
-                              ? 'No classes yet'
-                              : 'No classes found matching "${_searchController.text}"',
-                          style: TextStyle(
-                            color:
-                                isDark ? Colors.white70 : Colors.grey.shade600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: Column(
-                        children:
-                            _filteredClasses.map((classInfo) {
-                              return ClassCard(
-                                classInfo: classInfo,
-                                // Treat Admin as Tutor/Owner for full functionality
-                                userRole: 'admin',
-                                currentUserId:
-                                    _authService.getCurrentUser()?.uid ?? '',
-                                onClassUpdated: _loadClasses,
-                                onClassDeleted: () {
-                                  setState(() {
-                                    _classes.removeWhere(
-                                      (c) => c.id == classInfo.id,
-                                    );
-                                  });
-                                  _loadClasses();
-                                },
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               );
-                            }).toList(),
-                      ),
-                    ),
+                            }),
 
-                  SizedBox(height: h * 0.03),
-
-                  // ================= STREAM CARD =================
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                    child: Container(
-                      width: w,
-                      padding: EdgeInsets.all(w * 0.06),
-                      decoration: BoxDecoration(
-                        color:
-                            isDark
-                                ? const Color(0xFF1E1E1E)
-                                : Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                          color: isDark ? Colors.white24 : Colors.grey.shade200,
-                          width: 1,
+                            SizedBox(height: h * 0.02),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.stream,
-                            size: 48,
-                            color:
-                                isDark ? Colors.white24 : Colors.grey.shade400,
+
+                    SizedBox(height: h * 0.01),
+
+                    // ================= CLASSES SECTION =================
+                    if (_classesLoading)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF4B3FA3),
                           ),
-                          SizedBox(height: h * 0.02),
-                          Text(
-                            "This is where you can share with your class",
+                        ),
+                      )
+                    else if (_filteredClasses.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        child: Center(
+                          child: Text(
+                            _searchController.text.isEmpty
+                                ? 'No classes yet'
+                                : 'No classes found matching "${_searchController.text}"',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
                               color:
                                   isDark
                                       ? Colors.white70
-                                      : Colors.grey.shade700,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: h * 0.01),
-                          Text(
-                            "Use the stream to share announcements, post assignments, and respond to questions",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? Colors.white54 : Colors.black87,
+                                      : Colors.grey.shade600,
+                              fontSize: 16,
                             ),
                           ),
-                        ],
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        child: Column(
+                          children:
+                              _filteredClasses.map((classInfo) {
+                                return ClassCard(
+                                  classInfo: classInfo,
+                                  // Treat Admin as Tutor/Owner for full functionality
+                                  userRole: 'admin',
+                                  currentUserId:
+                                      _authService.getCurrentUser()?.uid ?? '',
+                                  onClassUpdated: _loadClasses,
+                                  onClassDeleted: () {
+                                    setState(() {
+                                      _classes.removeWhere(
+                                        (c) => c.id == classInfo.id,
+                                      );
+                                    });
+                                    _loadClasses();
+                                  },
+                                );
+                              }).toList(),
+                        ),
+                      ),
+
+                    SizedBox(height: h * 0.03),
+
+                    // ================= STREAM CARD =================
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                      child: Container(
+                        width: w,
+                        padding: EdgeInsets.all(w * 0.06),
+                        decoration: BoxDecoration(
+                          color:
+                              isDark
+                                  ? const Color(0xFF1E1E1E)
+                                  : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color:
+                                isDark ? Colors.white24 : Colors.grey.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.stream,
+                              size: 48,
+                              color:
+                                  isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade400,
+                            ),
+                            SizedBox(height: h * 0.02),
+                            Text(
+                              "This is where you can share with your class",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color:
+                                    isDark
+                                        ? Colors.white70
+                                        : Colors.grey.shade700,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: h * 0.01),
+                            Text(
+                              "Use the stream to share announcements, post assignments, and respond to questions",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color:
+                                    isDark == true
+                                        ? Colors.white54
+                                        : Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  SizedBox(height: h * 0.12),
-                ],
+                    SizedBox(height: h * 0.12),
+                  ],
+                ),
               ),
             ),
           ),

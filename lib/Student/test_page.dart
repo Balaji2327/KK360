@@ -41,7 +41,6 @@ class _StudentTestPageState extends State<StudentTestPage> {
       );
 
       // Fetch tests
-      // Fetch all student tests
       final items = await _authService.getTestsForStudent(
         projectId: 'kk360-69504',
       );
@@ -114,9 +113,8 @@ class _StudentTestPageState extends State<StudentTestPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ------------ HEADER (Matches Assignment Page) ------------
+          // ------------ HEADER ------------
           Container(
             width: w,
             height: h * 0.16,
@@ -147,7 +145,10 @@ class _StudentTestPageState extends State<StudentTestPage> {
                     (_loading && _userName == "Student")
                         ? 'Loading...'
                         : "$_userName | $_userEmail",
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: h * 0.014,
+                      color: Colors.white70,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -156,59 +157,92 @@ class _StudentTestPageState extends State<StudentTestPage> {
             ),
           ),
 
+          SizedBox(height: h * 0.0005),
+
           // ------------ CONTENT LIST ------------
           Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                child:
-                    _loading
-                        ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 50),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                        : _tests.isEmpty
-                        ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 50),
-                            child: Text(
-                              "No tests available",
-                              style: TextStyle(
-                                color:
-                                    isDark
-                                        ? Colors.white70
-                                        : Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                        )
-                        : Column(
-                          children: [
-                            SizedBox(height: h * 0.02),
-                            ..._tests.map((test) {
-                              return Column(
-                                children: [
-                                  TestCard(
-                                    test: test,
-                                    submission: _submissions[test.id],
-                                    tutorName:
-                                        _tutorNames[test.createdBy] ?? "Tutor",
-                                    onReload: _loadData,
-                                  ),
-                                  SizedBox(height: h * 0.02),
-                                ],
-                              );
-                            }).toList(),
-
-                            SizedBox(height: h * 0.1),
-                          ],
-                        ),
-              ),
-            ),
+            child:
+                _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _tests.isEmpty
+                    ? _buildEmptyState(h, w, isDark)
+                    : _buildTestsList(h, w),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(double h, double w, bool isDark) {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(h * 0.03),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4B3FA3).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.quiz_outlined,
+                size: h * 0.08,
+                color: const Color(0xFF4B3FA3),
+              ),
+            ),
+            SizedBox(height: h * 0.03),
+            Text(
+              "No tests available",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: h * 0.022,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF2D3142),
+              ),
+            ),
+            SizedBox(height: h * 0.015),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.15),
+              child: Text(
+                "Tests assigned to your class will appear here.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: h * 0.016,
+                  color: isDark ? Colors.white70 : Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+            ),
+            SizedBox(height: h * 0.1),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTestsList(double h, double w) {
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: h * 0.02),
+        itemCount: _tests.length,
+        itemBuilder: (context, index) {
+          final test = _tests[index];
+          return Column(
+            children: [
+              TestCard(
+                test: test,
+                submission: _submissions[test.id],
+                tutorName: _tutorNames[test.createdBy] ?? "Tutor",
+                onReload: _loadData,
+              ),
+              SizedBox(height: h * 0.02),
+            ],
+          );
+        },
       ),
     );
   }

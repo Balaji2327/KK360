@@ -120,7 +120,10 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
                   SizedBox(height: h * 0.006),
                   Text(
                     profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: h * 0.014,
+                      color: Colors.white70,
+                    ),
                   ),
                 ],
               ),
@@ -250,30 +253,49 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
 
   Widget _buildEmptyState(double h, double w, bool isDark) {
     // Wrapped in SingleChildScrollView to allow pull-to-refresh even when empty
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: SizedBox(
-        height: h * 0.6, // constrain height to center visually
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.folder_off,
-                size: 64,
-                color: isDark ? Colors.white24 : Colors.black26,
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(h * 0.03),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4B3FA3).withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
-              SizedBox(height: h * 0.02),
-              Text(
-                "No materials found for this class",
+              child: Icon(
+                Icons.folder_off_outlined,
+                size: h * 0.08,
+                color: const Color(0xFF4B3FA3),
+              ),
+            ),
+            SizedBox(height: h * 0.03),
+            Text(
+              "No materials found",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: h * 0.022,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF2D3142),
+              ),
+            ),
+            SizedBox(height: h * 0.015),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.15),
+              child: Text(
+                "Course materials uploaded by your tutor will appear here.",
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 16,
-                  color: isDark ? Colors.white54 : Colors.black54,
-                  fontWeight: FontWeight.w500,
+                  fontSize: h * 0.016,
+                  color: isDark ? Colors.white70 : Colors.grey[600],
+                  height: 1.5,
                 ),
               ),
-            ],
-          ),
+            ),
+            SizedBox(height: h * 0.1),
+          ],
         ),
       ),
     );

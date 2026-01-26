@@ -76,16 +76,13 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
-      backgroundColor: bgColor,
-
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
         child: GestureDetector(
           onTap: () async {
-            // Navigate to Create Unit Screen and reload on return
             await goPush(context, const CreateUnitScreen());
             _loadUnits();
           },
@@ -93,17 +90,21 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
             height: h * 0.065,
             width: h * 0.065,
             decoration: BoxDecoration(
-              color: const Color(0xFFDFF7E8),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(15),
+                  color: const Color(0xFF4B3FA3).withOpacity(0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: const Icon(Icons.add, size: 30, color: Colors.black),
+            child: const Icon(Icons.add, size: 30, color: Colors.white),
           ),
         ),
       ),
@@ -128,38 +129,34 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: h * 0.05),
-                  Flexible(
-                    child: Text(
-                      widget.className != null
-                          ? "${widget.className} - Materials"
-                          : "Materials",
-                      style: TextStyle(
-                        fontSize: w * 0.045, // Made responsive
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    widget.className != null
+                        ? "${widget.className} - Materials"
+                        : "Materials",
+                    style: TextStyle(
+                      fontSize: h * 0.025,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: h * 0.006),
-                  Flexible(
-                    child: Text(
-                      profileLoading ? 'Loading...' : '$userName | $userEmail',
-                      style: TextStyle(
-                        fontSize: w * 0.035, // Made responsive
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    profileLoading ? 'Loading...' : '$userName | $userEmail',
+                    style: TextStyle(
+                      fontSize: h * 0.014,
+                      color: Colors.white70,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
           ),
 
-          SizedBox(height: h * 0.01),
+          SizedBox(height: h * 0.0005),
 
           // Content
           Expanded(
@@ -168,141 +165,176 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
                     ? const Center(child: CircularProgressIndicator())
                     : _units.isEmpty
                     ? _buildEmptyState(h, w, isDark)
-                    : RefreshIndicator(
-                      onRefresh: _loadUnits,
-                      child: ListView.builder(
-                        padding: EdgeInsets.fromLTRB(
-                          w * 0.04,
-                          h * 0.02,
-                          w * 0.04,
-                          h * 0.12,
-                        ),
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: _units.length,
-                        itemBuilder: (context, index) {
-                          final unit = _units[index];
-                          return _buildUnitCard(context, unit, h, w, isDark);
-                        },
-                      ),
-                    ),
+                    : _buildUnitsList(h, w, isDark),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUnitCard(
-    BuildContext context,
-    UnitInfo unit,
-    double h,
-    double w,
-    bool isDark,
-  ) {
+  Widget _buildUnitsList(double h, double w, bool isDark) {
+    return RefreshIndicator(
+      onRefresh: _loadUnits,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: h * 0.02),
+        itemCount: _units.length,
+        itemBuilder: (context, index) {
+          final unit = _units[index];
+          return _buildUnitCard(unit, h, w, isDark);
+        },
+      ),
+    );
+  }
+
+  Widget _buildUnitCard(UnitInfo unit, double h, double w, bool isDark) {
+    const appColor = Color(0xFF4B3FA3);
+
     return GestureDetector(
       onTap: () async {
         await goPush(context, UnitDetailsPage(unit: unit));
-        // Reload in case something changed (e.g. unit deleted?)
         _loadUnits();
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: h * 0.02),
-        padding: EdgeInsets.all(w * 0.04),
+        margin: EdgeInsets.only(bottom: h * 0.015),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: isDark ? Colors.grey.shade800 : Colors.white,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+              offset: const Offset(0, 4),
+              blurRadius: 10,
             ),
           ],
-          border: Border.all(
-            color: isDark ? Colors.white10 : Colors.grey.shade100,
-          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    unit.title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
+            // Header with gradient
+            Container(
+              width: w,
+              padding: EdgeInsets.all(w * 0.04),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        isDark
-                            ? Colors.purple.withOpacity(0.2)
-                            : Colors.purple.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    unit.className.isNotEmpty ? unit.className : 'Class',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.purpleAccent : Colors.purple,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (unit.description.isNotEmpty) ...[
-              SizedBox(height: h * 0.01),
-              Text(
-                unit.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white70 : Colors.black54,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
                 ),
               ),
-            ],
-            SizedBox(height: h * 0.02),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 14,
-                  color: isDark ? Colors.white38 : Colors.grey,
-                ),
-                SizedBox(width: 4),
-                Text(
-                  "${unit.createdAt.day}/${unit.createdAt.month}/${unit.createdAt.year}",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white38 : Colors.grey,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      unit.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  "View Materials",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: const Color(0xFF4B3FA3),
-                    fontWeight: FontWeight.w600,
+                  SizedBox(width: w * 0.02),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.white70,
                   ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: Color(0xFF4B3FA3),
-                ),
-              ],
+                ],
+              ),
+            ),
+
+            // Content
+            Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: h * 0.02,
+                horizontal: w * 0.04,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Class Name Tag
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: appColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      unit.className.isNotEmpty
+                          ? unit.className
+                          : 'Unknown Class',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: appColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  if (unit.description.isNotEmpty) ...[
+                    SizedBox(height: h * 0.012),
+                    Text(
+                      unit.description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.white70 : Colors.grey.shade700,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+
+                  SizedBox(height: h * 0.015),
+                  Divider(
+                    height: 1,
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                  ),
+                  SizedBox(height: h * 0.015),
+
+                  // Unit details
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 16,
+                        color: appColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Created ${unit.createdAt.day}/${unit.createdAt.month}/${unit.createdAt.year}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white70 : Colors.grey.shade800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(Icons.menu_book_outlined, size: 16, color: appColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Materials',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white70 : Colors.grey.shade800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -311,42 +343,50 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
   }
 
   Widget _buildEmptyState(double h, double w, bool isDark) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          SizedBox(height: h * 0.08),
-          SizedBox(
-            height: h * 0.28,
-            child: Center(
-              child: Image.asset("assets/images/work.png", fit: BoxFit.contain),
-            ),
-          ),
-          SizedBox(height: h * 0.02),
-          Text(
-            "No units yet",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: h * 0.0185,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : Colors.black,
-            ),
-          ),
-          SizedBox(height: h * 0.015),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.12),
-            child: Text(
-              "Create your first unit to organize materials",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: h * 0.0145,
-                color: isDark ? Colors.white70 : Colors.black87,
-                height: 1.5,
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(h * 0.03),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4B3FA3).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.menu_book_outlined,
+                size: h * 0.08,
+                color: const Color(0xFF4B3FA3),
               ),
             ),
-          ),
-          SizedBox(height: h * 0.18),
-        ],
+            SizedBox(height: h * 0.03),
+            Text(
+              "No units yet",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: h * 0.022,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF2D3142),
+              ),
+            ),
+            SizedBox(height: h * 0.015),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.15),
+              child: Text(
+                "Create your first unit to organize materials",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: h * 0.016,
+                  color: isDark ? Colors.white70 : Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+            ),
+            SizedBox(height: h * 0.1),
+          ],
+        ),
       ),
     );
   }

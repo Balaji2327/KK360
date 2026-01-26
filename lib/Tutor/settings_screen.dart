@@ -101,18 +101,18 @@ class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
                     },
                     Icons.dark_mode_outlined,
                   ),
-                  _settingSwitchTile(
-                    "Download via Wi-Fi",
-                    "Save data by downloading only on Wi-Fi",
-                    _wifiOnly,
-                    (value) {
-                      setState(() {
-                        _wifiOnly = value;
-                      });
-                    },
-                    Icons.wifi_outlined,
-                  ),
 
+                  // _settingSwitchTile(
+                  //   "Download via Wi-Fi",
+                  //   "Save data by downloading only on Wi-Fi",
+                  //   _wifiOnly,
+                  //   (value) {
+                  //     setState(() {
+                  //       _wifiOnly = value;
+                  //     });
+                  //   },
+                  //   Icons.wifi_outlined,
+                  // ),
                   _settingSectionTitle("Teaching"),
                   _settingLinkTile(
                     "Class Management",

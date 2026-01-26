@@ -277,7 +277,10 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
                   SizedBox(height: h * 0.006),
                   Text(
                     profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: h * 0.014,
+                      color: Colors.white70,
+                    ),
                   ),
                 ],
               ),
@@ -301,42 +304,50 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
   }
 
   Widget _buildEmptyState(double h, double w, bool isDark) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          SizedBox(height: h * 0.08),
-          SizedBox(
-            height: h * 0.28,
-            child: Center(
-              child: Image.asset("assets/images/work.png", fit: BoxFit.contain),
-            ),
-          ),
-          SizedBox(height: h * 0.02),
-          Text(
-            "No assignments yet",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: h * 0.0185,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : Colors.black,
-            ),
-          ),
-          SizedBox(height: h * 0.015),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.12),
-            child: Text(
-              "Assignments for this class will appear here",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: h * 0.0145,
-                color: isDark ? Colors.white70 : Colors.black87,
-                height: 1.5,
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(h * 0.03),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4B3FA3).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.assignment_outlined,
+                size: h * 0.08,
+                color: const Color(0xFF4B3FA3),
               ),
             ),
-          ),
-          SizedBox(height: h * 0.18),
-        ],
+            SizedBox(height: h * 0.03),
+            Text(
+              "No assignments yet",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: h * 0.022,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF2D3142),
+              ),
+            ),
+            SizedBox(height: h * 0.015),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.15),
+              child: Text(
+                "Assignments sent by your tutor will appear here. Check back later!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: h * 0.016,
+                  color: isDark ? Colors.white70 : Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+            ),
+            SizedBox(height: h * 0.1),
+          ],
+        ),
       ),
     );
   }

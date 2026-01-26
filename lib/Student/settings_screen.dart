@@ -103,18 +103,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                     Icons.dark_mode_outlined,
                   ),
-                  _settingSwitchTile(
-                    "Download via Wi-Fi",
-                    "Save data by downloading only on Wi-Fi",
-                    _wifiOnly,
-                    (value) {
-                      setState(() {
-                        _wifiOnly = value;
-                      });
-                    },
-                    Icons.wifi_outlined,
-                  ),
 
+                  // _settingSwitchTile(
+                  //   "Download via Wi-Fi",
+                  //   "Save data by downloading only on Wi-Fi",
+                  //   _wifiOnly,
+                  //   (value) {
+                  //     setState(() {
+                  //       _wifiOnly = value;
+                  //     });
+                  //   },
+                  //   Icons.wifi_outlined,
+                  // ),
                   _settingSectionTitle("Account"),
                   _settingLinkTile(
                     "Privacy Policy",

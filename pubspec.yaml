@@ -46,8 +46,6 @@ flutter:
     - assets/images/otp.png
     - assets/images/person.png
     - assets/images/female.png
-    - assets/images/meeting.png
-    - assets/images/work.png
 
   fonts:
     - family: Poppins

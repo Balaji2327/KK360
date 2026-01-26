@@ -39,14 +39,11 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
+              style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4B3FA3),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
               ),
               child: const Text('Cancel'),
             ),
@@ -132,9 +129,13 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel', style: TextStyle(fontSize: 14)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -201,9 +202,6 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
-      // ⭐ COMMON NAVIGATION BAR
-
-      // ---------------- BODY ----------------
       body: Column(
         children: [
           // ---------------- PURPLE HEADER ----------------
@@ -234,8 +232,6 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    // Logout button removed from header
                   ],
                 ),
               ],
@@ -249,37 +245,63 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                 children: [
                   SizedBox(height: h * 0.03),
 
-                  // ---------------- PROFILE ----------------
+                  // ---------------- PROFILE WITH ICON ----------------
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: h * 0.04,
-                          backgroundImage: const AssetImage(
-                            "assets/images/female.png",
+                        // Profile Icon - Circle Shape
+                        Container(
+                          width: h * 0.065,
+                          height: h * 0.065,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF4B3FA3,
+                                ).withOpacity(0.25),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: h * 0.035,
                           ),
                         ),
-                        SizedBox(width: w * 0.03),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              profileLoading ? 'Loading...' : userName,
-                              style: TextStyle(
-                                fontSize: w * 0.045,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white : Colors.black,
+                        SizedBox(width: w * 0.04),
+                        // Profile Info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                profileLoading ? 'Loading...' : userName,
+                                style: TextStyle(
+                                  fontSize: w * 0.045,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
                               ),
-                            ),
-                            Text(
-                              profileLoading ? '' : userEmail,
-                              style: TextStyle(
-                                color: isDark ? Colors.white70 : Colors.black54,
-                                fontSize: w * 0.032,
+                              SizedBox(height: h * 0.005),
+                              Text(
+                                profileLoading ? '' : userEmail,
+                                style: TextStyle(
+                                  color:
+                                      isDark ? Colors.white70 : Colors.black54,
+                                  fontSize: w * 0.032,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -328,14 +350,11 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                                 },
                                 child: const Text('Change Password'),
                               ),
-                              TextButton(
+                              ElevatedButton(
                                 onPressed: () => Navigator.of(context).pop(),
-                                style: TextButton.styleFrom(
+                                style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF4B3FA3),
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
                                 ),
                                 child: const Text('Cancel'),
                               ),
@@ -346,9 +365,8 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.person, "Edit Profile"),
                   ),
-                  featureTile(w, h, Icons.check_circle, "Attendance"),
 
-                  // Result tile removed
+                  // featureTile(w, h, Icons.check_circle, "Attendance"),
                   GestureDetector(
                     onTap: () {
                       goPush(context, const ToDoListScreen());
@@ -438,9 +456,8 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                                         ElevatedButton(
                                           onPressed: () => goBack(ctx, true),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(
-                                              0xFF4B3FA3,
-                                            ),
+                                            backgroundColor:
+                                                Colors.red.shade600,
                                             foregroundColor: Colors.white,
                                           ),
                                           child: const Text('Log out'),
@@ -481,7 +498,13 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                                 }
                               }
                             },
-                    child: featureTile(w, h, Icons.logout, "Log out"),
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.logout,
+                      "Log out",
+                      isLogout: true,
+                    ),
                   ),
 
                   SizedBox(height: h * 0.12),
@@ -501,10 +524,13 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
     IconData icon,
     String text, {
     bool underline = false,
+    bool isLogout = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tileColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
+    final textColor =
+        isLogout ? Colors.red : (isDark ? Colors.white : Colors.black);
+    final iconColor = isLogout ? Colors.red : const Color(0xFF4B3FA3);
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: w * 0.06, vertical: h * 0.008),
@@ -523,7 +549,7 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF4B3FA3)),
+          Icon(icon, color: iconColor),
           SizedBox(width: w * 0.04),
           Expanded(
             child: Text(
@@ -533,12 +559,14 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                 decoration:
                     underline ? TextDecoration.underline : TextDecoration.none,
                 color: textColor,
+                fontWeight: isLogout ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ),
           Icon(
             Icons.chevron_right,
-            color: isDark ? Colors.white54 : Colors.grey,
+            color:
+                isLogout ? Colors.red : (isDark ? Colors.white54 : Colors.grey),
           ),
         ],
       ),

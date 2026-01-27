@@ -88,7 +88,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
             width: w,
             height: h * 0.16,
             decoration: const BoxDecoration(
-              color: Color.fromARGB(255, 168, 164, 193),
+              color: Color(0xFF4B3FA3),
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),

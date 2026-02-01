@@ -12,7 +12,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _wifiOnly = true;
 
   @override
   Widget build(BuildContext context) {

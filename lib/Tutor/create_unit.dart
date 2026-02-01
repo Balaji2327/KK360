@@ -16,7 +16,6 @@ class _CreateUnitScreenState extends State<CreateUnitScreen> {
 
   List<ClassInfo> _myClasses = [];
   List<String> _selectedClassIds = [];
-  String _selectedClassName = '';
   bool _classesLoading = false;
   bool _creating = false;
 
@@ -41,9 +40,6 @@ class _CreateUnitScreenState extends State<CreateUnitScreen> {
       setState(() {
         _myClasses = items;
         _selectedClassIds = _myClasses.isNotEmpty ? [_myClasses.first.id] : [];
-        if (_myClasses.isNotEmpty) {
-          _selectedClassName = _myClasses.first.name;
-        }
         _classesLoading = false;
       });
     } catch (e) {

@@ -12,7 +12,6 @@ class TutorSettingsScreen extends StatefulWidget {
 
 class _TutorSettingsScreenState extends State<TutorSettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _wifiOnly = true;
 
   @override
   Widget build(BuildContext context) {

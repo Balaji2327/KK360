@@ -6,6 +6,7 @@ import '../widgets/nav_helper.dart';
 import 'assignment_page.dart';
 import 'test_page.dart';
 import 'student_material_page.dart';
+import 'chat_page.dart';
 
 class CoursesScreen extends StatefulWidget {
   final String? initialClassId;
@@ -282,6 +283,22 @@ class _CoursesScreenState extends State<CoursesScreen> {
                               h,
                               Icons.insert_drive_file_outlined,
                               "Materials",
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap:
+                                () => goPush(
+                                  context,
+                                  StudentChatPage(
+                                    classId: _selectedClassId!,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.chat_bubble_outline,
+                              "Chat",
                             ),
                           ),
                         ],

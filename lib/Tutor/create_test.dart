@@ -33,7 +33,6 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
   final TextEditingController _questionCountController =
       TextEditingController();
 
-  String? _selectedClassId;
   List<String> _selectedClassIds = [];
   String _selectedCourse = 'General';
   DateTime? _startDate;
@@ -41,7 +40,6 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
 
   final FirebaseAuthService _auth = FirebaseAuthService();
   List<ClassInfo> _myClasses = [];
-  bool _classesLoading = false;
 
   List<String> _selectedStudentIds = [];
   Map<String, UserProfile?> _studentProfiles = {};
@@ -87,7 +85,6 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
   }
 
   Future<void> _loadMyClasses() async {
-    setState(() => _classesLoading = true);
     try {
       final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
       if (!mounted) return;
@@ -102,12 +99,10 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
         } else {
           _selectedClassIds = [];
         }
-        _classesLoading = false;
       });
       _fetchStudentsForSelectedClasses();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _classesLoading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
@@ -174,18 +169,6 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load students: $e')));
     }
-  }
-
-  void _onClassChanged(String? newId) {
-    if (newId == null) return;
-    setState(() {
-      _selectedClassId = newId;
-      final cls = _myClasses.firstWhere(
-        (c) => c.id == newId,
-        orElse: () => _myClasses.first,
-      );
-      _selectedCourse = cls.course.isNotEmpty ? cls.course : 'General';
-    });
   }
 
   String _formatDate(DateTime d) {
@@ -723,90 +706,88 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                     ),
                   ),
                   SizedBox(height: 8),
-                  _classesLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _showClassSelectionDialog,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF4B3FA3),
-                                    foregroundColor: Colors.white,
-                                    side: BorderSide(color: Colors.transparent),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _selectedClassIds.isEmpty
-                                        ? 'Select Classes'
-                                        : '${_selectedClassIds.length} Classes',
-                                  ),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _showClassSelectionDialog,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4B3FA3),
+                                foregroundColor: Colors.white,
+                                side: BorderSide(color: Colors.transparent),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
                                 ),
                               ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _showStudentSelectionDialog,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF4B3FA3),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _selectedStudentIds.isEmpty
-                                        ? 'All Students'
-                                        : '${_selectedStudentIds.length} Students',
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_selectedClassIds.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Wrap(
-                                spacing: 8,
-                                children:
-                                    _selectedClassIds.map((classId) {
-                                      final classInfo = _myClasses.firstWhere(
-                                        (c) => c.id == classId,
-                                        orElse:
-                                            () => ClassInfo(
-                                              id: '',
-                                              name: '',
-                                              tutorId: '',
-                                              members: [],
-                                              course: '',
-                                            ),
-                                      );
-                                      return Chip(
-                                        label: Text(
-                                          classInfo.name.isNotEmpty
-                                              ? classInfo.name
-                                              : classInfo.id,
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                        onDeleted: () {
-                                          setState(() {
-                                            _selectedClassIds.remove(classId);
-                                            _fetchStudentsForSelectedClasses();
-                                          });
-                                        },
-                                        backgroundColor: Colors.blue.shade100,
-                                      );
-                                    }).toList(),
+                              child: Text(
+                                _selectedClassIds.isEmpty
+                                    ? 'Select Classes'
+                                    : '${_selectedClassIds.length} Classes',
                               ),
                             ),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _showStudentSelectionDialog,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4B3FA3),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: Text(
+                                _selectedStudentIds.isEmpty
+                                    ? 'All Students'
+                                    : '${_selectedStudentIds.length} Students',
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
+                      if (_selectedClassIds.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Wrap(
+                            spacing: 8,
+                            children:
+                                _selectedClassIds.map((classId) {
+                                  final classInfo = _myClasses.firstWhere(
+                                    (c) => c.id == classId,
+                                    orElse:
+                                        () => ClassInfo(
+                                          id: '',
+                                          name: '',
+                                          tutorId: '',
+                                          members: [],
+                                          course: '',
+                                        ),
+                                  );
+                                  return Chip(
+                                    label: Text(
+                                      classInfo.name.isNotEmpty
+                                          ? classInfo.name
+                                          : classInfo.id,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    onDeleted: () {
+                                      setState(() {
+                                        _selectedClassIds.remove(classId);
+                                        _fetchStudentsForSelectedClasses();
+                                      });
+                                    },
+                                    backgroundColor: Colors.blue.shade100,
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+                    ],
+                  ),
                   SizedBox(height: 20),
 
                   // Description

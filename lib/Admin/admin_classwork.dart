@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-import 'assignment_page.dart';
-// import 'topic_page.dart';
-import 'test_page.dart';
-import 'tutor_material_page.dart';
+import '../Tutor/assignment_page.dart';
+import '../Tutor/test_page.dart';
+import '../Tutor/tutor_material_page.dart';
 import 'chat_page.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
-class WorksScreen extends StatefulWidget {
+class AdminClassworkScreen extends StatefulWidget {
   final String? classId;
   final String? className;
 
-  const WorksScreen({super.key, this.classId, this.className});
+  const AdminClassworkScreen({super.key, this.classId, this.className});
 
   @override
-  State<WorksScreen> createState() => _WorksScreenState();
+  State<AdminClassworkScreen> createState() => _AdminClassworkScreenState();
 }
 
-class _WorksScreenState extends State<WorksScreen> {
+class _AdminClassworkScreenState extends State<AdminClassworkScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
-  String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
+  String userName = FirebaseAuthService.cachedProfile?.name ?? 'Admin';
   String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
   bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
@@ -53,10 +52,9 @@ class _WorksScreenState extends State<WorksScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // Removed SafeArea to allow header to go behind status bar (matching Meeting Screen)
       body: Column(
         children: [
-          // ------------ HEADER (Matches TutorMeetingControlScreen) ------------
+          // ------------ HEADER ------------
           Container(
             width: w,
             height: h * 0.16,
@@ -74,45 +72,55 @@ class _WorksScreenState extends State<WorksScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: h * 0.05),
-                  // Title
-                  if (widget.className != null) ...[
-                    Text(
-                      widget.className!,
-                      style: TextStyle(
-                        fontSize: h * 0.028,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      "Your works",
-                      style: TextStyle(
-                        fontSize: h * 0.016,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white70,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (widget.className != null) ...[
+                              Text(
+                                widget.className!,
+                                style: TextStyle(
+                                  fontSize: h * 0.028,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                "Classwork (Admin View)",
+                                style: TextStyle(
+                                  fontSize: h * 0.016,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ] else
+                              Text(
+                                "Classwork (Admin View)",
+                                style: TextStyle(
+                                  fontSize: h * 0.03,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ] else
-                    Text(
-                      "Your works",
-                      style: TextStyle(
-                        fontSize: h * 0.03,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
+                  ),
                   SizedBox(height: h * 0.006),
-                  // User Profile
                   Text(
                     profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(
-                      fontSize: h * 0.014, // Matches Meeting Screen size
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: h * 0.014, color: Colors.white),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -133,11 +141,19 @@ class _WorksScreenState extends State<WorksScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Create",
+                      "Manage Classwork",
                       style: TextStyle(
                         fontSize: w * 0.049,
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: h * 0.01),
+                    Text(
+                      "View and manage assignments, tests, materials, and chat",
+                      style: TextStyle(
+                        fontSize: w * 0.035,
+                        color: isDark ? Colors.white70 : Colors.black54,
                       ),
                     ),
                     SizedBox(height: h * 0.02),
@@ -154,7 +170,7 @@ class _WorksScreenState extends State<WorksScreen> {
                         w,
                         h,
                         Icons.assignment_outlined,
-                        "Assignment",
+                        "Assignments",
                         isDark,
                       ),
                     ),
@@ -171,7 +187,7 @@ class _WorksScreenState extends State<WorksScreen> {
                         w,
                         h,
                         Icons.note_alt_outlined,
-                        "Test",
+                        "Tests",
                         isDark,
                       ),
                     ),
@@ -188,7 +204,7 @@ class _WorksScreenState extends State<WorksScreen> {
                         w,
                         h,
                         Icons.insert_drive_file_outlined,
-                        "Material",
+                        "Materials",
                         isDark,
                       ),
                     ),
@@ -197,7 +213,7 @@ class _WorksScreenState extends State<WorksScreen> {
                         onTap:
                             () => goPush(
                               context,
-                              TutorChatPage(
+                              AdminChatPage(
                                 classId: widget.classId!,
                                 className: widget.className ?? 'Class',
                               ),

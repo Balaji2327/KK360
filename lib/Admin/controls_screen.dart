@@ -5,6 +5,7 @@ import '../services/firebase_auth_service.dart';
 import 'student_control.dart';
 import 'tutor_control.dart';
 import 'admin_control.dart';
+import 'class_chat_selection.dart';
 
 class AdminControlSelectionScreen extends StatefulWidget {
   const AdminControlSelectionScreen({super.key});
@@ -145,6 +146,19 @@ class _AdminControlSelectionScreenState
                   isDark: isDark,
                   onTap: () {
                     goPush(context, const AdminControlScreen());
+                  },
+                ),
+
+                SizedBox(height: h * 0.02),
+
+                _controlTile(
+                  w: w,
+                  h: h,
+                  icon: Icons.chat_bubble_outline,
+                  title: "Class Chats",
+                  isDark: isDark,
+                  onTap: () {
+                    goPush(context, const AdminClassChatSelection());
                   },
                 ),
               ],

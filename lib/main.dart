@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'nav_observer.dart';
 import 'theme_manager.dart';
@@ -13,6 +14,8 @@ void main() async {
 
   // Load environment variables from .env file
   await dotenv.load();
+
+  await Hive.initFlutter();
 
   try {
     await Firebase.initializeApp(

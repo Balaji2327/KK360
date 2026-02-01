@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
 import '../Admin/invite_admin.dart';
+import '../Admin/admin_classwork.dart';
 import '../Tutor/invite_student.dart';
 import '../Tutor/invite_tutor.dart';
 import '../Student/course_screen.dart';
@@ -667,18 +668,19 @@ class ClassCard extends StatelessWidget {
   }
 
   void _navigateToClasswork(BuildContext context) {
-    // Admin has no classwork view, so do nothing
-    if (userRole == 'admin') {
-      return;
-    }
-
     // Extract just the document ID from the class ID
     final classId =
         classInfo.id.contains('/')
             ? classInfo.id.split('/').last
             : classInfo.id;
 
-    if (userRole == 'tutor') {
+    if (userRole == 'admin') {
+      // Navigate to Admin classwork screen
+      goPush(
+        context,
+        AdminClassworkScreen(classId: classId, className: classInfo.name),
+      );
+    } else if (userRole == 'tutor') {
       // Navigate to Tutor works screen
       goPush(context, WorksScreen(classId: classId, className: classInfo.name));
     } else {

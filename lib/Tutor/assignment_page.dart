@@ -108,19 +108,17 @@ class _AssignmentPageState extends State<AssignmentPage> {
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
         child: GestureDetector(
-          onTap: () => goPush(
-            context,
-            CreateAssignmentScreen(classId: widget.classId),
-          ).then((_) => _refreshAssignments()),
+          onTap:
+              () => goPush(
+                context,
+                CreateAssignmentScreen(classId: widget.classId),
+              ).then((_) => _refreshAssignments()),
           child: Container(
             height: h * 0.065,
             width: h * 0.065,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF4B3FA3),
-                  Color(0xFF6B5FB8),
-                ],
+                colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -187,11 +185,11 @@ class _AssignmentPageState extends State<AssignmentPage> {
 
           SizedBox(height: h * 0.0005),
 
-          // Content
           Expanded(
-            child: _assignmentsLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _myAssignments.isEmpty
+            child:
+                _assignmentsLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _myAssignments.isEmpty
                     ? _buildEmptyState(h, w, isDark)
                     : _buildAssignmentsList(h, w, isDark),
           ),
@@ -297,10 +295,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
             padding: EdgeInsets.all(w * 0.04),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF4B3FA3),
-                  Color(0xFF6B5FB8),
-                ],
+                colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -334,67 +329,62 @@ class _AssignmentPageState extends State<AssignmentPage> {
                     size: 24,
                   ),
                   color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                  onSelected: (value) =>
-                      _handleAssignmentAction(assignment, value),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'view_submissions',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.people,
-                            size: 18,
-                            color:
-                                isDark ? Colors.white70 : Colors.black87,
+                  onSelected:
+                      (value) => _handleAssignmentAction(assignment, value),
+                  itemBuilder:
+                      (context) => [
+                        PopupMenuItem(
+                          value: 'view_submissions',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.people,
+                                size: 18,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Submissions',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Submissions',
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
+                        ),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.edit,
+                                size: 18,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Edit',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.edit,
-                            size: 18,
-                            color:
-                                isDark ? Colors.white70 : Colors.black87,
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Edit',
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete,
-                            size: 18,
-                            color: Colors.red,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                      ],
                 ),
               ],
             ),
@@ -435,8 +425,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                     assignment.description,
                     style: TextStyle(
                       fontSize: 14,
-                      color:
-                          isDark ? Colors.white70 : Colors.grey.shade700,
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
                       height: 1.4,
                     ),
                     maxLines: 2,
@@ -455,19 +444,14 @@ class _AssignmentPageState extends State<AssignmentPage> {
                 Row(
                   children: [
                     if (assignment.points.isNotEmpty) ...[
-                      Icon(
-                        Icons.verified_outlined,
-                        size: 18,
-                        color: appColor,
-                      ),
+                      Icon(Icons.verified_outlined, size: 18, color: appColor),
                       const SizedBox(width: 6),
                       Text(
                         '${assignment.points} pts',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color:
-                              isDark ? Colors.white70 : Colors.grey.shade800,
+                          color: isDark ? Colors.white70 : Colors.grey.shade800,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -485,8 +469,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color:
-                            isDark ? Colors.white70 : Colors.grey.shade800,
+                        color: isDark ? Colors.white70 : Colors.grey.shade800,
                       ),
                     ),
                   ],
@@ -535,59 +518,58 @@ class _AssignmentPageState extends State<AssignmentPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-        title: Text(
-          'Delete Assignment',
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${assignment.title}"? This cannot be undone.',
-          style: TextStyle(
-            color: isDark ? Colors.white70 : Colors.black87,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => goBack(ctx),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: isDark ? Colors.white70 : Colors.grey,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+            title: Text(
+              'Delete Assignment',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            ),
+            content: Text(
+              'Are you sure you want to delete "${assignment.title}"? This cannot be undone.',
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => goBack(ctx),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.grey,
+                  ),
+                ),
               ),
-            ),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await _authService.deleteAssignment(
+                      projectId: 'kk360-69504',
+                      assignmentId: assignment.id,
+                    );
+                    goBack(ctx);
+                    _refreshAssignments();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Assignment deleted successfully'),
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error deleting assignment: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await _authService.deleteAssignment(
-                  projectId: 'kk360-69504',
-                  assignmentId: assignment.id,
-                );
-                goBack(ctx);
-                _refreshAssignments();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Assignment deleted successfully'),
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error deleting assignment: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 }

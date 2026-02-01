@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'dart:ui';
-import 'dart:math' as math;
 import '../services/firebase_auth_service.dart';
 
 class SubmissionDialog extends StatefulWidget {

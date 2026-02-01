@@ -181,19 +181,6 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
         }
         attachmentUrl = await _authService.uploadFile(fileBytes, fileName);
       } else {
-        // If updating and no new file, keep old url?
-        // Logic currently replaces it if we are submitting fresh.
-        // If we want to keep old attachment when only updating link, we'd need to fetch it or pass it.
-        // For now, simplicity: if no new file, attachment is null unless we explicitly handle retaining.
-        // However, user might expect to just add a link.
-        // Let's rely on the user re-uploading if they want to change file,
-        // or we need to pass the existing attachmentUrl to submitAssignment if we want to keep it.
-        // Currently submitAssignment accepts attachmentUrl. If null, it might clear it in Firestore?
-        // Let's check submitAssignment logic. It adds field if not null.
-        // If we want to CLEAR it, we might need to send null value, but Firestore REST API is tricky with delete fields.
-        // For this task, let's assume if they don't upload a file, they might be just submitting a link.
-        // But if they *had* a file, they might lose it if we don't pass it back.
-
         // Better approach: Grab existing submission
         final existing = _mySubmissions[assignmentId];
         if (existing != null && submissionId != null) {
@@ -245,7 +232,6 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
       body: Column(
         children: [
           // header
@@ -289,7 +275,6 @@ class _StudentAssignmentPageState extends State<StudentAssignmentPage> {
 
           SizedBox(height: h * 0.0005),
 
-          // content
           Expanded(
             child:
                 _assignmentsLoading

@@ -132,7 +132,6 @@ class _StudentMaterialPageState extends State<StudentMaterialPage> {
 
           SizedBox(height: h * 0.0005),
 
-          // --- Main Content ---
           Expanded(
             child:
                 _unitsLoading

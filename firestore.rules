@@ -132,5 +132,55 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null && (resource.data.createdBy == request.auth.uid || isAdmin());
     }
+
+    // Chat Rooms collection
+    match /chatRooms/{chatRoomId} {
+      allow read: if request.auth != null && (
+        // Tutor can read their own class chat
+        (isTutor() && resource.data.tutorId == request.auth.uid) ||
+        // Student can read chat of their enrolled class
+        (isStudent() && resource.data.studentIds.hasAny([request.auth.uid])) ||
+        // Admin can read all chats
+        isAdmin()
+      );
+      
+      allow create: if request.auth != null && (isTutor() || isAdmin());
+      
+      allow update: if request.auth != null && (
+        resource.data.tutorId == request.auth.uid || 
+        isAdmin()
+      );
+      
+      allow delete: if isAdmin();
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read: if request.auth != null && (
+          // Tutor can read messages from their chat room
+          (isTutor() && get(/databases/$(database)/documents/chatRooms/$(chatRoomId)).data.tutorId == request.auth.uid) ||
+          // Student can read messages from their chat room
+          (isStudent() && get(/databases/$(database)/documents/chatRooms/$(chatRoomId)).data.studentIds.hasAny([request.auth.uid])) ||
+          // Admin can read all messages
+          isAdmin()
+        );
+        
+        allow create: if request.auth != null && (
+          request.resource.data.senderId == request.auth.uid &&
+          (
+            // Tutor sending message
+            (isTutor() && get(/databases/$(database)/documents/chatRooms/$(chatRoomId)).data.tutorId == request.auth.uid) ||
+            // Student sending message
+            (isStudent() && get(/databases/$(database)/documents/chatRooms/$(chatRoomId)).data.studentIds.hasAny([request.auth.uid]))
+          )
+        );
+        
+        allow update: if request.auth != null && (
+          request.resource.data.senderId == request.auth.uid ||
+          isAdmin()
+        );
+        
+        allow delete: if isAdmin();
+      }
+    }
   }
 }

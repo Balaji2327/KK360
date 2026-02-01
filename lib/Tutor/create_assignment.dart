@@ -28,7 +28,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   final FirebaseAuthService _auth = FirebaseAuthService();
   List<ClassInfo> _myClasses = [];
   List<String> _selectedClassIds = [];
-  bool _classesLoading = false;
 
   @override
   void initState() {
@@ -59,7 +58,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   }
 
   Future<void> _loadMyClasses() async {
-    setState(() => _classesLoading = true);
     try {
       final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
       if (!mounted) return;
@@ -76,12 +74,10 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
         } else {
           _selectedClassIds = [];
         }
-        _classesLoading = false;
       });
       _fetchStudentsForSelectedClasses();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _classesLoading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load classes: $e')));
@@ -212,24 +208,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
         _pickedFile = result.files.first;
       });
     }
-  }
-
-  Widget _chip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF4B3FA3),
-        borderRadius: BorderRadius.circular(50),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
   }
 
   void _showClassSelectionDialog() {

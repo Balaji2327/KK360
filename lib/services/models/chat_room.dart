@@ -1,3 +1,5 @@
+import 'chat_permissions.dart';
+
 class ChatRoom {
   final String id;
   final String classId;
@@ -11,6 +13,7 @@ class ChatRoom {
   final String lastMessageSenderId;
   final DateTime? lastMessageTime;
   final bool isActive;
+  final ChatPermissions permissions;
 
   ChatRoom({
     required this.id,
@@ -25,7 +28,8 @@ class ChatRoom {
     required this.lastMessageSenderId,
     this.lastMessageTime,
     this.isActive = true,
-  });
+    ChatPermissions? permissions,
+  }) : permissions = permissions ?? ChatPermissions();
 
   // Convert ChatRoom to JSON for Firestore
   Map<String, dynamic> toJson() {
@@ -42,6 +46,7 @@ class ChatRoom {
       'lastMessageTime':
           lastMessageTime != null ? lastMessageTime!.toIso8601String() : null,
       'isActive': isActive,
+      'permissions': permissions.toJson(),
     };
   }
 
@@ -69,6 +74,12 @@ class ChatRoom {
               ? DateTime.tryParse(json['lastMessageTime'] as String)
               : null,
       isActive: json['isActive'] ?? true,
+      permissions:
+          json['permissions'] != null
+              ? ChatPermissions.fromJson(
+                Map<String, dynamic>.from(json['permissions'] as Map),
+              )
+              : null,
     );
   }
 
@@ -86,6 +97,7 @@ class ChatRoom {
     String? lastMessageSenderId,
     DateTime? lastMessageTime,
     bool? isActive,
+    ChatPermissions? permissions,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -100,6 +112,7 @@ class ChatRoom {
       lastMessageSenderId: lastMessageSenderId ?? this.lastMessageSenderId,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       isActive: isActive ?? this.isActive,
+      permissions: permissions ?? this.permissions,
     );
   }
 }

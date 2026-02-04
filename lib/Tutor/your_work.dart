@@ -5,6 +5,7 @@ import 'assignment_page.dart';
 import 'test_page.dart';
 import 'tutor_material_page.dart';
 import 'chat_page.dart';
+import 'class_chat_selection.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
@@ -192,24 +193,25 @@ class _WorksScreenState extends State<WorksScreen> {
                         isDark,
                       ),
                     ),
-                    if (widget.classId != null)
-                      GestureDetector(
-                        onTap:
-                            () => goPush(
-                              context,
-                              TutorChatPage(
-                                classId: widget.classId!,
-                                className: widget.className ?? 'Class',
-                              ),
-                            ),
-                        child: featureTile(
-                          w,
-                          h,
-                          Icons.chat_bubble_outline,
-                          "Chat",
-                          isDark,
-                        ),
+                    GestureDetector(
+                      onTap:
+                          () => goPush(
+                            context,
+                            widget.classId != null
+                                ? TutorChatPage(
+                                  classId: widget.classId!,
+                                  className: widget.className ?? 'Class',
+                                )
+                                : const TutorClassChatSelection(),
+                          ),
+                      child: featureTile(
+                        w,
+                        h,
+                        Icons.chat_bubble_outline,
+                        "Chat",
+                        isDark,
                       ),
+                    ),
                     SizedBox(height: h * 0.03),
                   ],
                 ),

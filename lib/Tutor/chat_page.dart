@@ -3,6 +3,8 @@ import '../services/chat_service.dart';
 import '../services/models/chat_room.dart';
 import '../services/models/message.dart';
 import '../services/firebase_auth_service.dart';
+import '../widgets/nav_helper.dart';
+import 'chat_permission_settings.dart';
 
 class TutorChatPage extends StatefulWidget {
   final String classId;
@@ -244,6 +246,25 @@ class _TutorChatPageState extends State<TutorChatPage> {
                     ],
                   ),
                 ),
+                // Settings Button
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.white),
+                  onPressed: () async {
+                    if (_chatRoom != null) {
+                      final result = await goPush(
+                        context,
+                        TutorChatPermissionSettingsPage(
+                          chatRoomId: _chatRoom!.id,
+                          className: widget.className,
+                        ),
+                      );
+                      if (result == true) {
+                        // Reload chat data to get updated permissions
+                        _loadChatData();
+                      }
+                    }
+                  },
+                ),
               ],
             ),
           ),
@@ -397,71 +418,112 @@ class _TutorChatPageState extends State<TutorChatPage> {
                 ],
               ),
               padding: EdgeInsets.all(w * 0.04),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide(
-                            color: Colors.grey.withOpacity(0.3),
+              child:
+                  _chatRoom!.permissions.canSendMessages('tutor')
+                      ? Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              decoration: InputDecoration(
+                                hintText: 'Type a message...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.withOpacity(0.3),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.withOpacity(0.3),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF4B3FA3),
+                                  ),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: w * 0.04,
+                                  vertical: h * 0.015,
+                                ),
+                              ),
+                              maxLines: null,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) => _sendMessage(),
+                            ),
                           ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide(
-                            color: Colors.grey.withOpacity(0.3),
+                          SizedBox(width: w * 0.03),
+                          GestureDetector(
+                            onTap: _sending ? null : _sendMessage,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color:
+                                    _sending
+                                        ? Colors.grey
+                                        : const Color(0xFF4B3FA3),
+                                shape: BoxShape.circle,
+                              ),
+                              padding: EdgeInsets.all(w * 0.03),
+                              child:
+                                  _sending
+                                      ? SizedBox(
+                                        height: h * 0.025,
+                                        width: h * 0.025,
+                                        child: const CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                        ),
+                                      )
+                                      : const Icon(
+                                        Icons.send,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                            ),
                           ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF4B3FA3),
-                          ),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
+                        ],
+                      )
+                      : Container(
+                        padding: EdgeInsets.symmetric(
                           horizontal: w * 0.04,
                           vertical: h * 0.015,
                         ),
-                      ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  SizedBox(width: w * 0.03),
-                  GestureDetector(
-                    onTap: _sending ? null : _sendMessage,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _sending ? Colors.grey : const Color(0xFF4B3FA3),
-                        shape: BoxShape.circle,
-                      ),
-                      padding: EdgeInsets.all(w * 0.03),
-                      child:
-                          _sending
-                              ? SizedBox(
-                                height: h * 0.025,
-                                width: h * 0.025,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.orange.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              color: Colors.orange,
+                              size: h * 0.025,
+                            ),
+                            SizedBox(width: w * 0.03),
+                            Expanded(
+                              child: Text(
+                                'Only ${_chatRoom!.permissions.messagingPermission.displayName} can send messages in this chat.',
+                                style: TextStyle(
+                                  fontSize: h * 0.016,
+                                  color:
+                                      isDark
+                                          ? Colors.orange[200]
+                                          : Colors.orange[800],
                                 ),
-                              )
-                              : const Icon(
-                                Icons.send,
-                                color: Colors.white,
-                                size: 20,
                               ),
-                    ),
-                  ),
-                ],
-              ),
+                            ),
+                          ],
+                        ),
+                      ),
             ),
         ],
       ),

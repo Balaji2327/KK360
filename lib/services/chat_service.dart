@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'models/message.dart';
 import 'models/chat_room.dart';
+import 'models/chat_permissions.dart';
 
 class ChatService {
   static const String _chatRoomsBoxName = 'chat_rooms';
@@ -62,6 +63,7 @@ class ChatService {
           lastMessageSenderId: existingRoom.lastMessageSenderId,
           lastMessageTime: existingRoom.lastMessageTime,
           isActive: existingRoom.isActive,
+          permissions: existingRoom.permissions,
         );
 
         // Save the updated room
@@ -331,6 +333,14 @@ class ChatService {
     required String userId,
     required ChatRoom chatRoom,
   }) {
+    if (userRole == 'admin') {
+      return;
+    }
+
+    if (!chatRoom.permissions.canSendMessages(userRole)) {
+      throw 'You do not have permission to send messages in this chat';
+    }
+
     if (userRole == 'tutor') {
       if (userId != chatRoom.tutorId) {
         throw 'Tutors can only send messages to their own classes';
@@ -339,9 +349,6 @@ class ChatService {
       if (!chatRoom.studentIds.contains(userId)) {
         throw 'You are not enrolled in this class and cannot send messages';
       }
-    } else if (userRole == 'admin') {
-      // Admins can send messages to all classes
-      return;
     } else {
       throw 'Invalid user role: $userRole';
     }
@@ -387,6 +394,55 @@ class ChatService {
       _roomsBox().put(chatRoomId, map);
     } catch (e) {
       debugPrint('[ChatService] Error updating last message: $e');
+    }
+  }
+
+  // Update chat permissions (tutor only)
+  Future<void> updateChatPermissions({
+    required String chatRoomId,
+    required ChatPermissions newPermissions,
+    required String tutorId,
+    required String tutorRole,
+    required String idToken,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+
+      final chatRoom = await _getChatRoomById(chatRoomId, idToken);
+
+      // Verify tutor access
+      if (tutorRole != 'tutor' || chatRoom.tutorId != tutorId) {
+        throw 'Only the class tutor can update chat permissions';
+      }
+
+      // Update permissions
+      final updatedRoom = chatRoom.copyWith(
+        permissions: newPermissions.copyWith(
+          lastModified: DateTime.now(),
+          lastModifiedBy: tutorId,
+        ),
+        updatedAt: DateTime.now(),
+      );
+
+      _roomsBox().put(chatRoomId, updatedRoom.toJson());
+      debugPrint('[ChatService] Updated permissions for chat room $chatRoomId');
+    } catch (e) {
+      debugPrint('[ChatService] Error updating chat permissions: $e');
+      rethrow;
+    }
+  }
+
+  // Get chat permissions for a room
+  Future<ChatPermissions> getChatPermissions({
+    required String chatRoomId,
+    required String idToken,
+  }) async {
+    try {
+      final chatRoom = await _getChatRoomById(chatRoomId, idToken);
+      return chatRoom.permissions;
+    } catch (e) {
+      debugPrint('[ChatService] Error getting chat permissions: $e');
+      rethrow;
     }
   }
 }

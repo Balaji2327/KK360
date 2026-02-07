@@ -83,8 +83,8 @@ class _TutorChatPermissionSettingsPageState
       await _chatService.updateChatPermissions(
         chatRoomId: widget.chatRoomId,
         newPermissions: newPermissions,
-        tutorId: _userId,
-        tutorRole: 'tutor',
+        userId: _userId,
+        userRole: 'tutor',
         idToken: _idToken,
       );
 

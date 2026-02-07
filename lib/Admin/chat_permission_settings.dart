@@ -26,7 +26,7 @@ class _ChatPermissionSettingsPageState
   bool _loading = true;
   bool _saving = false;
   ChatPermissions? _currentPermissions;
-  ChatPermissionLevel _selectedLevel = ChatPermissionLevel.everyone;
+  ChatPermissionLevel _selectedLevel = ChatPermissionLevel.tutorAndStudents;
   String _userId = '';
   String _idToken = '';
 
@@ -83,8 +83,8 @@ class _ChatPermissionSettingsPageState
       await _chatService.updateChatPermissions(
         chatRoomId: widget.chatRoomId,
         newPermissions: newPermissions,
-        adminId: _userId,
-        adminRole: 'admin',
+        userId: _userId,
+        userRole: 'admin',
         idToken: _idToken,
       );
 
@@ -227,31 +227,12 @@ class _ChatPermissionSettingsPageState
                           ),
                           SizedBox(height: h * 0.015),
 
-                          // Admin Only Option
+                          // Tutor Only Option
                           _buildPermissionOption(
-                            level: ChatPermissionLevel.adminOnly,
-                            title: ChatPermissionLevel.adminOnly.displayName,
+                            level: ChatPermissionLevel.tutorOnly,
+                            title: ChatPermissionLevel.tutorOnly.displayName,
                             description:
-                                ChatPermissionLevel.adminOnly.description,
-                            icon: Icons.admin_panel_settings,
-                            isDark: isDark,
-                            h: h,
-                            w: w,
-                          ),
-
-                          SizedBox(height: h * 0.015),
-
-                          // Admin & Tutor Only Option
-                          _buildPermissionOption(
-                            level: ChatPermissionLevel.adminAndTutorOnly,
-                            title:
-                                ChatPermissionLevel
-                                    .adminAndTutorOnly
-                                    .displayName,
-                            description:
-                                ChatPermissionLevel
-                                    .adminAndTutorOnly
-                                    .description,
+                                ChatPermissionLevel.tutorOnly.description,
                             icon: Icons.school,
                             isDark: isDark,
                             h: h,
@@ -260,12 +241,17 @@ class _ChatPermissionSettingsPageState
 
                           SizedBox(height: h * 0.015),
 
-                          // Everyone Option
+                          // Tutor + Students Option
                           _buildPermissionOption(
-                            level: ChatPermissionLevel.everyone,
-                            title: ChatPermissionLevel.everyone.displayName,
+                            level: ChatPermissionLevel.tutorAndStudents,
+                            title:
+                                ChatPermissionLevel
+                                    .tutorAndStudents
+                                    .displayName,
                             description:
-                                ChatPermissionLevel.everyone.description,
+                                ChatPermissionLevel
+                                    .tutorAndStudents
+                                    .description,
                             icon: Icons.people,
                             isDark: isDark,
                             h: h,

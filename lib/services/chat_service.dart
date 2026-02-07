@@ -397,12 +397,12 @@ class ChatService {
     }
   }
 
-  // Update chat permissions (tutor only)
+  // Update chat permissions
   Future<void> updateChatPermissions({
     required String chatRoomId,
     required ChatPermissions newPermissions,
-    required String tutorId,
-    required String tutorRole,
+    required String userId,
+    required String userRole,
     required String idToken,
   }) async {
     try {
@@ -410,16 +410,22 @@ class ChatService {
 
       final chatRoom = await _getChatRoomById(chatRoomId, idToken);
 
-      // Verify tutor access
-      if (tutorRole != 'tutor' || chatRoom.tutorId != tutorId) {
-        throw 'Only the class tutor can update chat permissions';
+      // Verify access
+      if (userRole == 'admin') {
+        // Admins can update any chat permissions
+      } else if (userRole == 'tutor') {
+        if (chatRoom.tutorId != userId) {
+          throw 'Only the class tutor can update chat permissions';
+        }
+      } else {
+        throw 'You do not have permission to update chat permissions';
       }
 
       // Update permissions
       final updatedRoom = chatRoom.copyWith(
         permissions: newPermissions.copyWith(
           lastModified: DateTime.now(),
-          lastModifiedBy: tutorId,
+          lastModifiedBy: userId,
         ),
         updatedAt: DateTime.now(),
       );

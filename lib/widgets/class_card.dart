@@ -6,6 +6,7 @@ import '../Tutor/invite_student.dart';
 import '../Tutor/invite_tutor.dart';
 import '../Student/course_screen.dart';
 import '../Tutor/your_work.dart';
+import '../Test_Creator/test_creator_works_screen.dart';
 import 'nav_helper.dart';
 
 class ClassCard extends StatelessWidget {
@@ -37,7 +38,8 @@ class ClassCard extends StatelessWidget {
                 : 'Untitled Class');
 
     final isOwner =
-        (userRole == 'tutor' && classInfo.tutorId == currentUserId) ||
+        ((userRole == 'tutor' || userRole == 'test_creator') &&
+            classInfo.tutorId == currentUserId) ||
         userRole == 'admin';
 
     return Padding(
@@ -187,7 +189,7 @@ class ClassCard extends StatelessWidget {
                 ),
                 SizedBox(width: 6),
                 Text(
-                  '${classInfo.members.length + 1} member${(classInfo.members.length + 1) != 1 ? 's' : ''}',
+                  '${classInfo.members.length} student${classInfo.members.length != 1 ? 's' : ''}',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
                 SizedBox(width: 16),
@@ -200,7 +202,11 @@ class ClassCard extends StatelessWidget {
                 Text(
                   userRole == 'tutor'
                       ? 'You are the tutor'
-                      : (userRole == 'admin' ? 'You are the admin' : 'Student'),
+                      : (userRole == 'admin'
+                          ? 'You are the admin'
+                          : (userRole == 'test_creator'
+                              ? 'You are the test creator'
+                              : 'Student')),
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
@@ -683,6 +689,11 @@ class ClassCard extends StatelessWidget {
     } else if (userRole == 'tutor') {
       // Navigate to Tutor works screen
       goPush(context, WorksScreen(classId: classId, className: classInfo.name));
+    } else if (userRole == 'test_creator') {
+      goPush(
+        context,
+        TestCreatorWorksScreen(classId: classId, className: classInfo.name),
+      );
     } else {
       // Navigate to Student course screen
       goPush(

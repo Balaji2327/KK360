@@ -50,8 +50,20 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     setState(() => _tutorsLoading = true);
     try {
       final tutors = await _authService.getAllTutors(projectId: 'kk360-69504');
+      final testCreators = await _authService.getAllTestCreators(
+        projectId: 'kk360-69504',
+      );
+
+      // Add role identifier
+      for (var t in tutors) {
+        t['role'] = 'Tutor';
+      }
+      for (var tc in testCreators) {
+        tc['role'] = 'Test Creator';
+      }
+
       setState(() {
-        _tutors = tutors;
+        _tutors = [...tutors, ...testCreators];
         _filteredTutors = List.from(_tutors);
         _tutorsLoading = false;
       });
@@ -304,14 +316,28 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
               ),
             ),
           ),
+
           Expanded(
             flex: 2,
-            child: Text(
-              tutor['name']!,
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  tutor['name']!,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                Text(
+                  tutor['role'] ?? 'Tutor',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -522,254 +548,302 @@ class _TutorControlScreenState extends State<TutorControlScreen> {
     final TextEditingController confirmPasswordController =
         TextEditingController();
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+    String selectedRole = 'tutor'; // Default role
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-          title: Text(
-            'Add New Tutor',
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white : const Color(0xFF4B3FA3),
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: tutorIdController,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Tutor ID',
-                      labelStyle: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black54,
-                      ),
-                      border: const OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey,
-                        ),
-                      ),
-                      prefixIcon: Icon(
-                        Icons.badge,
-                        color: isDark ? Colors.white70 : Colors.grey,
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter tutor ID';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: nameController,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      labelStyle: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black54,
-                      ),
-                      border: const OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey,
-                        ),
-                      ),
-                      prefixIcon: Icon(
-                        Icons.person,
-                        color: isDark ? Colors.white70 : Colors.grey,
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: emailController,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black54,
-                      ),
-                      border: const OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey,
-                        ),
-                      ),
-                      prefixIcon: Icon(
-                        Icons.email,
-                        color: isDark ? Colors.white70 : Colors.grey,
-                      ),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter email';
-                      }
-                      if (!RegExp(
-                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                      ).hasMatch(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: passwordController,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      labelStyle: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black54,
-                      ),
-                      border: const OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey,
-                        ),
-                      ),
-                      prefixIcon: Icon(
-                        Icons.lock,
-                        color: isDark ? Colors.white70 : Colors.grey,
-                      ),
-                    ),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter password';
-                      }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: confirmPasswordController,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Confirm Password',
-                      labelStyle: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black54,
-                      ),
-                      border: const OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey,
-                        ),
-                      ),
-                      prefixIcon: Icon(
-                        Icons.lock_outline,
-                        color: isDark ? Colors.white70 : Colors.grey,
-                      ),
-                    ),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please confirm password';
-                      }
-                      if (value != passwordController.text) {
-                        return 'Passwords do not match';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+              title: Text(
+                'Add New User',
                 style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.black87,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : const Color(0xFF4B3FA3),
                 ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-                  final navigator = Navigator.of(context);
-
-                  // Show loading
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder:
-                        (ctx) =>
-                            const Center(child: CircularProgressIndicator()),
-                  );
-
-                  try {
-                    await _authService.createTutorAccount(
-                      email: emailController.text.trim(),
-                      password: passwordController.text,
-                      name: nameController.text.trim(),
-                      tutorId: tutorIdController.text.trim(),
-                      projectId: 'kk360-69504',
-                    );
-
-                    navigator.pop(); // Close loading
-                    navigator.pop(); // Close add dialog
-
-                    // Refresh list
-                    await _loadTutors();
-
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Tutor ${tutorIdController.text} added successfully!',
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Role Selection
+                      DropdownButtonFormField<String>(
+                        value: selectedRole,
+                        decoration: InputDecoration(
+                          labelText: 'Role',
+                          labelStyle: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                          border: const OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.grey,
+                            ),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.admin_panel_settings,
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
                         ),
-                        backgroundColor: Colors.green,
+                        dropdownColor:
+                            isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'tutor',
+                            child: Text('Tutor'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'test_creator',
+                            child: Text('Test Creator'),
+                          ),
+                        ],
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              selectedRole = newValue;
+                            });
+                          }
+                        },
                       ),
-                    );
-                  } catch (e) {
-                    if (navigator.canPop()) navigator.pop(); // Close loading
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(
-                        content: Text('Error adding tutor: $e'),
-                        backgroundColor: Colors.red,
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: tutorIdController,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Tutor ID',
+                          labelStyle: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                          border: const OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.grey,
+                            ),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.badge,
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter tutor ID';
+                          }
+                          return null;
+                        },
                       ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4B3FA3),
-                foregroundColor: Colors.white,
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: nameController,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Name',
+                          labelStyle: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                          border: const OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.grey,
+                            ),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.person,
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: emailController,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          labelStyle: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                          border: const OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.grey,
+                            ),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.email,
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter email';
+                          }
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: passwordController,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          labelStyle: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                          border: const OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.grey,
+                            ),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.lock,
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
+                        ),
+                        obscureText: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter password';
+                          }
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: confirmPasswordController,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          labelStyle: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                          border: const OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.grey,
+                            ),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
+                        ),
+                        obscureText: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please confirm password';
+                          }
+                          if (value != passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: const Text('Add Tutor'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+
+                      // Show loading
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder:
+                            (ctx) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                      );
+
+                      try {
+                        await _authService.createTutorAccount(
+                          email: emailController.text.trim(),
+                          password: passwordController.text,
+                          name: nameController.text.trim(),
+                          tutorId: tutorIdController.text.trim(),
+                          projectId: 'kk360-69504',
+                          role: selectedRole,
+                        );
+
+                        navigator.pop(); // Close loading
+                        navigator.pop(); // Close add dialog
+
+                        // Refresh list
+                        await _loadTutors();
+
+                        scaffoldMessenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Tutor ${tutorIdController.text} added successfully!',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } catch (e) {
+                        if (navigator.canPop())
+                          navigator.pop(); // Close loading
+                        scaffoldMessenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Error adding tutor: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4B3FA3),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Add Tutor'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

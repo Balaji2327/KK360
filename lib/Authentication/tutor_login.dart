@@ -6,6 +6,7 @@ import 'student_login.dart';
 import 'otp_screen.dart';
 import '../Tutor/tutor_main_screen.dart';
 import '../widgets/nav_helper.dart';
+import '../Test_Creator/test_creator_main_screen.dart';
 
 class TutorLoginScreen extends StatefulWidget {
   const TutorLoginScreen({super.key});
@@ -229,8 +230,20 @@ class _TutorLoginScreenState extends State<TutorLoginScreen> {
                             final prefs = await SharedPreferences.getInstance();
                             await prefs.setString('userRole', 'tutor');
 
+                            final profile = await _authService.getUserProfile(
+                              projectId: 'kk360-69504',
+                              forceRefresh: true,
+                            );
+
                             if (mounted) {
-                              goReplace(context, const TutorMainScreen());
+                              if (profile?.role == 'test_creator') {
+                                goReplace(
+                                  context,
+                                  const TestCreatorMainScreen(),
+                                );
+                              } else {
+                                goReplace(context, const TutorMainScreen());
+                              }
                             }
                           } catch (e) {
                             if (!mounted) return;

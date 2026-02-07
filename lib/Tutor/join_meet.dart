@@ -39,13 +39,13 @@ class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
         forceRefresh: true,
       );
 
-      if (profile?.role != 'tutor') {
+      if (profile?.role != 'tutor' && profile?.role != 'test_creator') {
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Access Denied: You are not authorized as a Tutor.',
+                'Access Denied: You are not authorized as a Tutor or Test Creator.',
               ),
               backgroundColor: Colors.red,
             ),
@@ -65,10 +65,13 @@ class _TutorJoinMeetingScreenState extends State<TutorJoinMeetingScreen> {
 
     setState(() => _isLoading = false);
 
-    String url = code;
+    // Sanitize code: remove spaces
+    String cleanedCode = code.replaceAll(' ', '');
+    String url = cleanedCode;
+
     if (!url.startsWith('http') && !url.contains('.')) {
       // Assume it's a code
-      url = 'https://meet.google.com/$code';
+      url = 'https://meet.google.com/$cleanedCode';
     }
 
     try {

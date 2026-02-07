@@ -51,7 +51,7 @@ class FirebaseAuthService {
     required String email,
     required String password,
     required String projectId,
-    required String requiredRole,
+    required List<String> allowedRoles,
     required String roleDisplayName,
   }) async {
     final credential = await signInWithEmail(email: email, password: password);
@@ -89,7 +89,9 @@ class FirebaseAuthService {
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       final role = body['fields']?['role']?['stringValue'] as String?;
       debugPrint('[Auth] Role for user ${user.uid}: $role');
-      if (role == requiredRole) return credential;
+
+      if (role != null && allowedRoles.contains(role)) return credential;
+
       await _auth.signOut();
       throw 'This account is registered as a $role. Please login with a $roleDisplayName account.';
     } else if (resp.statusCode == 404) {
@@ -128,7 +130,7 @@ class FirebaseAuthService {
     email: email,
     password: password,
     projectId: projectId,
-    requiredRole: 'student',
+    allowedRoles: ['student'],
     roleDisplayName: 'Student',
   );
 
@@ -140,7 +142,7 @@ class FirebaseAuthService {
     email: email,
     password: password,
     projectId: projectId,
-    requiredRole: 'tutor',
+    allowedRoles: ['tutor', 'test_creator'],
     roleDisplayName: 'Tutor',
   );
 
@@ -152,14 +154,14 @@ class FirebaseAuthService {
     email: email,
     password: password,
     projectId: projectId,
-    requiredRole: 'admin',
+    allowedRoles: ['admin'],
     roleDisplayName: 'Admin',
   );
 
   // Google Sign-In with role verification
   Future<UserCredential> signInWithGoogle({
     required String projectId,
-    required String requiredRole,
+    required List<String> allowedRoles,
     required String roleDisplayName,
   }) async {
     try {
@@ -225,7 +227,7 @@ class FirebaseAuthService {
 
         debugPrint('[Auth] Google user role: $role, stored email: $email');
 
-        if (role == requiredRole) {
+        if (role != null && allowedRoles.contains(role)) {
           // Verify that the stored email matches the Google account email
           if (email != null &&
               email.toLowerCase() == user.email?.toLowerCase()) {
@@ -266,21 +268,21 @@ class FirebaseAuthService {
   Future<UserCredential> signInStudentWithGoogle({required String projectId}) =>
       signInWithGoogle(
         projectId: projectId,
-        requiredRole: 'student',
+        allowedRoles: ['student'],
         roleDisplayName: 'Student',
       );
 
   Future<UserCredential> signInTutorWithGoogle({required String projectId}) =>
       signInWithGoogle(
         projectId: projectId,
-        requiredRole: 'tutor',
+        allowedRoles: ['tutor', 'test_creator'],
         roleDisplayName: 'Tutor',
       );
 
   Future<UserCredential> signInAdminWithGoogle({required String projectId}) =>
       signInWithGoogle(
         projectId: projectId,
-        requiredRole: 'admin',
+        allowedRoles: ['admin'],
         roleDisplayName: 'Admin',
       );
 
@@ -386,6 +388,7 @@ class FirebaseAuthService {
     required String name,
     required String tutorId,
     required String projectId,
+    String role = 'tutor',
   }) async {
     FirebaseApp? secondaryApp;
     try {
@@ -419,7 +422,7 @@ class FirebaseAuthService {
       final fields = {
         'name': {'stringValue': name},
         'email': {'stringValue': email},
-        'role': {'stringValue': 'tutor'},
+        'role': {'stringValue': role},
         'tutorId': {'stringValue': tutorId},
         'password': {'stringValue': password},
         'createdAt': {
@@ -791,6 +794,16 @@ class FirebaseAuthService {
     return _getAllUsersByRole(
       projectId: projectId,
       role: 'tutor',
+      idField: 'tutorId',
+    );
+  }
+
+  Future<List<Map<String, String>>> getAllTestCreators({
+    required String projectId,
+  }) async {
+    return _getAllUsersByRole(
+      projectId: projectId,
+      role: 'test_creator',
       idField: 'tutorId',
     );
   }
@@ -1416,6 +1429,62 @@ class FirebaseAuthService {
     }
   }
 
+  // Get all assignments (for Test Creator/Admin)
+  Future<List<AssignmentInfo>> getAllAssignments({
+    required String projectId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'assignments'},
+        ],
+      },
+    };
+
+    try {
+      final resp = await http
+          .post(
+            url,
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(q),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw 'Failed to fetch all assignments: ${resp.body}';
+      }
+
+      final body = jsonDecode(resp.body) as List<dynamic>;
+      final assignments = _parseAssignmentsFromRunQuery(body);
+
+      // Sort by createdAt descending
+      assignments.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+
+      return assignments;
+    } catch (e) {
+      debugPrint('[Auth] Error fetching all assignments: $e');
+      rethrow;
+    }
+  }
+
   // Submit or Update an assignment
   Future<void> submitAssignment({
     required String projectId,
@@ -1869,10 +1938,24 @@ class FirebaseAuthService {
       '[Auth] getAssignmentsForTutor: Loading assignments for tutor: ${user.uid}',
     );
 
+    // 1. Get tutor's classes
+    final classes = await getClassesForTutor(projectId: projectId);
+    if (classes.isEmpty) {
+      // Fallback: return assignments created by them
+      return _getAssignmentsByCreator(projectId, user.uid, idToken);
+    }
+
+    final classIds = classes.map((c) => c.id).toList();
+
     final url = Uri.https(
       'firestore.googleapis.com',
       '/v1/projects/$projectId/databases/(default)/documents:runQuery',
     );
+
+    // Fetch assignments where classId is IN tutor's classes
+    // Note: Firestore IN limit is 30 in some versions, but 10 is safest usually.
+    // Let's take up to 30 if supported, or batch.
+    // To keep it simple, we'll use OR logic or just fetch everything they created + everything in their classes.
 
     final q = {
       'structuredQuery': {
@@ -1881,13 +1964,16 @@ class FirebaseAuthService {
         ],
         'where': {
           'fieldFilter': {
-            'field': {'fieldPath': 'createdBy'},
-            'op': 'EQUAL',
-            'value': {'stringValue': user.uid},
+            'field': {'fieldPath': 'classId'},
+            'op': 'IN',
+            'value': {
+              'arrayValue': {
+                'values':
+                    classIds.take(10).map((id) => {'stringValue': id}).toList(),
+              },
+            },
           },
         },
-        // Remove the orderBy to avoid needing a composite index
-        // We can sort the results in the app instead
       },
     };
 
@@ -1909,8 +1995,11 @@ class FirebaseAuthService {
     );
     debugPrint('[Auth] getAssignmentsForTutor: Response body: ${resp.body}');
 
-    if (resp.statusCode != 200)
-      throw 'Failed to fetch tutor assignments (status ${resp.statusCode})';
+    if (resp.statusCode != 200) {
+      // Fallback to legacy behavior if IN fails
+      return _getAssignmentsByCreator(projectId, user.uid, idToken);
+    }
+
     final body = jsonDecode(resp.body) as List<dynamic>;
     final assignments = _parseAssignmentsFromRunQuery(body);
 
@@ -1932,6 +2021,42 @@ class FirebaseAuthService {
     }
 
     return assignments;
+  }
+
+  Future<List<AssignmentInfo>> _getAssignmentsByCreator(
+    String projectId,
+    String uid,
+    String idToken,
+  ) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'assignments'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'createdBy'},
+            'op': 'EQUAL',
+            'value': {'stringValue': uid},
+          },
+        },
+      },
+    };
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(q),
+    );
+    if (resp.statusCode != 200) return [];
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    return _parseAssignmentsFromRunQuery(body);
   }
 
   // Delete an assignment
@@ -2476,6 +2601,54 @@ class FirebaseAuthService {
     return parsed.isNotEmpty ? parsed.first : null;
   }
 
+  // Get all tests (Test Creator / Admin)
+  Future<List<TestInfo>> getAllTests({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'tests'},
+        ],
+      },
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      throw 'Failed to fetch all tests (status ${resp.statusCode})';
+    }
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final tests = _parseTestsFromRunQuery(body);
+
+    tests.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    return tests;
+  }
+
   Future<List<TestInfo>> getTestsForTutor({required String projectId}) async {
     final user = _auth.currentUser;
     if (user == null) return [];
@@ -2483,6 +2656,14 @@ class FirebaseAuthService {
     if (idToken == null) return [];
 
     debugPrint('[Auth] getTestsForTutor: Loading tests for tutor: ${user.uid}');
+
+    // 1. Get tutor's classes
+    final classes = await getClassesForTutor(projectId: projectId);
+    if (classes.isEmpty) {
+      return _getTestsByCreator(projectId, user.uid, idToken);
+    }
+
+    final classIds = classes.map((c) => c.id).toList();
 
     final url = Uri.https(
       'firestore.googleapis.com',
@@ -2496,9 +2677,108 @@ class FirebaseAuthService {
         ],
         'where': {
           'fieldFilter': {
+            'field': {'fieldPath': 'classId'},
+            'op': 'IN',
+            'value': {
+              'arrayValue': {
+                'values':
+                    classIds.take(10).map((id) => {'stringValue': id}).toList(),
+              },
+            },
+          },
+        },
+      },
+    };
+
+    final resp = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(q),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (resp.statusCode != 200) {
+      return _getTestsByCreator(projectId, user.uid, idToken);
+    }
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    final tests = _parseTestsFromRunQuery(body);
+
+    tests.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    return tests;
+  }
+
+  Future<List<TestInfo>> _getTestsByCreator(
+    String projectId,
+    String uid,
+    String idToken,
+  ) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'tests'},
+        ],
+        'where': {
+          'fieldFilter': {
             'field': {'fieldPath': 'createdBy'},
             'op': 'EQUAL',
-            'value': {'stringValue': user.uid},
+            'value': {'stringValue': uid},
+          },
+        },
+      },
+    };
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(q),
+    );
+    if (resp.statusCode != 200) return [];
+    return _parseTestsFromRunQuery(jsonDecode(resp.body));
+  }
+
+  Future<List<TestInfo>> getTestsForClass({
+    required String projectId,
+    required String classId,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    if (idToken == null) return [];
+
+    debugPrint('[Auth] getTestsForClass: Loading tests for classId: $classId');
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'tests'},
+        ],
+        'where': {
+          'fieldFilter': {
+            'field': {'fieldPath': 'classId'},
+            'op': 'EQUAL',
+            'value': {'stringValue': classId},
           },
         },
       },
@@ -2516,7 +2796,7 @@ class FirebaseAuthService {
         .timeout(const Duration(seconds: 10));
 
     if (resp.statusCode != 200)
-      throw 'Failed to fetch tutor tests (status ${resp.statusCode})';
+      throw 'Failed to fetch tests for class (status ${resp.statusCode})';
 
     final body = jsonDecode(resp.body) as List<dynamic>;
     final tests = _parseTestsFromRunQuery(body);

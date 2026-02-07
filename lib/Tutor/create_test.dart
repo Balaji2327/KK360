@@ -7,7 +7,8 @@ import 'dart:convert';
 
 class CreateTestScreen extends StatefulWidget {
   final String? classId;
-  const CreateTestScreen({super.key, this.classId});
+  final bool isTestCreator;
+  const CreateTestScreen({super.key, this.classId, this.isTestCreator = false});
 
   @override
   State<CreateTestScreen> createState() => _CreateTestScreenState();
@@ -86,7 +87,10 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
 
   Future<void> _loadMyClasses() async {
     try {
-      final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
+      final items =
+          widget.isTestCreator
+              ? await _auth.getAllClasses(projectId: 'kk360-69504')
+              : await _auth.getClassesForTutor(projectId: 'kk360-69504');
       if (!mounted) return;
 
       setState(() {

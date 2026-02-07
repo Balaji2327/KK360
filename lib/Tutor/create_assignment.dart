@@ -7,7 +7,13 @@ import 'package:file_picker/file_picker.dart';
 class CreateAssignmentScreen extends StatefulWidget {
   final String? classId;
   final AssignmentInfo? assignment; // Added for editing
-  const CreateAssignmentScreen({super.key, this.classId, this.assignment});
+  final bool isTestCreator;
+  const CreateAssignmentScreen({
+    super.key,
+    this.classId,
+    this.assignment,
+    this.isTestCreator = false,
+  });
 
   @override
   State<CreateAssignmentScreen> createState() => _CreateAssignmentScreenState();
@@ -59,7 +65,10 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
 
   Future<void> _loadMyClasses() async {
     try {
-      final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
+      final items =
+          widget.isTestCreator
+              ? await _auth.getAllClasses(projectId: 'kk360-69504')
+              : await _auth.getClassesForTutor(projectId: 'kk360-69504');
       if (!mounted) return;
       setState(() {
         _myClasses = items;

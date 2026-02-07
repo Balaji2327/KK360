@@ -66,10 +66,13 @@ class _AdminJoinMeetingScreenState extends State<AdminJoinMeetingScreen> {
 
     setState(() => _isLoading = false);
 
-    String url = code;
+    // Sanitize code: remove spaces
+    String cleanedCode = code.replaceAll(' ', '');
+    String url = cleanedCode;
+
     if (!url.startsWith('http') && !url.contains('.')) {
       // Assume it's a code
-      url = 'https://meet.google.com/$code';
+      url = 'https://meet.google.com/$cleanedCode';
     }
 
     try {

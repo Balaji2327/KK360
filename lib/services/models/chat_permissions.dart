@@ -101,14 +101,16 @@ class ChatPermissions {
     }
     switch (messagingPermission) {
       case ChatPermissionLevel.tutorOnly:
-        return userRole == 'tutor';
+        return userRole == 'tutor' || userRole == 'test_creator';
       case ChatPermissionLevel.tutorAndStudents:
-        return userRole == 'tutor' || userRole == 'student';
+        return userRole == 'tutor' ||
+            userRole == 'test_creator' ||
+            userRole == 'student';
     }
   }
 
   // Check if a user can edit settings (only admins)
   bool canEditSettings(String userRole) {
-    return userRole == 'tutor';
+    return userRole == 'tutor' || userRole == 'test_creator';
   }
 }

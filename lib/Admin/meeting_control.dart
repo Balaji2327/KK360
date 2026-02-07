@@ -46,6 +46,9 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
   }
 
   Future<void> _launchWebMeet(String pathOrLink) async {
+    // Sanitize link
+    pathOrLink = pathOrLink.trim().replaceAll(' ', '');
+
     if (pathOrLink.startsWith('http')) {
       final Uri url = Uri.parse(pathOrLink);
       try {
@@ -192,8 +195,7 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
     TimeOfDay selectedTime = TimeOfDay.fromDateTime(selectedDate);
     String? selectedClassId = existingMeeting?.classId;
     String? selectedClassName = existingMeeting?.className;
-    int? durationMinutes =
-        existingMeeting?.durationMinutes ?? 60;
+    int? durationMinutes = existingMeeting?.durationMinutes ?? 60;
 
     if (selectedClassId != null &&
         !_classes.any((c) => c.id == selectedClassId)) {
@@ -209,12 +211,13 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
             InputDecoration buildInputDecor(String label, {Widget? suffix}) {
               return InputDecoration(
                 labelText: label,
+                labelStyle: const TextStyle(fontSize: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
+                  horizontal: 10,
+                  vertical: 12,
                 ),
                 suffixIcon: suffix,
               );
@@ -234,13 +237,10 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                   children: [
                     // Dialog Header
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(16),
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            Color(0xFF4B3FA3),
-                            Color(0xFF6B5FB8),
-                          ],
+                          colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -256,15 +256,15 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                 ? Icons.add_circle_outline
                                 : Icons.edit,
                             color: Colors.white,
-                            size: 28,
+                            size: 24,
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Text(
                             existingMeeting == null
                                 ? 'Schedule Meeting'
                                 : 'Edit Meeting',
                             style: const TextStyle(
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -273,205 +273,216 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                       ),
                     ),
                     // Dialog Content
-                    SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextField(
-                              controller: titleController,
-                              decoration: buildInputDecor('Meeting Title'),
-                            ),
-                            const SizedBox(height: 16),
-
-                            DropdownButtonFormField<String>(
-                              value: selectedClassId,
-                              decoration: buildInputDecor(
-                                'Select Class (Optional)',
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: titleController,
+                                decoration: buildInputDecor('Meeting Title'),
                               ),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text('No specific class'),
+                              const SizedBox(height: 16),
+
+                              DropdownButtonFormField<String>(
+                                value: selectedClassId,
+                                decoration: buildInputDecor(
+                                  'Select Class (Optional)',
                                 ),
-                                ..._classes.map(
-                                  (c) => DropdownMenuItem(
-                                    value: c.id,
-                                    child: Text(
-                                      c.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: null,
+                                    child: Text('No specific class'),
+                                  ),
+                                  ..._classes.map(
+                                    (c) => DropdownMenuItem(
+                                      value: c.id,
+                                      child: Text(
+                                        c.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                setState(() {
-                                  selectedClassId = val;
-                                  if (val != null) {
-                                    try {
-                                      selectedClassName = _classes
-                                          .firstWhere((c) => c.id == val)
-                                          .name;
-                                    } catch (_) {
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    selectedClassId = val;
+                                    if (val != null) {
+                                      try {
+                                        selectedClassName =
+                                            _classes
+                                                .firstWhere((c) => c.id == val)
+                                                .name;
+                                      } catch (_) {
+                                        selectedClassName = null;
+                                      }
+                                    } else {
                                       selectedClassName = null;
                                     }
-                                  } else {
-                                    selectedClassName = null;
-                                  }
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: () async {
-                                      final picked = await showDatePicker(
-                                        context: context,
-                                        initialDate: selectedDate,
-                                        firstDate: DateTime.now(),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (picked != null) {
-                                        setState(() => selectedDate = picked);
-                                      }
-                                    },
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: InputDecorator(
-                                      decoration: buildInputDecor(
-                                        'Date',
-                                        suffix: const Icon(
-                                          Icons.calendar_today,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        DateFormat('MMM d, yyyy')
-                                            .format(selectedDate),
-                                        style: const TextStyle(fontSize: 14),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.visible,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: () async {
-                                      final picked = await showTimePicker(
-                                        context: context,
-                                        initialTime: selectedTime,
-                                      );
-                                      if (picked != null) {
-                                        setState(() => selectedTime = picked);
-                                      }
-                                    },
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: InputDecorator(
-                                      decoration: buildInputDecor(
-                                        'Time',
-                                        suffix: const Icon(
-                                          Icons.access_time,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        selectedTime.format(context),
-                                        style: const TextStyle(fontSize: 14),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.visible,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            DropdownButtonFormField<int>(
-                              value: [30, 45, 60, 90, 120]
-                                      .contains(durationMinutes)
-                                  ? durationMinutes
-                                  : 60,
-                              decoration: buildInputDecor('Duration'),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 30,
-                                  child: Text('30 Minutes'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 45,
-                                  child: Text('45 Minutes'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 60,
-                                  child: Text('1 Hour'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 90,
-                                  child: Text('1 Hour 30 Minutes'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 120,
-                                  child: Text('2 Hours'),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  durationMinutes = value;
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: linkController,
-                                    decoration: buildInputDecor(
-                                      'Meeting Link',
-                                    ),
-                                    maxLines: 1,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: IconButton(
-                                    onPressed: () {
-                                      _launchWebMeet(
-                                        'https://meet.google.com',
-                                      );
-                                    },
-                                    icon: const Icon(
-                                      Icons.video_call,
-                                      color: Colors.white,
-                                    ),
-                                    tooltip: 'Generate new Google Meet link',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tip: Click the green button to generate a new Google Meet link.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
+                                  });
+                                },
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () async {
+                                        final picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: selectedDate,
+                                          firstDate: DateTime.now(),
+                                          lastDate: DateTime(2100),
+                                        );
+                                        if (picked != null) {
+                                          setState(() => selectedDate = picked);
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: InputDecorator(
+                                        decoration: buildInputDecor(
+                                          'Date',
+                                          suffix: const Icon(
+                                            Icons.calendar_today,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          DateFormat(
+                                            'MMM d, yyyy',
+                                          ).format(selectedDate),
+                                          style: const TextStyle(fontSize: 14),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.visible,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () async {
+                                        final picked = await showTimePicker(
+                                          context: context,
+                                          initialTime: selectedTime,
+                                        );
+                                        if (picked != null) {
+                                          setState(() => selectedTime = picked);
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: InputDecorator(
+                                        decoration: buildInputDecor(
+                                          'Time',
+                                          suffix: const Icon(
+                                            Icons.access_time,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          selectedTime.format(context),
+                                          style: const TextStyle(fontSize: 14),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.visible,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              DropdownButtonFormField<int>(
+                                value:
+                                    [
+                                          30,
+                                          45,
+                                          60,
+                                          90,
+                                          120,
+                                        ].contains(durationMinutes)
+                                        ? durationMinutes
+                                        : 60,
+                                decoration: buildInputDecor('Duration'),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 30,
+                                    child: Text('30 Minutes'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 45,
+                                    child: Text('45 Minutes'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 60,
+                                    child: Text('1 Hour'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 90,
+                                    child: Text('1 Hour 30 Minutes'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 120,
+                                    child: Text('2 Hours'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    durationMinutes = value;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 16),
+
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: linkController,
+                                      decoration: buildInputDecor(
+                                        'Meeting Link',
+                                      ),
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: IconButton(
+                                      onPressed: () {
+                                        _launchWebMeet(
+                                          'https://meet.google.com',
+                                        );
+                                      },
+                                      icon: const Icon(
+                                        Icons.video_call,
+                                        color: Colors.white,
+                                      ),
+                                      tooltip: 'Generate new Google Meet link',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tip: Click the green button to generate a new Google Meet link.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -635,18 +646,16 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                             ),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF4B3FA3),
-                                  Color(0xFF6B5FB8),
-                                ],
+                                colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF4B3FA3)
-                                      .withOpacity(0.25),
+                                  color: const Color(
+                                    0xFF4B3FA3,
+                                  ).withOpacity(0.25),
                                   blurRadius: 6,
                                   offset: const Offset(0, 3),
                                 ),
@@ -685,9 +694,8 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                               vertical: 12,
                             ),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : Colors.white,
+                              color:
+                                  isDark ? Colors.grey.shade800 : Colors.white,
                               border: Border.all(
                                 color: const Color(0xFF4B3FA3),
                                 width: 1.5,
@@ -754,9 +762,10 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                         ),
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade100,
+                            color:
+                                isDark
+                                    ? Colors.grey.shade800
+                                    : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -796,9 +805,10 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                               Container(
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.grey.shade800
-                                      : Colors.grey.shade100,
+                                  color:
+                                      isDark
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Icon(
@@ -842,14 +852,14 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : Colors.white,
+                              color:
+                                  isDark ? Colors.grey.shade800 : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isDark
-                                    ? Colors.grey.shade700
-                                    : Colors.grey.shade200,
+                                color:
+                                    isDark
+                                        ? Colors.grey.shade700
+                                        : Colors.grey.shade200,
                                 width: 1,
                               ),
                               boxShadow: [
@@ -880,19 +890,19 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                               vertical: 6,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: isLive
-                                                  ? Colors.green.withOpacity(
-                                                    0.2,
-                                                  )
-                                                  : (isUpcoming
-                                                      ? Colors.orange
+                                              color:
+                                                  isLive
+                                                      ? Colors.green
                                                           .withOpacity(0.2)
-                                                      : Colors.red.withOpacity(
-                                                        0.2,
-                                                      )),
-                                              borderRadius: BorderRadius.circular(
-                                                8,
-                                              ),
+                                                      : (isUpcoming
+                                                          ? Colors.orange
+                                                              .withOpacity(0.2)
+                                                          : Colors.red
+                                                              .withOpacity(
+                                                                0.2,
+                                                              )),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
@@ -901,11 +911,12 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                                   width: 6,
                                                   height: 6,
                                                   decoration: BoxDecoration(
-                                                    color: isLive
-                                                        ? Colors.green
-                                                        : (isUpcoming
-                                                            ? Colors.orange
-                                                            : Colors.red),
+                                                    color:
+                                                        isLive
+                                                            ? Colors.green
+                                                            : (isUpcoming
+                                                                ? Colors.orange
+                                                                : Colors.red),
                                                     shape: BoxShape.circle,
                                                   ),
                                                 ),
@@ -919,11 +930,12 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.bold,
-                                                    color: isLive
-                                                        ? Colors.green
-                                                        : (isUpcoming
-                                                            ? Colors.orange
-                                                            : Colors.red),
+                                                    color:
+                                                        isLive
+                                                            ? Colors.green
+                                                            : (isUpcoming
+                                                                ? Colors.orange
+                                                                : Colors.red),
                                                   ),
                                                 ),
                                               ],
@@ -940,52 +952,54 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                                 );
                                               }
                                             },
-                                            itemBuilder: (context) => [
-                                              const PopupMenuItem(
-                                                value: 'edit',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.edit,
-                                                      color: Colors.blue,
-                                                      size: 18,
+                                            itemBuilder:
+                                                (context) => [
+                                                  const PopupMenuItem(
+                                                    value: 'edit',
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.edit,
+                                                          color: Colors.blue,
+                                                          size: 18,
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                        Text(
+                                                          'Edit',
+                                                          style: TextStyle(
+                                                            color: Colors.blue,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    SizedBox(width: 8),
-                                                    Text(
-                                                      'Edit',
-                                                      style: TextStyle(
-                                                        color: Colors.blue,
-                                                      ),
+                                                  ),
+                                                  const PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.delete,
+                                                          color: Colors.red,
+                                                          size: 18,
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                        Text(
+                                                          'Delete',
+                                                          style: TextStyle(
+                                                            color: Colors.red,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const PopupMenuItem(
-                                                value: 'delete',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                      size: 18,
-                                                    ),
-                                                    SizedBox(width: 8),
-                                                    Text(
-                                                      'Delete',
-                                                      style: TextStyle(
-                                                        color: Colors.red,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
+                                                  ),
+                                                ],
                                             icon: Icon(
                                               Icons.more_vert,
                                               size: 20,
-                                              color: isDark
-                                                  ? Colors.white70
-                                                  : Colors.grey.shade600,
+                                              color:
+                                                  isDark
+                                                      ? Colors.white70
+                                                      : Colors.grey.shade600,
                                             ),
                                           ),
                                         ],
@@ -996,9 +1010,10 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: isDark
-                                              ? Colors.white
-                                              : const Color(0xFF2C3E50),
+                                          color:
+                                              isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF2C3E50),
                                         ),
                                       ),
                                       if (meeting.className != null &&
@@ -1013,11 +1028,11 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF4B3FA3)
-                                                  .withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(
-                                                6,
-                                              ),
+                                              color: const Color(
+                                                0xFF4B3FA3,
+                                              ).withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
                                             ),
                                             child: Text(
                                               meeting.className ?? '',
@@ -1034,9 +1049,10 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                 ),
                                 Divider(
                                   height: 1,
-                                  color: isDark
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade200,
+                                  color:
+                                      isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey.shade200,
                                 ),
                                 // Meeting Details
                                 Padding(
@@ -1055,14 +1071,16 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                             child: Text(
                                               DateFormat(
                                                 'EEE, MMM d • h:mm a',
-                                              ).format(meeting.dateTime
-                                                  .toLocal()),
+                                              ).format(
+                                                meeting.dateTime.toLocal(),
+                                              ),
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w500,
                                                 fontSize: 14,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : Colors.black87,
+                                                color:
+                                                    isDark
+                                                        ? Colors.white
+                                                        : Colors.black87,
                                               ),
                                             ),
                                           ),
@@ -1085,9 +1103,12 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                                 '${meeting.durationMinutes} minutes',
                                                 style: TextStyle(
                                                   fontSize: 14,
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : Colors.grey.shade700,
+                                                  color:
+                                                      isDark
+                                                          ? Colors.white70
+                                                          : Colors
+                                                              .grey
+                                                              .shade700,
                                                 ),
                                               ),
                                             ],
@@ -1098,9 +1119,10 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                 ),
                                 Divider(
                                   height: 1,
-                                  color: isDark
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade200,
+                                  color:
+                                      isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey.shade200,
                                 ),
                                 // Action Button
                                 Padding(
@@ -1108,18 +1130,21 @@ class _AdminMeetingControlScreenState extends State<AdminMeetingControlScreen> {
                                   child: SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton.icon(
-                                      onPressed: (isLive || isUpcoming)
-                                          ? () => _launchWebMeet(
-                                            meeting.meetLink,
-                                          )
-                                          : null,
+                                      onPressed:
+                                          (isLive || isUpcoming)
+                                              ? () => _launchWebMeet(
+                                                meeting.meetLink,
+                                              )
+                                              : null,
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: isLive
-                                            ? const Color(0xFF4B3FA3)
-                                            : Colors.grey.shade300,
-                                        foregroundColor: isLive
-                                            ? Colors.white
-                                            : Colors.grey.shade600,
+                                        backgroundColor:
+                                            isLive
+                                                ? const Color(0xFF4B3FA3)
+                                                : Colors.grey.shade300,
+                                        foregroundColor:
+                                            isLive
+                                                ? Colors.white
+                                                : Colors.grey.shade600,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             12,

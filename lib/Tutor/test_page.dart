@@ -8,8 +8,14 @@ import '../widgets/nav_helper.dart';
 class TestPage extends StatefulWidget {
   final String? classId;
   final String? className;
+  final bool isTestCreator;
 
-  const TestPage({super.key, this.classId, this.className});
+  const TestPage({
+    super.key,
+    this.classId,
+    this.className,
+    this.isTestCreator = false,
+  });
 
   @override
   State<TestPage> createState() => _TestPageState();
@@ -33,23 +39,36 @@ class _TestPageState extends State<TestPage> {
 
   Future<void> _loadTests() async {
     try {
-      final items = await _authService.getTestsForTutor(
-        projectId: 'kk360-69504',
-      );
+      List<TestInfo> items;
+      if (widget.isTestCreator) {
+        if (widget.classId != null) {
+          // You could optimize this to getTestsForClass, but Test Creators might want to see all filtered by class
+          // Consistent with AssignmentPage
+          final all = await _authService.getAllTests(projectId: 'kk360-69504');
+          items = all.where((t) => t.classId == widget.classId).toList();
+        } else {
+          items = await _authService.getAllTests(projectId: 'kk360-69504');
+        }
+      } else {
+        if (widget.classId != null) {
+          items = await _authService.getTestsForClass(
+            projectId: 'kk360-69504',
+            classId: widget.classId!,
+          );
+        } else {
+          items = await _authService.getTestsForTutor(projectId: 'kk360-69504');
+        }
+      }
 
-      final classes = await _authService.getClassesForTutor(
-        projectId: 'kk360-69504',
-      );
+      final classes =
+          widget.isTestCreator
+              ? await _authService.getAllClasses(projectId: 'kk360-69504')
+              : await _authService.getClassesForTutor(projectId: 'kk360-69504');
       final classMap = {for (var c in classes) c.id: c.name};
 
       if (mounted) {
         setState(() {
-          _tests =
-              widget.classId != null
-                  ? items
-                      .where((test) => test.classId == widget.classId)
-                      .toList()
-                  : items;
+          _tests = items;
           _classNameMap = classMap;
           _testsLoading = false;
         });
@@ -86,7 +105,13 @@ class _TestPageState extends State<TestPage> {
         padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
         child: GestureDetector(
           onTap: () async {
-            await goPush(context, CreateTestScreen(classId: widget.classId));
+            await goPush(
+              context,
+              CreateTestScreen(
+                classId: widget.classId,
+                isTestCreator: widget.isTestCreator,
+              ),
+            );
             _loadTests();
           },
           child: Container(

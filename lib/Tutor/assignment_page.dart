@@ -7,8 +7,14 @@ import '../services/firebase_auth_service.dart';
 class AssignmentPage extends StatefulWidget {
   final String? classId;
   final String? className;
+  final bool isTestCreator;
 
-  const AssignmentPage({super.key, this.classId, this.className});
+  const AssignmentPage({
+    super.key,
+    this.classId,
+    this.className,
+    this.isTestCreator = false,
+  });
 
   @override
   State<AssignmentPage> createState() => _AssignmentPageState();
@@ -47,35 +53,49 @@ class _AssignmentPageState extends State<AssignmentPage> {
   Future<void> _loadMyAssignments() async {
     setState(() => _assignmentsLoading = true);
     try {
-      if (widget.classId != null) {
-        try {
-          final cached = await _authService.getCachedAssignmentsForClass(
+      List<AssignmentInfo> assignments;
+
+      if (widget.isTestCreator) {
+        if (widget.classId != null) {
+          assignments = await _authService.getAssignmentsForClass(
+            projectId: 'kk360-69504',
             classId: widget.classId!,
           );
-          if (cached.isNotEmpty && mounted) {
-            setState(() {
-              _myAssignments = cached;
-              _assignmentsLoading = false;
-            });
+        } else {
+          assignments = await _authService.getAllAssignments(
+            projectId: 'kk360-69504',
+          );
+        }
+      } else {
+        if (widget.classId != null) {
+          try {
+            final cached = await _authService.getCachedAssignmentsForClass(
+              classId: widget.classId!,
+            );
+            if (cached.isNotEmpty && mounted) {
+              setState(() {
+                _myAssignments = cached;
+                _assignmentsLoading = false;
+              });
+            }
+          } catch (e) {
+            debugPrint('[AssignmentPage] Cache error: $e');
           }
-        } catch (e) {
-          debugPrint('[AssignmentPage] Cache error: $e');
+          assignments = await _authService.getAssignmentsForClass(
+            projectId: 'kk360-69504',
+            classId: widget.classId!,
+          );
+        } else {
+          assignments = await _authService.getAssignmentsForTutor(
+            projectId: 'kk360-69504',
+          );
         }
       }
 
-      final assignments =
-          widget.classId != null
-              ? await _authService.getAssignmentsForClass(
-                projectId: 'kk360-69504',
-                classId: widget.classId!,
-              )
-              : await _authService.getAssignmentsForTutor(
-                projectId: 'kk360-69504',
-              );
-
-      final classes = await _authService.getClassesForTutor(
-        projectId: 'kk360-69504',
-      );
+      final classes =
+          widget.isTestCreator
+              ? await _authService.getAllClasses(projectId: 'kk360-69504')
+              : await _authService.getClassesForTutor(projectId: 'kk360-69504');
       final classMap = {for (var c in classes) c.id: c.name};
 
       if (!mounted) return;
@@ -111,7 +131,10 @@ class _AssignmentPageState extends State<AssignmentPage> {
           onTap:
               () => goPush(
                 context,
-                CreateAssignmentScreen(classId: widget.classId),
+                CreateAssignmentScreen(
+                  classId: widget.classId,
+                  isTestCreator: widget.isTestCreator,
+                ),
               ).then((_) => _refreshAssignments()),
           child: Container(
             height: h * 0.065,
@@ -505,6 +528,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
           CreateAssignmentScreen(
             classId: assignment.classId,
             assignment: assignment,
+            isTestCreator: widget.isTestCreator,
           ),
         ).then((_) => _refreshAssignments());
         break;

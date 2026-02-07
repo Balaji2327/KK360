@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'join_meet.dart';
+import '../Tutor/join_meet.dart'; // Can reuse Tutor Join Meet
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
+// Note: This file needs ClassInfo and MeetingInfo, usually imported from meeting_control.dart but let's see.
+// MeetingInfo is likely in a model file, or defined in meeting_control.dart.
+// I should check `meeting_control.dart` imports.
+// It imports `join_meet.dart`. It uses `MeetingInfo` which might be in `firebase_auth_service.dart` or a separate model.
+// I will check `firebase_auth_service.dart` for `MeetingInfo`.
 
-class TutorMeetingControlScreen extends StatefulWidget {
-  const TutorMeetingControlScreen({super.key});
+class TestCreatorMeetingControlScreen extends StatefulWidget {
+  const TestCreatorMeetingControlScreen({super.key});
 
   @override
-  State<TutorMeetingControlScreen> createState() =>
-      _TutorMeetingControlScreenState();
+  State<TestCreatorMeetingControlScreen> createState() =>
+      _TestCreatorMeetingControlScreenState();
 }
 
-class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
+class _TestCreatorMeetingControlScreenState
+    extends State<TestCreatorMeetingControlScreen> {
   bool isJoinPressed = false;
   final FirebaseAuthService _authService = FirebaseAuthService();
   String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
@@ -31,13 +37,32 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
   }
 
   Future<void> _fetchClasses() async {
-    final classes = await _authService.getClassesForTutor(
-      projectId: 'kk360-69504',
-    );
-    if (mounted) {
-      setState(() {
-        _classes = classes;
-      });
+    // Wait for auth user to be available (retry logic)
+    var user = _authService.getCurrentUser();
+    int attempts = 0;
+    while (user == null && attempts < 5) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      user = _authService.getCurrentUser();
+      attempts++;
+    }
+
+    if (user == null) {
+      debugPrint('[TestCreatorMeeting] No user found, cannot fetch classes.');
+      return;
+    }
+
+    try {
+      // Test Creators should see ALL classes, similar to Admin
+      final classes = await _authService.getAllClasses(
+        projectId: 'kk360-69504',
+      );
+      if (mounted) {
+        setState(() {
+          _classes = classes;
+        });
+      }
+    } catch (e) {
+      debugPrint('[TestCreatorMeeting] Error fetching classes: $e');
     }
   }
 
@@ -287,7 +312,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                                 controller: titleController,
                                 decoration: buildInputDecor('Meeting Title'),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
 
                               DropdownButtonFormField<String>(
                                 value: selectedClassId,
@@ -328,7 +353,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                                   });
                                 },
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
 
                               Row(
                                 children: [
@@ -397,7 +422,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
 
                               DropdownButtonFormField<int>(
                                 value:
@@ -439,7 +464,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                                   });
                                 },
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
 
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -640,7 +665,7 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                       children: [
                         // Schedule Meeting Card
                         GestureDetector(
-                          onTap: _showCreateMeetingDialog,
+                          onTap: () => _showCreateMeetingDialog(),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 20,
@@ -811,29 +836,21 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                                       isDark
                                           ? Colors.grey.shade800
                                           : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(16),
+                                  shape: BoxShape.circle,
                                 ),
                                 child: Icon(
                                   Icons.event_busy_rounded,
-                                  size: 60,
-                                  color: Colors.grey.shade400,
+                                  size: 40,
+                                  color: Colors.grey.shade500,
                                 ),
                               ),
-                              SizedBox(height: h * 0.02),
+                              SizedBox(height: 16),
                               Text(
-                                "No Meetings Scheduled",
+                                "No meetings scheduled",
                                 style: TextStyle(
-                                  fontSize: h * 0.02,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: h * 0.006),
-                              Text(
-                                "Create your first meeting to get started",
-                                style: TextStyle(
-                                  fontSize: h * 0.013,
-                                  color: Colors.grey,
+                                  color: Colors.grey.shade500,
                                 ),
                               ),
                             ],
@@ -842,8 +859,8 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                       }
 
                       return ListView.builder(
-                        shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
                         itemCount: meetings.length,
                         padding: EdgeInsets.symmetric(horizontal: w * 0.04),
                         itemBuilder: (context, index) {
@@ -1152,25 +1169,24 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                                             12,
                                           ),
                                         ),
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: h * 0.015,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
                                         ),
+                                        elevation: isLive ? 2 : 0,
                                       ),
-                                      icon: Icon(
-                                        isLive
-                                            ? Icons.videocam_rounded
-                                            : Icons.video_camera_front_rounded,
-                                        size: 18,
+                                      icon: const Icon(
+                                        Icons.video_camera_front,
+                                        size: 20,
                                       ),
                                       label: Text(
                                         isLive
                                             ? 'Join Now'
                                             : (isUpcoming
-                                                ? 'Join Early'
-                                                : 'Meeting Ended'),
+                                                ? 'Not Started'
+                                                : 'Ended'),
                                         style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
@@ -1184,24 +1200,11 @@ class _TutorMeetingControlScreenState extends State<TutorMeetingControlScreen> {
                     },
                   ),
 
-                  SizedBox(height: h * 0.1),
+                  SizedBox(height: h * 0.05),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget navItem(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 23, color: Colors.black),
-          Text(text, style: const TextStyle(fontSize: 11, color: Colors.black)),
         ],
       ),
     );

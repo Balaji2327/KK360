@@ -4,6 +4,7 @@ import '../services/firebase_auth_service.dart';
 import '../Authentication/admin_login.dart';
 import '../widgets/nav_helper.dart';
 import 'settings_screen.dart';
+import '../widgets/notification_test_screen.dart';
 
 class AdminMoreFeaturesScreen extends StatefulWidget {
   const AdminMoreFeaturesScreen({super.key});
@@ -437,6 +438,23 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                       goPush(context, const AdminSettingsScreen());
                     },
                     child: featureTile(w, h, Icons.settings, "Settings"),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(
+                        context,
+                        NotificationTestScreen(
+                          userId: _authService.getCurrentUser()?.uid ?? '',
+                          userRole: 'admin',
+                        ),
+                      );
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.notification_important,
+                      "Test Notifications",
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {

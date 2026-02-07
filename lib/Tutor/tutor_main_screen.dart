@@ -4,6 +4,7 @@ import 'meeting_control.dart';
 import 'your_work.dart';
 import 'more_feature.dart';
 import '../widgets/tutor_bottom_nav.dart';
+import '../services/firebase_auth_service.dart';
 
 class TutorMainScreen extends StatefulWidget {
   final int initialIndex;
@@ -16,6 +17,7 @@ class TutorMainScreen extends StatefulWidget {
 
 class _TutorMainScreenState extends State<TutorMainScreen> {
   late int _currentIndex;
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   // Pages corresponding to the bottom navigation bar
   // 0: Home, 1: Join Meet, 2: Classwork, 3: More
@@ -42,6 +44,8 @@ class _TutorMainScreenState extends State<TutorMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userId = _authService.getCurrentUser()?.uid ?? '';
+
     return PopScope(
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
@@ -55,6 +59,7 @@ class _TutorMainScreenState extends State<TutorMainScreen> {
         bottomNavigationBar: TutorBottomNav(
           currentIndex: _currentIndex,
           onTap: _onNavTap,
+          userId: userId,
         ),
       ),
     );

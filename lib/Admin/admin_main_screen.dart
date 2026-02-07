@@ -4,6 +4,7 @@ import 'meeting_control.dart';
 import 'controls_screen.dart';
 import 'more_feature.dart';
 import '../widgets/admin_bottom_nav.dart';
+import '../services/firebase_auth_service.dart';
 
 class AdminMainScreen extends StatefulWidget {
   final int initialIndex;
@@ -16,6 +17,7 @@ class AdminMainScreen extends StatefulWidget {
 
 class _AdminMainScreenState extends State<AdminMainScreen> {
   late int _currentIndex;
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   // Pages corresponding to the bottom navigation bar
   // 0: Home, 1: Join Meet (Meeting Control), 2: Controls, 3: More
@@ -40,6 +42,8 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userId = _authService.getCurrentUser()?.uid ?? '';
+
     return PopScope(
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
@@ -53,6 +57,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
         bottomNavigationBar: AdminBottomNav(
           currentIndex: _currentIndex,
           onTap: _onNavTap,
+          userId: userId,
         ),
       ),
     );

@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'nav_observer.dart';
 import 'theme_manager.dart';
 import 'Authentication/auth_gate.dart';
+import 'services/hive_service.dart';
 
 import 'widgets/responsive_wrapper.dart'; // Add import
 
@@ -16,6 +17,9 @@ void main() async {
   await dotenv.load();
 
   await Hive.initFlutter();
+
+  // Initialize Hive service with adapters
+  await HiveService.init();
 
   try {
     await Firebase.initializeApp(

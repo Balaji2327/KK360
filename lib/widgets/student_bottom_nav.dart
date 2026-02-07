@@ -1,14 +1,62 @@
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
 
-class StudentBottomNav extends StatelessWidget {
+class StudentBottomNav extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final String userId; // Add userId parameter
 
   const StudentBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.userId,
   });
+
+  @override
+  State<StudentBottomNav> createState() => _StudentBottomNavState();
+}
+
+class _StudentBottomNavState extends State<StudentBottomNav> {
+  final NotificationService _notificationService = NotificationService();
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+
+    // Periodically refresh notification count
+    Future.delayed(Duration.zero, () {
+      if (mounted) {
+        _startPeriodicRefresh();
+      }
+    });
+  }
+
+  void _startPeriodicRefresh() {
+    Future.delayed(const Duration(seconds: 30), () {
+      if (mounted) {
+        _loadUnreadCount();
+        _startPeriodicRefresh();
+      }
+    });
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final count = await _notificationService.getUnreadNotificationsCount(
+        widget.userId,
+      );
+      if (mounted) {
+        setState(() {
+          _unreadCount = count;
+        });
+      }
+    } catch (e) {
+      debugPrint('[StudentBottomNav] Error loading unread count: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +71,7 @@ class StudentBottomNav extends StatelessWidget {
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDark ? 0.3 : 0.08,
-            ), // standardizing alpha use
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -39,8 +85,8 @@ class StudentBottomNav extends StatelessWidget {
             context,
             icon: Icons.home_outlined,
             label: "Home",
-            isActive: currentIndex == 0,
-            onTap: () => onTap(0),
+            isActive: widget.currentIndex == 0,
+            onTap: () => widget.onTap(0),
           ),
 
           // JOIN MEET
@@ -48,64 +94,56 @@ class StudentBottomNav extends StatelessWidget {
             context,
             icon: Icons.group_outlined,
             label: "Join meet",
-            isActive: currentIndex == 1,
-            onTap: () => onTap(1),
+            isActive: widget.currentIndex == 1,
+            onTap: () => widget.onTap(1),
           ),
-
-          // CENTER CIRCULAR ADD BUTTON (floating feel)
-          // Transform.translate(
-          //   offset: const Offset(0, -12),
-          //   child: Material(
-          //     color: Colors.transparent,
-          //     child: Container(
-          //       height: 64,
-          //       width: 64,
-          //       decoration: BoxDecoration(
-          //         color:
-          //             isDark
-          //                 ? const Color(0xFF004D40)
-          //                 : const Color(0xffDFF7E8), // light green
-          //         shape: BoxShape.circle,
-          //         boxShadow: [
-          //           BoxShadow(
-          //             color: Colors.black.withValues(alpha: 0.12),
-          //             blurRadius: 10,
-          //             offset: const Offset(0, 6),
-          //           ),
-          //         ],
-          //       ),
-          //       child: InkWell(
-          //         customBorder: const CircleBorder(),
-          //         onTap: () => onTap(2),
-          //         splashColor: Colors.white24,
-          //         child: Center(
-          //           child: Icon(
-          //             Icons.add,
-          //             size: 32,
-          //             color: isDark ? Colors.white : Colors.black,
-          //           ),
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
 
           // CLASSWORK
           _navItem(
             context,
             icon: Icons.edit_note_outlined,
             label: "Classwork",
-            isActive: currentIndex == 2,
-            onTap: () => onTap(2),
+            isActive: widget.currentIndex == 2,
+            onTap: () => widget.onTap(2),
           ),
 
-          // MORE
-          _navItem(
-            context,
-            icon: Icons.more_vert,
-            label: "More",
-            isActive: currentIndex == 3,
-            onTap: () => onTap(3),
+          // MORE with notification badge
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _navItem(
+                context,
+                icon: Icons.more_vert,
+                label: "More",
+                isActive: widget.currentIndex == 3,
+                onTap: () => widget.onTap(3),
+              ),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 10,
+                  top: 5,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      _unreadCount > 99 ? '99+' : '$_unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'join_meet.dart';
 import 'course_screen.dart';
 import 'more_feature.dart';
 import '../widgets/student_bottom_nav.dart';
+import '../services/firebase_auth_service.dart';
 
 class StudentMainScreen extends StatefulWidget {
   final int initialIndex;
@@ -15,6 +16,7 @@ class StudentMainScreen extends StatefulWidget {
 
 class _StudentMainScreenState extends State<StudentMainScreen> {
   late int _currentIndex;
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   final List<Widget> _pages = [
     const StudentHomeScreen(),
@@ -38,6 +40,8 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userId = _authService.getCurrentUser()?.uid ?? '';
+
     return PopScope(
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
@@ -51,6 +55,7 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
         bottomNavigationBar: StudentBottomNav(
           currentIndex: _currentIndex,
           onTap: _onNavTap,
+          userId: userId,
         ),
       ),
     );

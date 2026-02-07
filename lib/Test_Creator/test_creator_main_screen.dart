@@ -4,6 +4,7 @@ import 'test_creator_meeting_control.dart';
 import 'test_creator_works_screen.dart';
 import 'test_creator_more_features.dart';
 import '../widgets/tutor_bottom_nav.dart';
+import '../services/firebase_auth_service.dart';
 
 class TestCreatorMainScreen extends StatefulWidget {
   final int initialIndex;
@@ -16,6 +17,7 @@ class TestCreatorMainScreen extends StatefulWidget {
 
 class _TestCreatorMainScreenState extends State<TestCreatorMainScreen> {
   late int _currentIndex;
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   // Pages corresponding to the bottom navigation bar
   // 0: Home, 1: Join Meet, 2: Classwork, 3: More
@@ -41,6 +43,8 @@ class _TestCreatorMainScreenState extends State<TestCreatorMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userId = _authService.getCurrentUser()?.uid ?? '';
+
     return PopScope(
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
@@ -54,6 +58,7 @@ class _TestCreatorMainScreenState extends State<TestCreatorMainScreen> {
         bottomNavigationBar: TutorBottomNav(
           currentIndex: _currentIndex,
           onTap: _onNavTap,
+          userId: userId,
         ),
       ),
     );

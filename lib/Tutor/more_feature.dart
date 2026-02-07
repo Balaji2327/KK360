@@ -5,6 +5,7 @@ import '../Authentication/tutor_login.dart';
 
 import '../widgets/nav_helper.dart';
 import 'settings_screen.dart';
+import '../widgets/notification_test_screen.dart';
 
 class TutorMoreFeaturesScreen extends StatefulWidget {
   const TutorMoreFeaturesScreen({super.key});
@@ -436,6 +437,23 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                       goPush(context, const TutorSettingsScreen());
                     },
                     child: featureTile(w, h, Icons.settings, "Settings"),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(
+                        context,
+                        NotificationTestScreen(
+                          userId: _authService.getCurrentUser()?.uid ?? '',
+                          userRole: 'tutor',
+                        ),
+                      );
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.notification_important,
+                      "Test Notifications",
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {

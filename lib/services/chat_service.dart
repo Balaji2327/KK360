@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import 'models/message.dart';
 import 'models/chat_room.dart';
 import 'models/chat_permissions.dart';
+import 'notification_service.dart';
 
 class ChatService {
   static const String _chatRoomsBoxName = 'chat_rooms';
@@ -165,6 +166,18 @@ class ChatService {
         lastMessageSenderId: userId,
         lastMessageTime: now,
         idToken: idToken,
+      );
+
+      // Create notifications for all class members except the sender
+      _createChatNotifications(
+        chatRoom: chatRoom,
+        senderId: userId,
+        senderName: userName,
+        senderRole: userRole,
+        messageText: messageText,
+        messageId: messageId,
+        classId: classId,
+        className: chatRoom.className,
       );
 
       return message;
@@ -453,6 +466,63 @@ class ChatService {
     } catch (e) {
       debugPrint('[ChatService] Error getting chat permissions: $e');
       rethrow;
+    }
+  }
+
+  // Create chat notifications for all class members
+  void _createChatNotifications({
+    required ChatRoom chatRoom,
+    required String senderId,
+    required String senderName,
+    required String senderRole,
+    required String messageText,
+    required String messageId,
+    required String classId,
+    required String className,
+  }) async {
+    try {
+      final notificationService = NotificationService();
+
+      // Get all recipients (tutor + students) except the sender
+      final recipients = <String>{};
+
+      // Add tutor if not the sender
+      if (chatRoom.tutorId != null && chatRoom.tutorId != senderId) {
+        recipients.add(chatRoom.tutorId!);
+      }
+
+      // Add students if not the sender
+      for (var studentId in chatRoom.studentIds) {
+        if (studentId != senderId) {
+          recipients.add(studentId);
+        }
+      }
+
+      // Create notification for each recipient
+      for (var recipientId in recipients) {
+        try {
+          await notificationService.createChatNotification(
+            recipientUserId: recipientId,
+            senderName: senderName,
+            senderRole: senderRole,
+            messageText: messageText,
+            classId: classId,
+            className: className,
+            chatRoomId: chatRoom.id,
+            messageId: messageId,
+          );
+        } catch (e) {
+          debugPrint(
+            '[ChatService] Error creating notification for $recipientId: $e',
+          );
+        }
+      }
+
+      debugPrint(
+        '[ChatService] Created ${recipients.length} chat notifications',
+      );
+    } catch (e) {
+      debugPrint('[ChatService] Error in _createChatNotifications: $e');
     }
   }
 }

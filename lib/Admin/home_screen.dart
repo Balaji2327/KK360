@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../widgets/class_card.dart';
 import '../widgets/meeting_alert_card.dart';
 import '../services/firebase_auth_service.dart';
 import '../nav_observer.dart';
+import '../widgets/notification_bell_button.dart';
+import '../widgets/notifications_screen.dart';
+import '../Tutor/home_screen.dart' show CreateClassDialog;
 
 class AdminStreamScreen extends StatefulWidget {
   const AdminStreamScreen({super.key});
@@ -17,12 +21,10 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
   String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
   bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
-  // Classes shown on the home screen
   List<ClassInfo> _classes = [];
   List<ClassInfo> _filteredClasses = [];
   bool _classesLoading = true;
 
-  // Pending invites (if any, matching Tutor functionality)
   List<InviteInfo> _pendingInvites = [];
   bool _invitesLoading = true;
 
@@ -36,12 +38,8 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
     _loadPendingInvites();
     _searchController.addListener(_filterClasses);
 
-    // Also try to load classes after the widget is fully built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        debugPrint(
-          '[AdminHome] Post-frame callback: Attempting to reload classes',
-        );
         _loadClasses();
         _loadPendingInvites();
       }
@@ -51,7 +49,6 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // subscribe to route events so we can refresh when coming back
     final route = ModalRoute.of(context);
     if (route != null) {
       routeObserver.subscribe(this, route);
@@ -63,27 +60,13 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
     _searchController.dispose();
     try {
       routeObserver.unsubscribe(this);
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
     super.dispose();
   }
 
   @override
   void didPopNext() {
-    // called when this route is again visible (e.g., after popping back)
-    debugPrint('[AdminHome] Screen became visible again, reloading classes');
-    // Add a small delay to ensure any navigation state is settled
     Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _loadClasses();
-    });
-  }
-
-  @override
-  void didPush() {
-    // called when this route is pushed
-    debugPrint('[AdminHome] Screen was pushed, ensuring classes are loaded');
-    Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) _loadClasses();
     });
   }
@@ -91,36 +74,17 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
   Future<void> _loadClasses() async {
     setState(() => _classesLoading = true);
     try {
-      // First, try to load from cache for instant display
-      try {
-        final cachedClasses =
-            await _authService.getCachedClassesForCurrentUser();
-        if (cachedClasses.isNotEmpty && mounted) {
-          setState(() {
-            _classes = cachedClasses;
-            _classesLoading = false; // Show cached data immediately
-          });
-        }
-      } catch (e) {
-        debugPrint('[AdminHome] Could not load from cache: $e');
+      final cachedClasses = await _authService.getCachedClassesForCurrentUser();
+      if (cachedClasses.isNotEmpty && mounted) {
+        setState(() {
+          _classes = cachedClasses;
+          _classesLoading = false;
+        });
       }
 
-      // Ensure auth user is available
-      var attempt = 0;
       var user = _authService.getCurrentUser();
-      while (user == null && attempt < 5) {
-        attempt++;
-        await Future.delayed(const Duration(milliseconds: 500));
-        user = _authService.getCurrentUser();
-      }
+      if (user == null) return;
 
-      if (user == null) {
-        if (mounted && _classes.isEmpty) setState(() => _classes = []);
-        return;
-      }
-
-      // Fetch from server to get latest data
-      // Admin sees ALL classes in the database, not just ones they're a member of
       var classes = await _authService.getAllClasses(projectId: 'kk360-69504');
 
       if (!mounted) return;
@@ -128,8 +92,8 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
         _classes = classes;
         _filteredClasses = List.from(_classes);
       });
-    } catch (e, st) {
-      debugPrint('[AdminHome] Error loading classes: $e\n$st');
+    } catch (e) {
+      debugPrint('[AdminHome] Error loading classes: $e');
     } finally {
       if (mounted) setState(() => _classesLoading = false);
     }
@@ -167,10 +131,7 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
         setState(() => _invitesLoading = false);
       }
     } catch (e) {
-      debugPrint('[AdminHome] Error loading invites: $e');
-      if (mounted) {
-        setState(() => _invitesLoading = false);
-      }
+      if (mounted) setState(() => _invitesLoading = false);
     }
   }
 
@@ -193,13 +154,6 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
           inviteId: invite.id,
           classId: invite.classId,
         );
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Joined ${invite.className}!'),
-            backgroundColor: Colors.green,
-          ),
-        );
         _loadClasses();
         _loadPendingInvites();
       } else {
@@ -207,21 +161,9 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
           projectId: 'kk360-69504',
           inviteId: invite.id,
         );
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Declined invitation to ${invite.className}'),
-            backgroundColor: Colors.orange,
-          ),
-        );
         _loadPendingInvites();
       }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
-    }
+    } catch (e) {}
   }
 
   @override
@@ -232,75 +174,15 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
-      // ================= FLOATING ADD BUTTON (BOTTOM RIGHT) =================
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
         child: GestureDetector(
           onTap: () async {
-            // Show Create Class Dialog
-            final result = await showDialog<Map<String, dynamic>>(
+            final result = await showDialog(
               context: context,
-              builder: (BuildContext context) {
-                return CreateClassDialog();
-              },
+              builder: (bc) => const CreateClassDialog(),
             );
-
-            // Handle new class result logic (same as Tutor)
-            if (result is Map<String, dynamic>) {
-              final resultMap = result;
-              final id = resultMap['id'] as String?;
-              final name = (resultMap['name'] as String?) ?? '';
-              final course = (resultMap['course'] as String?) ?? '';
-
-              if (id != null && id.isNotEmpty && !id.startsWith('local-')) {
-                final newClass = ClassInfo(
-                  id: id,
-                  name: name,
-                  course: course,
-                  tutorId: _authService.getCurrentUser()?.uid ?? '',
-                  members: [],
-                );
-
-                setState(() {
-                  _classes.insert(0, newClass);
-                });
-
-                try {
-                  await _authService.saveClassesToCacheForCurrentUser(_classes);
-                } catch (e) {
-                  // ignore
-                }
-
-                try {
-                  await _loadClasses();
-                } catch (e) {
-                  // ignore
-                }
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Class created successfully')),
-                  );
-                }
-              } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to create class'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            } else if (result == true) {
-              await _loadClasses();
-              if (mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Class created')));
-              }
-            }
+            if (result != null) _loadClasses();
           },
           child: Container(
             height: h * 0.065,
@@ -310,7 +192,7 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.15),
+                  color: Colors.black.withOpacity(0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -320,14 +202,9 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
           ),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-
-      // ================= REUSABLE BOTTOM NAVIGATION =================
-
-      // ================= PAGE BODY =================
       body: Column(
         children: [
-          // ================= FIXED HEADER =================
+          // ================= RESTORED HEADER WITH BELL =================
           Container(
             width: w,
             height: h * 0.23,
@@ -343,20 +220,61 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: h * 0.07),
-                Text(
-                  "Hello, ${profileLoading ? 'Loading...' : userName}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Column for Name and Email (The "Old Header" look)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Hello, ${profileLoading ? 'Loading...' : userName}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            profileLoading ? '' : userEmail,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // The Notification Bell on the right
+                    NotificationBellButton(
+                      userId: _authService.getCurrentUser()?.uid ?? '',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => NotificationsScreen(
+                                  userId:
+                                      _authService.getCurrentUser()?.uid ?? '',
+                                  userRole: 'admin',
+                                ),
+                          ),
+                        );
+                      },
+                      color: Colors.white,
+                      size: 28.0,
+                      autoRefresh: true,
+                      refreshInterval: const Duration(seconds: 30),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 5),
-                Text(
-                  profileLoading ? '' : userEmail,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                SizedBox(height: 15),
+                const SizedBox(height: 15),
+                // Search Bar
                 Container(
                   height: h * 0.055,
                   decoration: BoxDecoration(
@@ -393,53 +311,42 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
           // ================= SCROLLABLE BODY =================
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async {
-                await Future.wait([_loadClasses(), _loadPendingInvites()]);
-              },
+              onRefresh:
+                  () async => await Future.wait([
+                    _loadClasses(),
+                    _loadPendingInvites(),
+                  ]),
               color: const Color(0xFF4B3FA3),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
                     SizedBox(height: h * 0.02),
-
-                    // ================= MEETING ALERT SECTION =================
                     MeetingAlertCard(classes: _classes),
-                    SizedBox(height: h * 0.02),
 
-                    // ================= PENDING INVITES SECTION =================
+                    // Pending Invites Section
                     if (!_invitesLoading && _pendingInvites.isNotEmpty)
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: w * 0.06,
+                          vertical: 10,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.mail,
-                                  color: Colors.orange,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "Class Invitations (${_pendingInvites.length})",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade700,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              "Class Invitations (${_pendingInvites.length})",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade700,
+                              ),
                             ),
-                            SizedBox(height: h * 0.015),
-
-                            // Invite cards
-                            ...List.generate(_pendingInvites.length, (index) {
-                              final invite = _pendingInvites[index];
-                              return Container(
-                                margin: EdgeInsets.only(bottom: h * 0.015),
-                                padding: EdgeInsets.all(w * 0.04),
+                            const SizedBox(height: 10),
+                            ..._pendingInvites.map(
+                              (invite) => Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color:
                                       isDark
@@ -447,57 +354,23 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
                                           : Colors.orange.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color:
-                                        isDark
-                                            ? Colors.orange.shade900
-                                            : Colors.orange.shade200,
+                                    color: Colors.orange.shade200,
                                   ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.class_,
-                                          color: Colors.orange.shade700,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            invite.className,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.orange.shade700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
                                     Text(
-                                      'Invited by: ${invite.invitedByUserName}',
+                                      invite.className,
                                       style: TextStyle(
-                                        fontSize: 14,
-                                        color:
-                                            isDark
-                                                ? Colors.white70
-                                                : Colors.grey.shade600,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange.shade700,
                                       ),
                                     ),
                                     Text(
                                       'Role: ${invite.role}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color:
-                                            isDark
-                                                ? Colors.white70
-                                                : Colors.grey.shade600,
-                                      ),
+                                      style: const TextStyle(fontSize: 12),
                                     ),
-                                    const SizedBox(height: 12),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
@@ -507,17 +380,8 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
                                                 invite,
                                                 false,
                                               ),
-                                          child: Text(
-                                            'Decline',
-                                            style: TextStyle(
-                                              color:
-                                                  isDark
-                                                      ? Colors.white70
-                                                      : Colors.grey.shade600,
-                                            ),
-                                          ),
+                                          child: const Text('Decline'),
                                         ),
-                                        const SizedBox(width: 8),
                                         ElevatedButton(
                                           onPressed:
                                               () => _handleInviteAction(
@@ -534,130 +398,37 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
                                     ),
                                   ],
                                 ),
-                              );
-                            }),
-
-                            SizedBox(height: h * 0.02),
+                              ),
+                            ),
                           ],
                         ),
                       ),
 
-                    SizedBox(height: h * 0.01),
-
-                    // ================= CLASSES SECTION =================
+                    // Classes List
                     if (_classesLoading)
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF4B3FA3),
-                          ),
-                        ),
-                      )
-                    else if (_filteredClasses.isEmpty)
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                        child: Center(
-                          child: Text(
-                            _searchController.text.isEmpty
-                                ? 'No classes yet'
-                                : 'No classes found matching "${_searchController.text}"',
-                            style: TextStyle(
-                              color:
-                                  isDark
-                                      ? Colors.white70
-                                      : Colors.grey.shade600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
+                      const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
                       )
                     else
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: w * 0.06),
                         child: Column(
                           children:
-                              _filteredClasses.map((classInfo) {
-                                return ClassCard(
-                                  classInfo: classInfo,
-                                  // Treat Admin as Tutor/Owner for full functionality
-                                  userRole: 'admin',
-                                  currentUserId:
-                                      _authService.getCurrentUser()?.uid ?? '',
-                                  onClassUpdated: _loadClasses,
-                                  onClassDeleted: () {
-                                    setState(() {
-                                      _classes.removeWhere(
-                                        (c) => c.id == classInfo.id,
-                                      );
-                                    });
-                                    _loadClasses();
-                                  },
-                                );
-                              }).toList(),
+                              _filteredClasses
+                                  .map(
+                                    (classInfo) => ClassCard(
+                                      classInfo: classInfo,
+                                      userRole: 'admin',
+                                      currentUserId:
+                                          _authService.getCurrentUser()?.uid ??
+                                          '',
+                                      onClassUpdated: _loadClasses,
+                                    ),
+                                  )
+                                  .toList(),
                         ),
                       ),
-
-                    SizedBox(height: h * 0.03),
-
-                    // ================= STREAM CARD =================
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                      child: Container(
-                        width: w,
-                        padding: EdgeInsets.all(w * 0.06),
-                        decoration: BoxDecoration(
-                          color:
-                              isDark
-                                  ? const Color(0xFF1E1E1E)
-                                  : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(
-                            color:
-                                isDark ? Colors.white24 : Colors.grey.shade200,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.stream,
-                              size: 48,
-                              color:
-                                  isDark
-                                      ? Colors.white24
-                                      : Colors.grey.shade400,
-                            ),
-                            SizedBox(height: h * 0.02),
-                            Text(
-                              "This is where you can share with your class",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color:
-                                    isDark
-                                        ? Colors.white70
-                                        : Colors.grey.shade700,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: h * 0.01),
-                            Text(
-                              "Use the stream to share announcements, post assignments, and respond to questions",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color:
-                                    isDark == true
-                                        ? Colors.white54
-                                        : Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
                     SizedBox(height: h * 0.12),
                   ],
                 ),
@@ -666,152 +437,6 @@ class _AdminStreamScreenState extends State<AdminStreamScreen> with RouteAware {
           ),
         ],
       ),
-    );
-  }
-}
-
-class CreateClassDialog extends StatefulWidget {
-  const CreateClassDialog({super.key});
-
-  @override
-  State<CreateClassDialog> createState() => _CreateClassDialogState();
-}
-
-class _CreateClassDialogState extends State<CreateClassDialog> {
-  final _nameController = TextEditingController();
-  final _courseController = TextEditingController();
-  final FirebaseAuthService _authService = FirebaseAuthService();
-  bool _loading = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _courseController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _createClass() async {
-    final name = _nameController.text.trim();
-    final course = _courseController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a class name')),
-      );
-      return;
-    }
-
-    setState(() => _loading = true);
-    try {
-      debugPrint('[CreateClass] Creating class: $name');
-      final docId = await _authService.createClass(
-        projectId: 'kk360-69504',
-        name: name,
-        course: course.isEmpty ? null : course,
-      );
-
-      if (!mounted) return;
-
-      // Verify we got a valid document ID
-      if (docId.isEmpty) {
-        throw 'No document ID returned from server';
-      }
-
-      debugPrint('[CreateClass] Class created successfully with ID: $docId');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Class created successfully (ID: $docId)')),
-      );
-
-      // Return created class info so caller can update UI immediately
-      Navigator.of(context).pop({'id': docId, 'name': name, 'course': course});
-    } catch (e) {
-      debugPrint('[CreateClass] Failed to create class: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to create class: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      // Don't return any result on failure so home screen knows creation failed
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final h = size.height;
-    final w = size.width;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return AlertDialog(
-      title: const Text('Create Class'),
-      content: SizedBox(
-        width: w * 0.8,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              decoration: InputDecoration(
-                labelText: 'Class name',
-                labelStyle: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.grey,
-                ),
-                border: OutlineInputBorder(),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: isDark ? Colors.white24 : Colors.grey,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: h * 0.02),
-            TextField(
-              controller: _courseController,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              decoration: InputDecoration(
-                labelText: 'Course (optional)',
-                labelStyle: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.grey,
-                ),
-                border: OutlineInputBorder(),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: isDark ? Colors.white24 : Colors.grey,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4B3FA3),
-            foregroundColor: Colors.white,
-          ),
-          onPressed: _loading ? null : _createClass,
-          child:
-              _loading
-                  ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                  : const Text('Create'),
-        ),
-      ],
     );
   }
 }

@@ -1,18 +1,66 @@
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
 
-class AdminBottomNav extends StatelessWidget {
+class AdminBottomNav extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final String userId; // Add userId parameter
 
   const AdminBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.userId,
   });
+
+  @override
+  State<AdminBottomNav> createState() => _AdminBottomNavState();
+}
+
+class _AdminBottomNavState extends State<AdminBottomNav> {
+  final NotificationService _notificationService = NotificationService();
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+
+    // Periodically refresh notification count
+    Future.delayed(Duration.zero, () {
+      if (mounted) {
+        _startPeriodicRefresh();
+      }
+    });
+  }
+
+  void _startPeriodicRefresh() {
+    Future.delayed(const Duration(seconds: 30), () {
+      if (mounted) {
+        _loadUnreadCount();
+        _startPeriodicRefresh();
+      }
+    });
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final count = await _notificationService.getUnreadNotificationsCount(
+        widget.userId,
+      );
+      if (mounted) {
+        setState(() {
+          _unreadCount = count;
+        });
+      }
+    } catch (e) {
+      debugPrint('[AdminBottomNav] Error loading unread count: $e');
+    }
+  }
 
   // ---------------- SINGLE NAV ITEM ----------------
   Widget _item(BuildContext context, IconData icon, String label, int index) {
-    final bool active = index == currentIndex;
+    final bool active = index == widget.currentIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Colors
@@ -22,7 +70,7 @@ class AdminBottomNav extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => onTap(index),
+      onTap: () => widget.onTap(index),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -80,7 +128,38 @@ class AdminBottomNav extends StatelessWidget {
           _item(context, Icons.home_outlined, "Home", 0),
           _item(context, Icons.groups_outlined, "Join meet", 1),
           _item(context, Icons.tune_outlined, "Controls", 2),
-          _item(context, Icons.more_horiz_outlined, "More", 3),
+          // MORE with notification badge
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _item(context, Icons.more_horiz_outlined, "More", 3),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 10,
+                  top: 5,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      _unreadCount > 99 ? '99+' : '$_unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );

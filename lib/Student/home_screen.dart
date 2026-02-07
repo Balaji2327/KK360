@@ -6,6 +6,8 @@ import '../widgets/meeting_alert_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme_manager.dart';
+import '../widgets/notification_bell_button.dart';
+import '../widgets/notifications_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -353,34 +355,72 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
                 SizedBox(height: 15),
 
-                Container(
-                  height: h * 0.055,
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-                  child: TextField(
-                    controller: _searchController,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                      fontSize: 14,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Search classes...',
-                      hintStyle: TextStyle(
-                        color: isDark ? Colors.white54 : Colors.grey.shade600,
-                        fontSize: 14,
+                // Row for user info and notification bell
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: h * 0.055,
+                        decoration: BoxDecoration(
+                          color:
+                              isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                        child: TextField(
+                          controller: _searchController,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black,
+                            fontSize: 14,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Search classes...',
+                            hintStyle: TextStyle(
+                              color:
+                                  isDark
+                                      ? Colors.white54
+                                      : Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color:
+                                  isDark
+                                      ? Colors.white54
+                                      : Colors.grey.shade600,
+                              size: 20,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 15,
+                            ),
+                          ),
+                        ),
                       ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: isDark ? Colors.white54 : Colors.grey.shade600,
-                        size: 20,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
                     ),
-                  ),
+                    SizedBox(width: 10),
+                    NotificationBellButton(
+                      userId: _authService.getCurrentUser()?.uid ?? '',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => NotificationsScreen(
+                                  userId:
+                                      _authService.getCurrentUser()?.uid ?? '',
+                                  userRole: 'student',
+                                ),
+                          ),
+                        );
+                      },
+                      color: Colors.white,
+                      size: 28.0,
+                      autoRefresh: true,
+                      refreshInterval: const Duration(seconds: 30),
+                    ),
+                  ],
                 ),
               ],
             ),

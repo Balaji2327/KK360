@@ -6,6 +6,7 @@ import '../Authentication/student_login.dart';
 
 import '../widgets/nav_helper.dart';
 import 'settings_screen.dart';
+import '../widgets/notification_test_screen.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
   const MoreFeaturesScreen({super.key});
@@ -378,6 +379,23 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                       goPush(context, const SettingsScreen());
                     },
                     child: featureTile(w, h, Icons.settings, "Settings"),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(
+                        context,
+                        NotificationTestScreen(
+                          userId: _authService.getCurrentUser()?.uid ?? '',
+                          userRole: 'student',
+                        ),
+                      );
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.notification_important,
+                      "Test Notifications",
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {

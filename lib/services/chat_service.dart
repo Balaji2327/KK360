@@ -328,6 +328,279 @@ class ChatService {
     }
   }
 
+  // Edit a message (local only)
+  Future<void> updateMessageText({
+    required String chatRoomId,
+    required String messageId,
+    required String newText,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+
+      bool updatedAny = false;
+      final updated =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            if (map['id']?.toString() == messageId) {
+              map['text'] = newText;
+              map['isEdited'] = true;
+              map['editedAt'] = DateTime.now().toIso8601String();
+              updatedAny = true;
+            }
+            return map;
+          }).toList();
+
+      if (updatedAny) {
+        await messagesBox.put(chatRoomId, updated);
+        await _refreshChatRoomLastMessage(chatRoomId: chatRoomId);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error editing message: $e');
+    }
+  }
+
+  // Pin/unpin a message (local only)
+  Future<void> togglePinMessage({
+    required String chatRoomId,
+    required String messageId,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+
+      bool updatedAny = false;
+      final updated =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            if (map['id']?.toString() == messageId) {
+              final current = map['isPinned'] == true;
+              map['isPinned'] = !current;
+              updatedAny = true;
+            }
+            return map;
+          }).toList();
+
+      if (updatedAny) {
+        await messagesBox.put(chatRoomId, updated);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error pinning message: $e');
+    }
+  }
+
+  Future<void> pinMessage({
+    required String chatRoomId,
+    required String messageId,
+    required Duration duration,
+    required String pinnedBy,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+
+      final now = DateTime.now();
+      final expiresAt = now.add(duration);
+      bool updatedAny = false;
+      final updated =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            if (map['isPinned'] == true) {
+              map['isPinned'] = false;
+              map['pinnedAt'] = null;
+              map['pinExpiresAt'] = null;
+              map['pinnedBy'] = null;
+            }
+            if (map['id']?.toString() == messageId) {
+              map['isPinned'] = true;
+              map['pinnedAt'] = now.toIso8601String();
+              map['pinExpiresAt'] = expiresAt.toIso8601String();
+              map['pinnedBy'] = pinnedBy;
+              updatedAny = true;
+            }
+            return map;
+          }).toList();
+
+      if (updatedAny) {
+        await messagesBox.put(chatRoomId, updated);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error setting pin message: $e');
+    }
+  }
+
+  Future<void> unpinMessage({
+    required String chatRoomId,
+    required String messageId,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+
+      bool updatedAny = false;
+      final updated =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            if (map['id']?.toString() == messageId) {
+              map['isPinned'] = false;
+              map['pinnedAt'] = null;
+              map['pinExpiresAt'] = null;
+              map['pinnedBy'] = null;
+              updatedAny = true;
+            }
+            return map;
+          }).toList();
+
+      if (updatedAny) {
+        await messagesBox.put(chatRoomId, updated);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error unpinning message: $e');
+    }
+  }
+
+  Future<void> clearExpiredPins({
+    required String chatRoomId,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+      final now = DateTime.now();
+
+      bool updatedAny = false;
+      final updated =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            if (map['isPinned'] == true) {
+              final expiresRaw = map['pinExpiresAt'];
+              final expiresAt =
+                  expiresRaw is String
+                      ? DateTime.tryParse(expiresRaw)
+                      : expiresRaw is DateTime
+                      ? expiresRaw
+                      : null;
+              if (expiresAt != null && expiresAt.isBefore(now)) {
+                map['isPinned'] = false;
+                map['pinnedAt'] = null;
+                map['pinExpiresAt'] = null;
+                map['pinnedBy'] = null;
+                updatedAny = true;
+              }
+            }
+            return map;
+          }).toList();
+
+      if (updatedAny) {
+        await messagesBox.put(chatRoomId, updated);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error clearing expired pins: $e');
+    }
+  }
+
+  Future<void> addReaction({
+    required String chatRoomId,
+    required String messageId,
+    required String emoji,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+
+      bool updatedAny = false;
+      final updated =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            if (map['id']?.toString() == messageId) {
+              final reactionsRaw = map['reactions'];
+              final reactions =
+                  reactionsRaw is Map
+                      ? Map<String, int>.from(reactionsRaw as Map)
+                      : <String, int>{};
+              reactions[emoji] = (reactions[emoji] ?? 0) + 1;
+              map['reactions'] = reactions;
+              updatedAny = true;
+            }
+            return map;
+          }).toList();
+
+      if (updatedAny) {
+        await messagesBox.put(chatRoomId, updated);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error adding reaction: $e');
+    }
+  }
+
+  // Delete a message for this device only (local only)
+  Future<void> deleteMessageForMe({
+    required String chatRoomId,
+    required String messageId,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+
+      final updated =
+          rawList
+              .whereType<Map>()
+              .where((raw) => raw['id']?.toString() != messageId)
+              .toList();
+
+      if (updated.length != rawList.length) {
+        await messagesBox.put(chatRoomId, updated);
+        await _refreshChatRoomLastMessage(chatRoomId: chatRoomId);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error deleting message for me: $e');
+    }
+  }
+
+  // Delete a message for everyone (local only)
+  Future<void> deleteMessageForEveryone({
+    required String chatRoomId,
+    required String messageId,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final messagesBox = _messagesBox();
+      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+
+      bool updatedAny = false;
+      final updated =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            if (map['id']?.toString() == messageId) {
+              map['text'] = 'Message deleted';
+              map['isDeleted'] = true;
+              map['deletedAt'] = DateTime.now().toIso8601String();
+              map['isEdited'] = false;
+              map['editedAt'] = null;
+              map['isPinned'] = false;
+              map['pinnedAt'] = null;
+              map['pinExpiresAt'] = null;
+              map['pinnedBy'] = null;
+              updatedAny = true;
+            }
+            return map;
+          }).toList();
+
+      if (updatedAny) {
+        await messagesBox.put(chatRoomId, updated);
+        await _refreshChatRoomLastMessage(chatRoomId: chatRoomId);
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error deleting message for everyone: $e');
+    }
+  }
+
   // Private helper methods
 
   Future<ChatRoom> _getChatRoomById(String chatRoomId, String idToken) async {
@@ -411,6 +684,54 @@ class ChatService {
       await _roomsBox().put(chatRoomId, map);
     } catch (e) {
       debugPrint('[ChatService] Error updating last message: $e');
+    }
+  }
+
+  Future<void> _refreshChatRoomLastMessage({
+    required String chatRoomId,
+  }) async {
+    try {
+      await _ensureBoxesOpen();
+      final rawList = (_messagesBox().get(chatRoomId) as List?) ?? [];
+
+      if (rawList.isEmpty) {
+        await _updateChatRoomLastMessage(
+          chatRoomId: chatRoomId,
+          lastMessage: 'No messages yet',
+          lastMessageSenderId: '',
+          lastMessageTime: DateTime.now(),
+          idToken: '',
+        );
+        return;
+      }
+
+      final items =
+          rawList.whereType<Map>().map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            final tsRaw = map['timestamp'];
+            final ts =
+                tsRaw is String
+                    ? DateTime.tryParse(tsRaw)
+                    : tsRaw is DateTime
+                    ? tsRaw
+                    : null;
+            return MapEntry<DateTime, Map<String, dynamic>>(
+              ts ?? DateTime.fromMillisecondsSinceEpoch(0),
+              map,
+            );
+          }).toList();
+
+      items.sort((a, b) => a.key.compareTo(b.key));
+      final last = items.last;
+      await _updateChatRoomLastMessage(
+        chatRoomId: chatRoomId,
+        lastMessage: last.value['text']?.toString() ?? '',
+        lastMessageSenderId: last.value['senderId']?.toString() ?? '',
+        lastMessageTime: last.key,
+        idToken: '',
+      );
+    } catch (e) {
+      debugPrint('[ChatService] Error refreshing last message: $e');
     }
   }
 

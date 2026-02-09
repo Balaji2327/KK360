@@ -8,6 +8,15 @@ class Message {
   final DateTime timestamp;
   final bool isRead;
   final List<String> readBy; // List of user IDs who have read the message
+  final bool isDeleted;
+  final bool isEdited;
+  final bool isPinned;
+  final DateTime? editedAt;
+  final DateTime? deletedAt;
+  final DateTime? pinnedAt;
+  final DateTime? pinExpiresAt;
+  final String? pinnedBy;
+  final Map<String, int> reactions;
 
   Message({
     required this.id,
@@ -19,6 +28,15 @@ class Message {
     required this.timestamp,
     this.isRead = false,
     this.readBy = const [],
+    this.isDeleted = false,
+    this.isEdited = false,
+    this.isPinned = false,
+    this.editedAt,
+    this.deletedAt,
+    this.pinnedAt,
+    this.pinExpiresAt,
+    this.pinnedBy,
+    this.reactions = const {},
   });
 
   // Convert Message to JSON for Firestore
@@ -33,6 +51,15 @@ class Message {
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead,
       'readBy': readBy,
+      'isDeleted': isDeleted,
+      'isEdited': isEdited,
+      'isPinned': isPinned,
+      'editedAt': editedAt?.toIso8601String(),
+      'deletedAt': deletedAt?.toIso8601String(),
+      'pinnedAt': pinnedAt?.toIso8601String(),
+      'pinExpiresAt': pinExpiresAt?.toIso8601String(),
+      'pinnedBy': pinnedBy,
+      'reactions': reactions,
     };
   }
 
@@ -48,9 +75,35 @@ class Message {
       timestamp:
           json['timestamp'] is String
               ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
+              : json['timestamp'] is DateTime
+              ? json['timestamp'] as DateTime
               : DateTime.now(),
       isRead: json['isRead'] ?? false,
       readBy: List<String>.from(json['readBy'] ?? []),
+      isDeleted: json['isDeleted'] ?? false,
+      isEdited: json['isEdited'] ?? false,
+      isPinned: json['isPinned'] ?? false,
+      editedAt:
+          json['editedAt'] is String
+              ? DateTime.tryParse(json['editedAt'] as String)
+              : null,
+      deletedAt:
+          json['deletedAt'] is String
+              ? DateTime.tryParse(json['deletedAt'] as String)
+              : null,
+        pinnedAt:
+          json['pinnedAt'] is String
+            ? DateTime.tryParse(json['pinnedAt'] as String)
+            : null,
+        pinExpiresAt:
+          json['pinExpiresAt'] is String
+            ? DateTime.tryParse(json['pinExpiresAt'] as String)
+            : null,
+        pinnedBy: json['pinnedBy']?.toString(),
+        reactions:
+          (json['reactions'] is Map)
+            ? Map<String, int>.from(json['reactions'] as Map)
+            : const {},
     );
   }
 
@@ -65,6 +118,15 @@ class Message {
     DateTime? timestamp,
     bool? isRead,
     List<String>? readBy,
+    bool? isDeleted,
+    bool? isEdited,
+    bool? isPinned,
+    DateTime? editedAt,
+    DateTime? deletedAt,
+    DateTime? pinnedAt,
+    DateTime? pinExpiresAt,
+    String? pinnedBy,
+    Map<String, int>? reactions,
   }) {
     return Message(
       id: id ?? this.id,
@@ -76,6 +138,15 @@ class Message {
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
       readBy: readBy ?? this.readBy,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isEdited: isEdited ?? this.isEdited,
+      isPinned: isPinned ?? this.isPinned,
+      editedAt: editedAt ?? this.editedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      pinnedAt: pinnedAt ?? this.pinnedAt,
+      pinExpiresAt: pinExpiresAt ?? this.pinExpiresAt,
+      pinnedBy: pinnedBy ?? this.pinnedBy,
+      reactions: reactions ?? this.reactions,
     );
   }
 }

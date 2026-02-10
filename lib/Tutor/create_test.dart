@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/nav_helper.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -387,12 +388,18 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
     }
 
     try {
+      // Get tutor info for notifications
+      final notificationService = NotificationService();
+      final tutorProfile = await _auth.getUserProfile(projectId: 'kk360-69504');
+      final tutorName = tutorProfile?.name ?? 'Tutor';
+
       // Create test for each selected class
       for (String classId in _selectedClassIds) {
         // Determine assignedTo for this class
         List<String>? classAssignedTo;
+        final classInfo = _myClasses.firstWhere((c) => c.id == classId);
+
         if (_selectedStudentIds.isNotEmpty) {
-          final classInfo = _myClasses.firstWhere((c) => c.id == classId);
           // Filter selected students to those in this class
           final studentsInThisClass =
               _selectedStudentIds.where((sid) {
@@ -420,6 +427,59 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
           endDate: _endDate,
           questions: validQuestions,
           assignedTo: classAssignedTo,
+        );
+
+        // Send notifications to students
+        final studentsToNotify =
+            classAssignedTo ??
+            classInfo.members.where((memberId) {
+              // Only notify students (not tutors)
+              return memberId != classInfo.tutorId;
+            }).toList();
+
+        debugPrint(
+          '[Test] Sending notifications to ${studentsToNotify.length} students',
+        );
+
+        String? startDateStr;
+        if (_startDate != null) {
+          startDateStr =
+              '${_startDate!.day}/${_startDate!.month}/${_startDate!.year} ${_startDate!.hour}:${_startDate!.minute.toString().padLeft(2, '0')}';
+        }
+
+        String? endDateStr;
+        if (_endDate != null) {
+          endDateStr =
+              '${_endDate!.day}/${_endDate!.month}/${_endDate!.year} ${_endDate!.hour}:${_endDate!.minute.toString().padLeft(2, '0')}';
+        }
+
+        int successCount = 0;
+        for (String studentId in studentsToNotify) {
+          try {
+            debugPrint('[Test] Creating notification for student: $studentId');
+            await notificationService.createTestNotification(
+              recipientUserId: studentId,
+              tutorName: tutorName,
+              testTitle: title,
+              classId: classId,
+              className: classInfo.name,
+              testId: '${classId}_${DateTime.now().millisecondsSinceEpoch}',
+              isReschedule: false,
+              startDate: startDateStr,
+              endDate: endDateStr,
+            );
+            successCount++;
+            debugPrint(
+              '[Test] Successfully created notification for student: $studentId',
+            );
+            // Small delay to ensure unique notification IDs
+            await Future.delayed(const Duration(milliseconds: 10));
+          } catch (e) {
+            debugPrint('[Test] Failed to send notification to $studentId: $e');
+          }
+        }
+        debugPrint(
+          '[Test] Created $successCount/${studentsToNotify.length} notifications successfully',
         );
       }
 

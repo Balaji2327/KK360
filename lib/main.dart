@@ -13,21 +13,41 @@ import 'widgets/responsive_wrapper.dart'; // Add import
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables from .env file
-  await dotenv.load();
+  // Load environment variables from .env file (optional)
+  try {
+    await dotenv.load();
+    debugPrint('✓ Environment variables loaded');
+  } catch (e) {
+    debugPrint('⚠ .env file not found or error loading: $e');
+    // Continue without .env - it's optional
+  }
 
-  await Hive.initFlutter();
+  // Initialize Hive
+  try {
+    await Hive.initFlutter();
+    debugPrint('✓ Hive initialized');
+  } catch (e) {
+    debugPrint('❌ Hive initialization error: $e');
+  }
 
   // Initialize Hive service with adapters
-  await HiveService.init();
+  try {
+    await HiveService.init();
+    debugPrint('✓ Hive service initialized');
+  } catch (e) {
+    debugPrint('❌ Hive service error: $e');
+  }
 
+  // Initialize Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    debugPrint('✓ Firebase initialized');
   } catch (e) {
-    debugPrint('Firebase initialization error: $e');
+    debugPrint('❌ Firebase initialization error: $e');
   }
+
   runApp(const KK360App());
 }
 

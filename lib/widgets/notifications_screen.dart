@@ -4,6 +4,9 @@ import '../services/models/notification_model.dart';
 import 'package:kk_360/Student/chat_page.dart'; // Import Student chat page
 import 'package:kk_360/Tutor/chat_page.dart'; // Import Tutor chat page
 import 'package:kk_360/Admin/chat_page.dart'; // Import Admin chat page
+import 'package:kk_360/Student/assignment_page.dart';
+import 'package:kk_360/Student/test_page.dart';
+import 'package:kk_360/Student/student_material_page.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final String userId;
@@ -34,9 +37,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _loadNotifications() async {
     try {
+      debugPrint(
+        '[NotificationsScreen] Loading notifications for userId: ${widget.userId}',
+      );
+
+      if (widget.userId.isNotEmpty) {
+        await _notificationService.syncNotificationsFromRemote(widget.userId);
+      }
+
+      // Debug: List all notifications in the box
+      await _notificationService.debugListAllNotifications();
+
       setState(() => _loading = true);
       final notifications = await _notificationService.getNotificationsForUser(
         widget.userId,
+      );
+      debugPrint(
+        '[NotificationsScreen] Loaded ${notifications.length} notifications',
       );
       if (mounted) {
         setState(() {
@@ -162,10 +179,55 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         }
         break;
       case 'assignment':
-        // Navigate to assignment
+        // Navigate to assignment page
+        if (notification.classId != null && notification.className != null) {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => StudentAssignmentPage(
+                      classId: notification.classId!,
+                      className: notification.className!,
+                    ),
+              ),
+            );
+          }
+        }
         break;
       case 'test':
-        // Navigate to test
+        // Navigate to test page
+        if (notification.classId != null && notification.className != null) {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => StudentTestPage(
+                      classId: notification.classId!,
+                      className: notification.className!,
+                    ),
+              ),
+            );
+          }
+        }
+        break;
+      case 'material':
+        // Navigate to material page
+        if (notification.classId != null && notification.className != null) {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => StudentMaterialPage(
+                      classId: notification.classId!,
+                      className: notification.className!,
+                    ),
+              ),
+            );
+          }
+        }
         break;
       default:
         // Show notification details

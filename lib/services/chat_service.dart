@@ -4,10 +4,14 @@ import 'models/message.dart';
 import 'models/chat_room.dart';
 import 'models/chat_permissions.dart';
 import 'notification_service.dart';
+import 'firebase_auth_service.dart';
 
 class ChatService {
   static const String _chatRoomsBoxName = 'chat_rooms';
   static const String _chatMessagesBoxName = 'chat_messages';
+  static const String _projectId = 'kk360-69504';
+
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   Future<void> _ensureBoxesOpen() async {
     if (!Hive.isBoxOpen(_chatRoomsBoxName)) {
@@ -463,9 +467,7 @@ class ChatService {
     }
   }
 
-  Future<void> clearExpiredPins({
-    required String chatRoomId,
-  }) async {
+  Future<void> clearExpiredPins({required String chatRoomId}) async {
     try {
       await _ensureBoxesOpen();
       final messagesBox = _messagesBox();
@@ -687,9 +689,7 @@ class ChatService {
     }
   }
 
-  Future<void> _refreshChatRoomLastMessage({
-    required String chatRoomId,
-  }) async {
+  Future<void> _refreshChatRoomLastMessage({required String chatRoomId}) async {
     try {
       await _ensureBoxesOpen();
       final rawList = (_messagesBox().get(chatRoomId) as List?) ?? [];
@@ -817,6 +817,30 @@ class ChatService {
         if (studentId != senderId) {
           recipients.add(studentId);
         }
+      }
+
+      try {
+        final admins = await _authService.getAllAdmins(projectId: _projectId);
+        for (final admin in admins) {
+          final adminId = admin['uid'];
+          if (adminId != null && adminId.isNotEmpty && adminId != senderId) {
+            recipients.add(adminId);
+          }
+        }
+
+        final testCreators = await _authService.getAllTestCreators(
+          projectId: _projectId,
+        );
+        for (final creator in testCreators) {
+          final creatorId = creator['uid'];
+          if (creatorId != null &&
+              creatorId.isNotEmpty &&
+              creatorId != senderId) {
+            recipients.add(creatorId);
+          }
+        }
+      } catch (e) {
+        debugPrint('[ChatService] Error loading admins/test creators: $e');
       }
 
       // Create notification for each recipient

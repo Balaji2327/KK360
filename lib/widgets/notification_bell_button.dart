@@ -59,9 +59,16 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
 
   Future<void> _loadUnreadCount() async {
     try {
+      debugPrint(
+        '[NotificationBell] Loading unread count for userId: ${widget.userId}',
+      );
+      if (widget.userId.isNotEmpty) {
+        await _notificationService.syncNotificationsFromRemote(widget.userId);
+      }
       final count = await _notificationService.getUnreadNotificationsCount(
         widget.userId,
       );
+      debugPrint('[NotificationBell] Unread count: $count');
       if (mounted) {
         setState(() {
           _unreadCount = count;

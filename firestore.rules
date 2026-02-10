@@ -34,6 +34,13 @@ service cloud.firestore {
       );
       allow delete: if isAdmin();
     }
+
+    // User notifications subcollection
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null && (request.auth.uid == userId || isTutor() || isAdmin() || isTestCreator());
+      allow update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
     
     // Classes collection
     match /classes/{classId} {

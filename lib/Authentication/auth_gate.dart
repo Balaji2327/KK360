@@ -16,6 +16,8 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   Widget? _targetScreen;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -25,6 +27,11 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _determineTargetScreen() async {
     try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
       final user = _authService.getCurrentUser();
 
       if (user != null) {
@@ -35,14 +42,17 @@ class _AuthGateState extends State<AuthGate> {
         if (role == 'student') {
           setState(() {
             _targetScreen = const StudentMainScreen();
+            _isLoading = false;
           });
         } else if (role == 'tutor') {
           setState(() {
             _targetScreen = const TutorMainScreen();
+            _isLoading = false;
           });
         } else if (role == 'admin') {
           setState(() {
             _targetScreen = const AdminMainScreen();
+            _isLoading = false;
           });
         } else {
           // Fallback: If role is lost but user is logged in, fetch profile
@@ -51,12 +61,15 @@ class _AuthGateState extends State<AuthGate> {
       } else {
         setState(() {
           _targetScreen = const RoleSelectionScreen();
+          _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint("Error in AuthGate: $e");
       setState(() {
         _targetScreen = const RoleSelectionScreen();
+        _isLoading = false;
+        _errorMessage = 'Error loading: $e';
       });
     }
   }
@@ -82,10 +95,12 @@ class _AuthGateState extends State<AuthGate> {
           } else {
             _targetScreen = const RoleSelectionScreen();
           }
+          _isLoading = false;
         });
       } else {
         setState(() {
           _targetScreen = const RoleSelectionScreen();
+          _isLoading = false;
         });
       }
     } catch (e) {
@@ -93,6 +108,7 @@ class _AuthGateState extends State<AuthGate> {
       // On error, default to role selection so they can try login again
       setState(() {
         _targetScreen = const RoleSelectionScreen();
+        _isLoading = false;
       });
     }
   }

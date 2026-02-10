@@ -25,7 +25,10 @@ class NotificationAdapter extends TypeAdapter<NotificationModel> {
       senderRole: fields[9] as String?,
       timestamp: fields[10] as DateTime,
       isRead: fields[11] as bool? ?? false,
-      metadata: fields[12] as Map<String, dynamic>?,
+      metadata:
+          fields[12] != null
+              ? Map<String, dynamic>.from(fields[12] as Map)
+              : null,
     );
   }
 

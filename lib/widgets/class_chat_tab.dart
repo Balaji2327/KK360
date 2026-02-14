@@ -563,7 +563,13 @@ class _ClassChatTabState extends State<ClassChatTab> {
         );
       },
     );
-    controller.dispose();
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (updatedText != null && updatedText.isNotEmpty) {
       await _chatService.updateMessageText(
@@ -571,8 +577,10 @@ class _ClassChatTabState extends State<ClassChatTab> {
         messageId: message.id,
         newText: updatedText,
       );
+      if (!mounted) return;
       await _loadChatRoom();
     }
+    if (!mounted) return;
     _clearSelection();
   }
 

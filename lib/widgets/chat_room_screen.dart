@@ -515,7 +515,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         );
       },
     );
-    controller.dispose();
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (updatedText != null && updatedText.isNotEmpty) {
       await _chatService.updateMessageText(
@@ -523,8 +529,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         messageId: message.id,
         newText: updatedText,
       );
+      if (!mounted) return;
       await _loadMessages();
     }
+    if (!mounted) return;
     _clearSelection();
   }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/notification_service.dart';
 
 class StudentBottomNav extends StatefulWidget {
   final int currentIndex;
@@ -18,46 +17,6 @@ class StudentBottomNav extends StatefulWidget {
 }
 
 class _StudentBottomNavState extends State<StudentBottomNav> {
-  final NotificationService _notificationService = NotificationService();
-  int _unreadCount = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUnreadCount();
-
-    // Periodically refresh notification count
-    Future.delayed(Duration.zero, () {
-      if (mounted) {
-        _startPeriodicRefresh();
-      }
-    });
-  }
-
-  void _startPeriodicRefresh() {
-    Future.delayed(const Duration(seconds: 30), () {
-      if (mounted) {
-        _loadUnreadCount();
-        _startPeriodicRefresh();
-      }
-    });
-  }
-
-  Future<void> _loadUnreadCount() async {
-    try {
-      final count = await _notificationService.getUnreadNotificationsCount(
-        widget.userId,
-      );
-      if (mounted) {
-        setState(() {
-          _unreadCount = count;
-        });
-      }
-    } catch (e) {
-      debugPrint('[StudentBottomNav] Error loading unread count: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
@@ -107,43 +66,12 @@ class _StudentBottomNavState extends State<StudentBottomNav> {
             onTap: () => widget.onTap(2),
           ),
 
-          // MORE with notification badge
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _navItem(
-                context,
-                icon: Icons.more_vert,
-                label: "More",
-                isActive: widget.currentIndex == 3,
-                onTap: () => widget.onTap(3),
-              ),
-              if (_unreadCount > 0)
-                Positioned(
-                  right: 10,
-                  top: 5,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: Text(
-                      _unreadCount > 99 ? '99+' : '$_unreadCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
+          _navItem(
+            context,
+            icon: Icons.more_vert,
+            label: "More",
+            isActive: widget.currentIndex == 3,
+            onTap: () => widget.onTap(3),
           ),
         ],
       ),

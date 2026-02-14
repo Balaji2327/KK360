@@ -678,7 +678,13 @@ class _TestCreatorChatPageState extends State<TestCreatorChatPage> {
         );
       },
     );
-    controller.dispose();
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (updatedText != null && updatedText.isNotEmpty) {
       await _chatService.updateMessageText(
@@ -686,8 +692,10 @@ class _TestCreatorChatPageState extends State<TestCreatorChatPage> {
         messageId: message.id,
         newText: updatedText,
       );
+      if (!mounted) return;
       await _loadChatData();
     }
+    if (!mounted) return;
     _clearSelection();
   }
 

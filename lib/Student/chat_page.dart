@@ -717,7 +717,13 @@ class _StudentChatPageState extends State<StudentChatPage> {
         );
       },
     );
-    controller.dispose();
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (updatedText != null && updatedText.isNotEmpty) {
       await _chatService.updateMessageText(
@@ -725,8 +731,10 @@ class _StudentChatPageState extends State<StudentChatPage> {
         messageId: message.id,
         newText: updatedText,
       );
+      if (!mounted) return;
       await _loadChatData();
     }
+    if (!mounted) return;
     _clearSelection();
   }
 

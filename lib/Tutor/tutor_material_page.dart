@@ -8,8 +8,14 @@ import 'create_unit.dart';
 class TutorMaterialPage extends StatefulWidget {
   final String? classId;
   final String? className;
+  final bool isTestCreator;
 
-  const TutorMaterialPage({super.key, this.classId, this.className});
+  const TutorMaterialPage({
+    super.key,
+    this.classId,
+    this.className,
+    this.isTestCreator = false,
+  });
 
   @override
   State<TutorMaterialPage> createState() => _TutorMaterialPageState();
@@ -48,13 +54,17 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
   Future<void> _loadUnits() async {
     setState(() => _unitsLoading = true);
     try {
-      final units =
-          widget.classId != null
-              ? await _authService.getUnitsForClass(
-                projectId: 'kk360-69504',
-                classId: widget.classId!,
-              )
-              : await _authService.getUnitsForTutor(projectId: 'kk360-69504');
+      final List<UnitInfo> units;
+      if (widget.classId != null) {
+        units = await _authService.getUnitsForClass(
+          projectId: 'kk360-69504',
+          classId: widget.classId!,
+        );
+      } else if (widget.isTestCreator) {
+        units = await _authService.getAllUnits(projectId: 'kk360-69504');
+      } else {
+        units = await _authService.getUnitsForTutor(projectId: 'kk360-69504');
+      }
       if (mounted) {
         setState(() {
           _units = units;
@@ -83,7 +93,10 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
         padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
         child: GestureDetector(
           onTap: () async {
-            await goPush(context, const CreateUnitScreen());
+            await goPush(
+              context,
+              CreateUnitScreen(isTestCreator: widget.isTestCreator),
+            );
             _loadUnits();
           },
           child: Container(
@@ -191,7 +204,10 @@ class _TutorMaterialPageState extends State<TutorMaterialPage> {
 
     return GestureDetector(
       onTap: () async {
-        await goPush(context, UnitDetailsPage(unit: unit));
+        await goPush(
+          context,
+          UnitDetailsPage(unit: unit, isTestCreator: widget.isTestCreator),
+        );
         _loadUnits();
       },
       child: Container(

@@ -4846,6 +4846,41 @@ class FirebaseAuthService {
     return _parseUnitsFromRunQuery(body);
   }
 
+  // Get All Units (for Test Creator / Admin)
+  Future<List<UnitInfo>> getAllUnits({required String projectId}) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    final token = await user.getIdToken();
+    if (token == null) return [];
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$projectId/databases/(default)/documents:runQuery',
+    );
+
+    final q = {
+      'structuredQuery': {
+        'from': [
+          {'collectionId': 'units'},
+        ],
+      },
+    };
+
+    final resp = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(q),
+    );
+
+    if (resp.statusCode != 200) throw 'Failed to fetch units';
+
+    final body = jsonDecode(resp.body) as List<dynamic>;
+    return _parseUnitsFromRunQuery(body);
+  }
+
   // Get Units for Class (Student view)
   Future<List<UnitInfo>> getUnitsForClass({
     required String projectId,

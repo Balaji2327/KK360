@@ -6,7 +6,12 @@ import '../widgets/material_card.dart';
 
 class UnitDetailsPage extends StatefulWidget {
   final UnitInfo unit;
-  const UnitDetailsPage({super.key, required this.unit});
+  final bool isTestCreator;
+  const UnitDetailsPage({
+    super.key,
+    required this.unit,
+    this.isTestCreator = false,
+  });
 
   @override
   State<UnitDetailsPage> createState() => _UnitDetailsPageState();
@@ -71,7 +76,13 @@ class _UnitDetailsPageState extends State<UnitDetailsPage> {
         ), // Fixed padding
         child: GestureDetector(
           onTap: () async {
-            await goPush(context, CreateMaterialScreen(unit: widget.unit));
+            await goPush(
+              context,
+              CreateMaterialScreen(
+                unit: widget.unit,
+                isTestCreator: widget.isTestCreator,
+              ),
+            );
             _loadMaterials();
           },
           child: Container(

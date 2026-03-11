@@ -6,7 +6,12 @@ import 'package:file_picker/file_picker.dart';
 
 class CreateMaterialScreen extends StatefulWidget {
   final UnitInfo unit;
-  const CreateMaterialScreen({super.key, required this.unit});
+  final bool isTestCreator;
+  const CreateMaterialScreen({
+    super.key,
+    required this.unit,
+    this.isTestCreator = false,
+  });
 
   @override
   State<CreateMaterialScreen> createState() => _CreateMaterialScreenState();
@@ -46,7 +51,10 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
   Future<void> _loadMyClasses() async {
     setState(() => _classesLoading = true);
     try {
-      final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
+      final items =
+          widget.isTestCreator
+              ? await _auth.getAllClasses(projectId: 'kk360-69504')
+              : await _auth.getClassesForTutor(projectId: 'kk360-69504');
       if (mounted) {
         setState(() {
           _myClasses = items;

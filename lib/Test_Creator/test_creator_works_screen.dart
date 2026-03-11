@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../Tutor/assignment_page.dart';
 import '../Tutor/test_page.dart';
+import '../Tutor/tutor_material_page.dart';
 import 'test_creator_chat_selection.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
@@ -170,6 +171,25 @@ class _TestCreatorWorksScreenState extends State<TestCreatorWorksScreen> {
                         h,
                         Icons.note_alt_outlined,
                         "Test",
+                        isDark,
+                      ),
+                    ),
+
+                    GestureDetector(
+                      onTap:
+                          () => goPush(
+                            context,
+                            TutorMaterialPage(
+                              classId: widget.classId,
+                              className: widget.className,
+                              isTestCreator: true,
+                            ),
+                          ),
+                      child: featureTile(
+                        w,
+                        h,
+                        Icons.menu_book_outlined,
+                        "Materials",
                         isDark,
                       ),
                     ),

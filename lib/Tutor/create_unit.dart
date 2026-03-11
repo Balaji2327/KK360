@@ -3,7 +3,8 @@ import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
 class CreateUnitScreen extends StatefulWidget {
-  const CreateUnitScreen({super.key});
+  final bool isTestCreator;
+  const CreateUnitScreen({super.key, this.isTestCreator = false});
 
   @override
   State<CreateUnitScreen> createState() => _CreateUnitScreenState();
@@ -35,7 +36,10 @@ class _CreateUnitScreenState extends State<CreateUnitScreen> {
   Future<void> _loadMyClasses() async {
     setState(() => _classesLoading = true);
     try {
-      final items = await _auth.getClassesForTutor(projectId: 'kk360-69504');
+      final items =
+          widget.isTestCreator
+              ? await _auth.getAllClasses(projectId: 'kk360-69504')
+              : await _auth.getClassesForTutor(projectId: 'kk360-69504');
       if (!mounted) return;
       setState(() {
         _myClasses = items;

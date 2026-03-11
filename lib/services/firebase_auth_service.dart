@@ -1514,8 +1514,16 @@ class FirebaseAuthService {
               '/v1/projects/$projectId/databases/(default)/documents/assignment_submissions',
             );
 
+    // Normalize to simple document ID – the full Firestore resource path stored
+    // in `assignmentId` breaks the security-rule helper `canTutorAccessAssignment`
+    // which reconstructs the assignment path from just the document ID.
+    final simpleAssignmentId =
+        assignmentId.contains('/')
+            ? assignmentId.split('/').last
+            : assignmentId;
+
     final fields = <String, dynamic>{
-      'assignmentId': {'stringValue': assignmentId},
+      'assignmentId': {'stringValue': simpleAssignmentId},
       'studentId': {'stringValue': user.uid},
       'studentName': {'stringValue': studentName},
       'submittedAt': {
@@ -1583,37 +1591,45 @@ class FirebaseAuthService {
       '/v1/projects/$projectId/databases/(default)/documents:runQuery',
     );
 
-    final q = {
-      'structuredQuery': {
-        'from': [
-          {'collectionId': 'assignment_submissions'},
-        ],
-        'where': {
-          'compositeFilter': {
-            'op': 'AND',
-            'filters': [
-              {
-                'fieldFilter': {
-                  'field': {'fieldPath': 'assignmentId'},
-                  'op': 'EQUAL',
-                  'value': {'stringValue': assignmentId},
-                },
-              },
-              {
-                'fieldFilter': {
-                  'field': {'fieldPath': 'studentId'},
-                  'op': 'EQUAL',
-                  'value': {'stringValue': user.uid},
-                },
-              },
-            ],
-          },
-        },
-        'limit': 1,
-      },
-    };
+    // Normalize to simple ID; also keep legacy full-path for backward-compat fallback.
+    final simpleId =
+        assignmentId.contains('/')
+            ? assignmentId.split('/').last
+            : assignmentId;
+    final legacyFullPath =
+        'projects/$projectId/databases/(default)/documents/assignments/$simpleId';
 
-    try {
+    Future<AssignmentSubmission?> _queryWith(String idValue) async {
+      final q = {
+        'structuredQuery': {
+          'from': [
+            {'collectionId': 'assignment_submissions'},
+          ],
+          'where': {
+            'compositeFilter': {
+              'op': 'AND',
+              'filters': [
+                {
+                  'fieldFilter': {
+                    'field': {'fieldPath': 'assignmentId'},
+                    'op': 'EQUAL',
+                    'value': {'stringValue': idValue},
+                  },
+                },
+                {
+                  'fieldFilter': {
+                    'field': {'fieldPath': 'studentId'},
+                    'op': 'EQUAL',
+                    'value': {'stringValue': user.uid},
+                  },
+                },
+              ],
+            },
+          },
+          'limit': 1,
+        },
+      };
+
       final resp = await http
           .post(
             url,
@@ -1651,6 +1667,14 @@ class FirebaseAuthService {
             DateTime.tryParse(fields['submittedAt']?['timestampValue'] ?? '') ??
             DateTime.now(),
       );
+    }
+
+    try {
+      // Try with simple document ID first (new format).
+      final result = await _queryWith(simpleId);
+      if (result != null) return result;
+      // Fallback: old submissions stored the full Firestore resource path.
+      return await _queryWith(legacyFullPath);
     } catch (e) {
       debugPrint('[Auth] getMyAssignmentSubmission error: $e');
       return null;
@@ -1672,22 +1696,32 @@ class FirebaseAuthService {
       '/v1/projects/$projectId/databases/(default)/documents:runQuery',
     );
 
-    final q = {
-      'structuredQuery': {
-        'from': [
-          {'collectionId': 'assignment_submissions'},
-        ],
-        'where': {
-          'fieldFilter': {
-            'field': {'fieldPath': 'assignmentId'},
-            'op': 'EQUAL',
-            'value': {'stringValue': assignmentId},
+    // Normalize to simple document ID so the security rule `canTutorAccessAssignment`
+    // can resolve the assignment path correctly. Also keep legacy full-path for
+    // backward compatibility with old submission documents.
+    final simpleId =
+        assignmentId.contains('/')
+            ? assignmentId.split('/').last
+            : assignmentId;
+    final legacyFullPath =
+        'projects/$projectId/databases/(default)/documents/assignments/$simpleId';
+
+    Future<List<AssignmentSubmission>> _queryWith(String idValue) async {
+      final q = {
+        'structuredQuery': {
+          'from': [
+            {'collectionId': 'assignment_submissions'},
+          ],
+          'where': {
+            'fieldFilter': {
+              'field': {'fieldPath': 'assignmentId'},
+              'op': 'EQUAL',
+              'value': {'stringValue': idValue},
+            },
           },
         },
-      },
-    };
+      };
 
-    try {
       final resp = await http
           .post(
             url,
@@ -1731,6 +1765,14 @@ class FirebaseAuthService {
         );
       }
       return submissions;
+    }
+
+    try {
+      // Query with simple document ID first (new format).
+      final results = await _queryWith(simpleId);
+      if (results.isNotEmpty) return results;
+      // Fallback: old submissions stored the full Firestore resource path.
+      return await _queryWith(legacyFullPath);
     } catch (e) {
       debugPrint('[Auth] getAssignmentSubmissions error: $e');
       return [];
@@ -1787,9 +1829,13 @@ class FirebaseAuthService {
       }
 
       final createdAt = fields['createdAt']?['timestampValue'] as String?;
+      // Use only the final document ID segment, not the full Firestore resource path.
+      // The REST API returns name = "projects/.../documents/assignments/DOCID".
+      // Security rules and URL construction need just "DOCID".
+      final simpleId = name?.split('/').last ?? '';
       out.add(
         AssignmentInfo(
-          id: name ?? '',
+          id: simpleId,
           title: title,
           course: course,
           description: description,
@@ -5237,7 +5283,10 @@ class AssignmentInfo {
   };
 
   static AssignmentInfo fromJson(Map<String, dynamic> j) => AssignmentInfo(
-    id: j['id'] as String? ?? '',
+    id:
+        ((j['id'] as String?) ?? '').contains('/')
+            ? ((j['id'] as String?) ?? '').split('/').last
+            : ((j['id'] as String?) ?? ''),
     title: j['title'] as String? ?? '',
     course: j['course'] as String? ?? '',
     description: j['description'] as String? ?? '',

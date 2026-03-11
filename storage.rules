@@ -1,9 +1,14 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      // Allow read and write access to all files for authenticated users
+    // App uploads assignment/material/submission files to this folder.
+    match /assignments/{allPaths=**} {
       allow read, write: if request.auth != null;
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

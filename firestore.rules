@@ -1,29 +1,100 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper functions
+
+    // -------- Helper functions --------
     function getUserRole() {
       let userDoc = /databases/$(database)/documents/users/$(request.auth.uid);
       return exists(userDoc) ? get(userDoc).data.role : null;
     }
-    
+
     function isAdmin() {
       return request.auth != null && getUserRole() == 'admin';
     }
-    
+
     function isTutor() {
       return request.auth != null && getUserRole() == 'tutor';
     }
-    
+
     function isStudent() {
       return request.auth != null && getUserRole() == 'student';
     }
-    
+
     function isTestCreator() {
       return request.auth != null && getUserRole() == 'test_creator';
     }
-    
+
+    function isTutorLike() {
+      return request.auth != null && (isTutor() || isTestCreator());
+    }
+
+    function classPath(classId) {
+      return /databases/$(database)/documents/classes/$(classId);
+    }
+
+    function classExists(classId) {
+      return classId is string && exists(classPath(classId));
+    }
+
+    function isClassTutor(classId) {
+      return request.auth != null && classExists(classId) && (
+        get(classPath(classId)).data.tutorId == request.auth.uid ||
+        get(classPath(classId)).data.instructorId == request.auth.uid
+      );
+    }
+
+    function isClassMember(classId) {
+      return request.auth != null && classExists(classId) && (
+        isClassTutor(classId) ||
+        get(classPath(classId)).data.get('members', []).hasAny([request.auth.uid])
+      );
+    }
+
+    function canAccessClassContent(classId) {
+      return request.auth != null && (isAdmin() || isClassMember(classId));
+    }
+
+    function assignmentPath(assignmentId) {
+      return /databases/$(database)/documents/assignments/$(assignmentId);
+    }
+
+    function assignmentExists(assignmentId) {
+      return assignmentId is string && exists(assignmentPath(assignmentId));
+    }
+
+    function canTutorAccessAssignment(assignmentId) {
+      return request.auth != null && assignmentExists(assignmentId) && (
+        isAdmin() || isClassTutor(get(assignmentPath(assignmentId)).data.classId)
+      );
+    }
+
+    function canStudentSubmitAssignment(assignmentId) {
+      return request.auth != null && assignmentExists(assignmentId) && (
+        isStudent() &&
+        isClassMember(get(assignmentPath(assignmentId)).data.classId)
+      );
+    }
+
+    function unitPath(unitId) {
+      return /databases/$(database)/documents/units/$(unitId);
+    }
+
+    function unitExists(unitId) {
+      return unitId is string && exists(unitPath(unitId));
+    }
+
+    function canAccessUnit(unitId) {
+      return request.auth != null && unitExists(unitId) && (
+        isAdmin() || canAccessClassContent(get(unitPath(unitId)).data.classId)
+      );
+    }
+
+    function canManageUnit(unitId) {
+      return request.auth != null && unitExists(unitId) && (
+        isAdmin() || isClassTutor(get(unitPath(unitId)).data.classId)
+      );
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if request.auth != null;
@@ -69,22 +140,53 @@ service cloud.firestore {
     
     // Assignments collection
     match /assignments/{assignmentId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && (isTutor() || isAdmin() || isTestCreator());
-      // Support all owner aliases across Web/Mobile
+      allow read: if request.auth != null && (
+        isAdmin() ||
+        (resource.data.classId is string && canAccessClassContent(resource.data.classId)) ||
+        resource.data.createdBy == request.auth.uid
+      );
+      allow create: if request.auth != null && (
+        isAdmin() ||
+        (
+          isTutorLike() &&
+          request.resource.data.classId is string &&
+          isClassTutor(request.resource.data.classId)
+        )
+      );
       allow update, delete: if request.auth != null && (
-        resource.data.createdBy == request.auth.uid || 
-        resource.data.instructorId == request.auth.uid || 
-        resource.data.tutorId == request.auth.uid || 
-        isAdmin()
+        isAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.instructorId == request.auth.uid ||
+        resource.data.tutorId == request.auth.uid ||
+        (resource.data.classId is string && isClassTutor(resource.data.classId))
       );
     }
 
     // Assignment Submissions
     match /assignment_submissions/{submissionId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
-      allow update: if request.auth != null && (resource.data.studentId == request.auth.uid || isAdmin() || isTutor() || isTestCreator());
+      allow read: if request.auth != null && (
+        isAdmin() ||
+        resource.data.studentId == request.auth.uid ||
+        canTutorAccessAssignment(resource.data.assignmentId)
+      );
+      allow create: if request.auth != null && (
+        request.resource.data.studentId == request.auth.uid &&
+        request.resource.data.assignmentId is string &&
+        canStudentSubmitAssignment(request.resource.data.assignmentId)
+      );
+      allow update: if request.auth != null && (
+        isAdmin() ||
+        canTutorAccessAssignment(resource.data.assignmentId) ||
+        (
+          resource.data.studentId == request.auth.uid &&
+          request.resource.data.studentId == resource.data.studentId &&
+          request.resource.data.assignmentId == resource.data.assignmentId
+        )
+      );
+      allow delete: if request.auth != null && (
+        isAdmin() ||
+        resource.data.studentId == request.auth.uid
+      );
     }
 
     // Tests collection
@@ -122,25 +224,47 @@ service cloud.firestore {
 
     // Units collection
     match /units/{unitId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && (isTutor() || isAdmin());
+      allow read: if request.auth != null && (
+        isAdmin() ||
+        (resource.data.classId is string && canAccessClassContent(resource.data.classId))
+      );
+      allow create: if request.auth != null && (
+        isAdmin() ||
+        (
+          isTutorLike() &&
+          request.resource.data.classId is string &&
+          isClassTutor(request.resource.data.classId)
+        )
+      );
       allow update, delete: if request.auth != null && (
-        resource.data.tutorId == request.auth.uid || 
-        resource.data.instructorId == request.auth.uid || 
-        resource.data.createdBy == request.auth.uid || 
-        isAdmin()
+        isAdmin() ||
+        resource.data.tutorId == request.auth.uid ||
+        resource.data.instructorId == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        (resource.data.classId is string && isClassTutor(resource.data.classId))
       );
     }
 
     // Materials collection
     match /materials/{materialId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && (isTutor() || isAdmin());
+      allow read: if request.auth != null && (
+        isAdmin() ||
+        (resource.data.unitId is string && canAccessUnit(resource.data.unitId))
+      );
+      allow create: if request.auth != null && (
+        isAdmin() ||
+        (
+          isTutorLike() &&
+          request.resource.data.unitId is string &&
+          canManageUnit(request.resource.data.unitId)
+        )
+      );
       allow update, delete: if request.auth != null && (
-        resource.data.createdBy == request.auth.uid || 
-        resource.data.tutorId == request.auth.uid || 
-        resource.data.instructorId == request.auth.uid || 
-        isAdmin()
+        isAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.tutorId == request.auth.uid ||
+        resource.data.instructorId == request.auth.uid ||
+        (resource.data.unitId is string && canManageUnit(resource.data.unitId))
       );
     }
 

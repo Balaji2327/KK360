@@ -4,7 +4,7 @@ import '../services/firebase_auth_service.dart';
 import '../Authentication/tutor_login.dart';
 
 import '../widgets/nav_helper.dart';
-import 'settings_screen.dart';
+import '../widgets/shared_settings_screen.dart';
 
 class TutorMoreFeaturesScreen extends StatefulWidget {
   const TutorMoreFeaturesScreen({super.key});
@@ -431,7 +431,17 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.list_alt, "To Do List"),
                   ),
-                  
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const SharedSettingsScreen());
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.settings_outlined,
+                      "Settings",
+                    ),
+                  ),
                   GestureDetector(
                     onTap: () {
                       showDialog(

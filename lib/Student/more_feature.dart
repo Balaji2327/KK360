@@ -5,7 +5,7 @@ import '../services/firebase_auth_service.dart';
 import '../Authentication/student_login.dart';
 
 import '../widgets/nav_helper.dart';
-import 'settings_screen.dart';
+import '../widgets/shared_settings_screen.dart';
 
 class MoreFeaturesScreen extends StatefulWidget {
   const MoreFeaturesScreen({super.key});
@@ -379,6 +379,17 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                       goPush(context, const MyTestHistoryScreen());
                     },
                     child: featureTile(w, h, Icons.history, "My Test History"),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const SharedSettingsScreen());
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.settings_outlined,
+                      "Settings",
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {

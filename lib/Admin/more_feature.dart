@@ -3,7 +3,7 @@ import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/admin_login.dart';
 import '../widgets/nav_helper.dart';
-import 'settings_screen.dart';
+import '../widgets/shared_settings_screen.dart';
 
 class AdminMoreFeaturesScreen extends StatefulWidget {
   const AdminMoreFeaturesScreen({super.key});
@@ -432,7 +432,17 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.list_alt, "To Do List"),
                   ),
-                 
+                  GestureDetector(
+                    onTap: () {
+                      goPush(context, const SharedSettingsScreen());
+                    },
+                    child: featureTile(
+                      w,
+                      h,
+                      Icons.settings_outlined,
+                      "Settings",
+                    ),
+                  ),
                   GestureDetector(
                     onTap: () {
                       showDialog(

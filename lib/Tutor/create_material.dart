@@ -225,6 +225,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
         attachmentUrl = await _auth.uploadFile(
           _pickedFile!.bytes!,
           _pickedFile!.name,
+          folder: 'materials',
         );
       }
 

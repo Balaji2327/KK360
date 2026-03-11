@@ -1249,11 +1249,15 @@ class FirebaseAuthService {
 
   // ---------------- Assignments API ----------------
   // Upload a file to Firebase Storage
-  Future<String> uploadFile(Uint8List data, String fileName) async {
+  Future<String> uploadFile(
+    Uint8List data,
+    String fileName, {
+    String folder = 'assignments',
+  }) async {
     try {
       final ref = FirebaseStorage.instance
           .ref()
-          .child('assignments')
+          .child(folder)
           .child('${DateTime.now().millisecondsSinceEpoch}_$fileName');
       // Use putData for cross-platform support (Web & Mobile with bytes)
       final uploadTask = await ref.putData(data);

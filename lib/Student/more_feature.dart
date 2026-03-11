@@ -373,7 +373,7 @@ class _MoreFeaturesScreenState extends State<MoreFeaturesScreen> {
                     },
                     child: featureTile(w, h, Icons.list_alt, "To Do List"),
                   ),
-                 
+
                   GestureDetector(
                     onTap: () {
                       goPush(context, const MyTestHistoryScreen());

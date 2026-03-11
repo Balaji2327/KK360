@@ -120,11 +120,12 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                     subtitle: "English",
                     isDark: isDark,
                     accentColor: accentColor,
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Language settings coming soon"),
-                      ),
-                    ),
+                    onTap:
+                        () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Language settings coming soon"),
+                          ),
+                        ),
                   ),
 
                   _linkTile(
@@ -132,9 +133,12 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                     title: "Privacy Policy",
                     isDark: isDark,
                     accentColor: accentColor,
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Privacy Policy tapped")),
-                    ),
+                    onTap:
+                        () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Privacy Policy tapped"),
+                          ),
+                        ),
                   ),
 
                   SizedBox(height: h * 0.015),
@@ -147,31 +151,38 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                     title: "Help & Support",
                     isDark: isDark,
                     accentColor: accentColor,
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor:
-                            isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                        title: Text(
-                          'Help & Support',
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
+                    onTap:
+                        () => showDialog(
+                          context: context,
+                          builder:
+                              (ctx) => AlertDialog(
+                                backgroundColor:
+                                    isDark
+                                        ? const Color(0xFF2C2C2C)
+                                        : Colors.white,
+                                title: Text(
+                                  'Help & Support',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                content: Text(
+                                  'For support, please contact your administrator or tutor.',
+                                  style: TextStyle(
+                                    color:
+                                        isDark
+                                            ? Colors.white70
+                                            : Colors.black87,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                              ),
                         ),
-                        content: Text(
-                          'For support, please contact your administrator or tutor.',
-                          style: TextStyle(
-                            color: isDark ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
 
                   _linkTile(
@@ -180,31 +191,38 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                     subtitle: "KK360 Learning Platform",
                     isDark: isDark,
                     accentColor: accentColor,
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor:
-                            isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                        title: Text(
-                          'About App',
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
+                    onTap:
+                        () => showDialog(
+                          context: context,
+                          builder:
+                              (ctx) => AlertDialog(
+                                backgroundColor:
+                                    isDark
+                                        ? const Color(0xFF2C2C2C)
+                                        : Colors.white,
+                                title: Text(
+                                  'About App',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                content: Text(
+                                  'KK360 Learning Platform\nVersion 1.0.0',
+                                  style: TextStyle(
+                                    color:
+                                        isDark
+                                            ? Colors.white70
+                                            : Colors.black87,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                              ),
                         ),
-                        content: Text(
-                          'KK360 Learning Platform\nVersion 1.0.0',
-                          style: TextStyle(
-                            color: isDark ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
 
                   SizedBox(height: h * 0.03),

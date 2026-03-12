@@ -1019,8 +1019,14 @@ class FirebaseAuthService {
         final name = fields?['name']?['stringValue'] as String?;
         final email = fields?['email']?['stringValue'] as String?;
         final role = fields?['role']?['stringValue'] as String?;
+        final photoUrl = fields?['photoUrl']?['stringValue'] as String?;
 
-        final profile = UserProfile(name: name, email: email, role: role);
+        final profile = UserProfile(
+          name: name,
+          email: email,
+          role: role,
+          photoUrl: photoUrl,
+        );
         _cachedUserProfile = profile;
         return profile;
       } else {
@@ -1029,11 +1035,17 @@ class FirebaseAuthService {
           name: user.displayName,
           email: user.email,
           role: null,
+          photoUrl: user.photoURL,
         );
       }
     } catch (e) {
       debugPrint('[Auth] Error fetching user profile: $e');
-      return UserProfile(name: user.displayName, email: user.email, role: null);
+      return UserProfile(
+        name: user.displayName,
+        email: user.email,
+        role: null,
+        photoUrl: user.photoURL,
+      );
     }
   }
 
@@ -1074,7 +1086,13 @@ class FirebaseAuthService {
           final name = fields?['name']?['stringValue'] as String?;
           final email = fields?['email']?['stringValue'] as String?;
           final role = fields?['role']?['stringValue'] as String?;
-          profiles[userId] = UserProfile(name: name, email: email, role: role);
+          final photoUrl = fields?['photoUrl']?['stringValue'] as String?;
+          profiles[userId] = UserProfile(
+            name: name,
+            email: email,
+            role: role,
+            photoUrl: photoUrl,
+          );
         } else {
           profiles[userId] = null;
         }
@@ -4409,6 +4427,7 @@ class FirebaseAuthService {
     String? name,
     String? email,
     String? role,
+    String? photoUrl,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw 'Not authenticated';
@@ -4419,6 +4438,7 @@ class FirebaseAuthService {
     if (name != null) fields['name'] = {'stringValue': name};
     if (email != null) fields['email'] = {'stringValue': email};
     if (role != null) fields['role'] = {'stringValue': role};
+    if (photoUrl != null) fields['photoUrl'] = {'stringValue': photoUrl};
 
     if (fields.isEmpty) throw 'No fields to update';
 
@@ -4442,6 +4462,15 @@ class FirebaseAuthService {
 
     if (resp.statusCode != 200) {
       throw 'Failed to update user profile (status ${resp.statusCode}): ${resp.body}';
+    }
+
+    if (_cachedUserProfile != null) {
+      _cachedUserProfile = UserProfile(
+        name: name ?? _cachedUserProfile!.name,
+        email: email ?? _cachedUserProfile!.email,
+        role: role ?? _cachedUserProfile!.role,
+        photoUrl: photoUrl ?? _cachedUserProfile!.photoUrl,
+      );
     }
 
     debugPrint('[Auth] Successfully updated user profile');
@@ -5276,8 +5305,9 @@ class UserProfile {
   final String? name;
   final String? email;
   final String? role;
+  final String? photoUrl;
 
-  UserProfile({this.name, this.email, this.role});
+  UserProfile({this.name, this.email, this.role, this.photoUrl});
 }
 
 class AssignmentInfo {

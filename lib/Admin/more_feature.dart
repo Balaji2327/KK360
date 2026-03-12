@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/admin_login.dart';
@@ -18,7 +19,63 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
   bool isLoggingOut = false;
   String userName = FirebaseAuthService.cachedProfile?.name ?? 'Guest';
   String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
+  String? profilePhotoUrl = FirebaseAuthService.cachedProfile?.photoUrl;
   bool profileLoading = FirebaseAuthService.cachedProfile == null;
+  bool _isUploadingProfilePhoto = false;
+
+  Future<void> _pickAndUploadProfilePhoto() async {
+    if (_isUploadingProfilePhoto) return;
+
+    final user = _authService.getCurrentUser();
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please login again')));
+      return;
+    }
+
+    try {
+      setState(() => _isUploadingProfilePhoto = true);
+
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (picked == null || picked.files.isEmpty || picked.files.first.bytes == null) {
+        return;
+      }
+
+      final file = picked.files.first;
+      final fileName = file.name.isNotEmpty
+          ? file.name
+          : 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final downloadUrl = await _authService.uploadFile(
+        file.bytes!,
+        fileName,
+        folder: 'profile/profile_pictures/${user.uid}',
+      );
+
+      await _authService.updateUserProfile(
+        projectId: 'kk360-69504',
+        photoUrl: downloadUrl,
+      );
+
+      if (!mounted) return;
+      setState(() => profilePhotoUrl = downloadUrl);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload profile picture: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingProfilePhoto = false);
+    }
+  }
 
   void _showChangeUsernameDialog() {
     final TextEditingController usernameController = TextEditingController(
@@ -302,30 +359,73 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                     child: Row(
                       children: [
                         // Profile Icon - Circle Shape
-                        Container(
-                          width: h * 0.065,
-                          height: h * 0.065,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF4B3FA3,
-                                ).withOpacity(0.25),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                        GestureDetector(
+                          onTap: _pickAndUploadProfilePhoto,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                width: h * 0.065,
+                                height: h * 0.065,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF4B3FA3).withOpacity(0.25),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(2.5),
+                                  child: CircleAvatar(
+                                    backgroundColor: Colors.white,
+                                    backgroundImage: profilePhotoUrl != null && profilePhotoUrl!.isNotEmpty
+                                        ? NetworkImage(profilePhotoUrl!)
+                                        : null,
+                                    child: profilePhotoUrl == null || profilePhotoUrl!.isEmpty
+                                        ? Icon(
+                                            Icons.person,
+                                            color: const Color(0xFF4B3FA3),
+                                            size: h * 0.035,
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: -2,
+                                bottom: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4B3FA3),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1),
+                                  ),
+                                  child: _isUploadingProfilePhoto
+                                      ? const SizedBox(
+                                          width: 10,
+                                          height: 10,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 1.8,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.camera_alt,
+                                          size: 10,
+                                          color: Colors.white,
+                                        ),
+                                ),
                               ),
                             ],
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: h * 0.035,
                           ),
                         ),
                         SizedBox(width: w * 0.04),
@@ -410,6 +510,13 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                                   _showChangePasswordDialog();
                                 },
                                 child: const Text('Change Password'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _pickAndUploadProfilePhoto();
+                                },
+                                child: const Text('Change Profile Picture'),
                               ),
                               ElevatedButton(
                                 onPressed: () => Navigator.of(context).pop(),
@@ -690,6 +797,7 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
     setState(() {
       userName = displayName;
       userEmail = profile?.email ?? authUser?.email ?? '';
+      profilePhotoUrl = profile?.photoUrl;
       profileLoading = false;
     });
   }

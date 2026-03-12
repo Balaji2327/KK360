@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'assignment_page.dart';
-// import 'topic_page.dart';
 import 'test_page.dart';
 import 'tutor_material_page.dart';
 import 'chat_page.dart';
-import 'class_chat_selection.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
 
@@ -25,9 +24,19 @@ class _WorksScreenState extends State<WorksScreen> {
   String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
   bool profileLoading = FirebaseAuthService.cachedProfile == null;
 
+  List<ClassInfo> _myClasses = [];
+  String? _selectedClassId;
+  bool _classesLoading = false;
+
   @override
   void initState() {
     super.initState();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF4B3FA3),
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
     _loadUserProfile();
   }
 
@@ -44,6 +53,55 @@ class _WorksScreenState extends State<WorksScreen> {
         profileLoading = false;
       });
     }
+
+    _loadTutorClasses();
+  }
+
+  Future<void> _loadTutorClasses() async {
+    setState(() => _classesLoading = true);
+
+    try {
+      final cachedClasses = await _authService.getCachedClassesForCurrentUser();
+      if (cachedClasses.isNotEmpty && mounted) {
+        setState(() {
+          _myClasses = cachedClasses;
+          if (_selectedClassId == null) {
+            if (widget.classId != null &&
+                _myClasses.any((c) => c.id == widget.classId)) {
+              _selectedClassId = widget.classId;
+            } else {
+              _selectedClassId =
+                  _myClasses.isNotEmpty ? _myClasses.first.id : null;
+            }
+          }
+          _classesLoading = false;
+        });
+      }
+    } catch (_) {}
+
+    try {
+      final items = await _authService.getClassesForTutor(
+        projectId: 'kk360-69504',
+      );
+      if (!mounted) return;
+      setState(() {
+        _myClasses = items;
+        if (widget.classId != null &&
+            _myClasses.any((c) => c.id == widget.classId)) {
+          _selectedClassId = widget.classId;
+        } else {
+          _selectedClassId = _myClasses.isNotEmpty ? _myClasses.first.id : null;
+        }
+        _classesLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _classesLoading = false);
+    }
+  }
+
+  String _selectedClassDisplayName() {
+    final found = _myClasses.where((c) => c.id == _selectedClassId);
+    return found.isNotEmpty ? found.first.name : 'this class';
   }
 
   @override
@@ -54,13 +112,13 @@ class _WorksScreenState extends State<WorksScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // Removed SafeArea to allow header to go behind status bar (matching Meeting Screen)
       body: Column(
         children: [
-          // ------------ HEADER (Matches TutorMeetingControlScreen) ------------
+          // Same placement/style as student course screen
           Container(
             width: w,
-            height: h * 0.16,
+            height: h * 0.23,
+            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
             decoration: const BoxDecoration(
               color: Color(0xFF4B3FA3),
               borderRadius: BorderRadius.only(
@@ -68,153 +126,187 @@ class _WorksScreenState extends State<WorksScreen> {
                 bottomRight: Radius.circular(30),
               ),
             ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: h * 0.05),
-                  // Title
-                  if (widget.className != null) ...[
-                    Text(
-                      widget.className!,
-                      style: TextStyle(
-                        fontSize: h * 0.028,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      "Your works",
-                      style: TextStyle(
-                        fontSize: h * 0.016,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ] else
-                    Text(
-                      "Your works",
-                      style: TextStyle(
-                        fontSize: h * 0.03,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  SizedBox(height: h * 0.006),
-                  // User Profile
-                  Text(
-                    profileLoading ? 'Loading...' : '$userName | $userEmail',
-                    style: TextStyle(
-                      fontSize: h * 0.014, // Matches Meeting Screen size
-                      color: Colors.white,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: h * 0.07),
+                const Text(
+                  'Your works',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: h * 0.005),
+                Text(
+                  profileLoading ? 'Loading...' : '$userName | $userEmail',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 15),
+                Container(
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                  child: DropdownButtonHideUnderline(
+                    child:
+                        _classesLoading
+                            ? const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                            : DropdownButton<String>(
+                              value: _selectedClassId,
+                              isExpanded: true,
+                              dropdownColor:
+                                  isDark
+                                      ? const Color(0xFF2C2C2C)
+                                      : Colors.white,
+                              icon: Icon(
+                                Icons.arrow_drop_down,
+                                color: isDark ? Colors.white54 : Colors.grey,
+                              ),
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                                fontSize: 14,
+                              ),
+                              items:
+                                  _myClasses
+                                      .map(
+                                        (c) => DropdownMenuItem(
+                                          value: c.id,
+                                          child: Text(
+                                            c.name.isNotEmpty ? c.name : c.id,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (v) {
+                                if (v == null) return;
+                                setState(() => _selectedClassId = v);
+                              },
+                            ),
+                  ),
+                ),
+              ],
             ),
           ),
 
           SizedBox(height: h * 0.02),
 
-          // ------------ BODY CONTENT ------------
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Create",
-                      style: TextStyle(
-                        fontSize: w * 0.049,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    SizedBox(height: h * 0.02),
-                    GestureDetector(
-                      onTap:
-                          () => goPush(
-                            context,
-                            AssignmentPage(
-                              classId: widget.classId,
-                              className: widget.className,
+              child: Column(
+                children: [
+                  SizedBox(height: h * 0.02),
+                  if (_selectedClassId != null) ...[
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Create',
+                            style: TextStyle(
+                              fontSize: w * 0.049,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black,
                             ),
                           ),
-                      child: featureTile(
-                        w,
-                        h,
-                        Icons.assignment_outlined,
-                        "Assignment",
-                        isDark,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap:
-                          () => goPush(
-                            context,
-                            TestPage(
-                              classId: widget.classId,
-                              className: widget.className,
+                          SizedBox(height: h * 0.02),
+                          GestureDetector(
+                            onTap:
+                                () => goPush(
+                                  context,
+                                  AssignmentPage(
+                                    classId: _selectedClassId,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.assignment_outlined,
+                              'Assignment',
+                              isDark,
                             ),
                           ),
-                      child: featureTile(
-                        w,
-                        h,
-                        Icons.note_alt_outlined,
-                        "Test",
-                        isDark,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap:
-                          () => goPush(
-                            context,
-                            TutorMaterialPage(
-                              classId: widget.classId,
-                              className: widget.className,
+                          GestureDetector(
+                            onTap:
+                                () => goPush(
+                                  context,
+                                  TestPage(
+                                    classId: _selectedClassId,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.note_alt_outlined,
+                              'Test',
+                              isDark,
                             ),
                           ),
-                      child: featureTile(
-                        w,
-                        h,
-                        Icons.insert_drive_file_outlined,
-                        "Material",
-                        isDark,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap:
-                          () => goPush(
-                            context,
-                            widget.classId != null
-                                ? TutorChatPage(
-                                  classId: widget.classId!,
-                                  className: widget.className ?? 'Class',
-                                )
-                                : const TutorClassChatSelection(),
+                          GestureDetector(
+                            onTap:
+                                () => goPush(
+                                  context,
+                                  TutorMaterialPage(
+                                    classId: _selectedClassId,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.insert_drive_file_outlined,
+                              'Material',
+                              isDark,
+                            ),
                           ),
-                      child: featureTile(
-                        w,
-                        h,
-                        Icons.chat_bubble_outline,
-                        "Chat",
-                        isDark,
+                          GestureDetector(
+                            onTap:
+                                () => goPush(
+                                  context,
+                                  TutorChatPage(
+                                    classId: _selectedClassId!,
+                                    className: _selectedClassDisplayName(),
+                                  ),
+                                ),
+                            child: featureTile(
+                              w,
+                              h,
+                              Icons.chat_bubble_outline,
+                              'Chat',
+                              isDark,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: h * 0.03),
+                  ] else ...[
+                    Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: h * 0.1),
+                        child: const Text(
+                          'Please select a class to view classwork',
+                        ),
+                      ),
+                    ),
                   ],
-                ),
+                  SizedBox(height: h * 0.12),
+                ],
               ),
             ),
           ),
@@ -232,7 +324,7 @@ class _WorksScreenState extends State<WorksScreen> {
     bool isDark,
   ) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: w * 0.00, vertical: h * 0.008),
+      margin: EdgeInsets.symmetric(vertical: h * 0.008),
       padding: EdgeInsets.symmetric(horizontal: w * 0.04),
       height: h * 0.07,
       decoration: BoxDecoration(
@@ -240,7 +332,7 @@ class _WorksScreenState extends State<WorksScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
@@ -255,14 +347,12 @@ class _WorksScreenState extends State<WorksScreen> {
               text,
               style: TextStyle(
                 fontSize: w * 0.04,
+                fontWeight: FontWeight.w500,
                 color: isDark ? Colors.white : Colors.black,
               ),
             ),
           ),
-          Icon(
-            Icons.chevron_right,
-            color: isDark ? Colors.white54 : Colors.grey,
-          ),
+          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
         ],
       ),
     );

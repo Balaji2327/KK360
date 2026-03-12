@@ -42,14 +42,17 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
         withData: true,
       );
 
-      if (picked == null || picked.files.isEmpty || picked.files.first.bytes == null) {
+      if (picked == null ||
+          picked.files.isEmpty ||
+          picked.files.first.bytes == null) {
         return;
       }
 
       final file = picked.files.first;
-      final fileName = file.name.isNotEmpty
-          ? file.name
-          : 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          file.name.isNotEmpty
+              ? file.name
+              : 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       final downloadUrl = await _authService.uploadFile(
         file.bytes!,
@@ -64,9 +67,9 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
 
       if (!mounted) return;
       setState(() => profilePhotoUrl = downloadUrl);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile picture updated')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile picture updated')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -369,14 +372,19 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                                 height: h * 0.065,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
+                                    colors: [
+                                      Color(0xFF4B3FA3),
+                                      Color(0xFF6B5FB8),
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF4B3FA3).withOpacity(0.25),
+                                      color: const Color(
+                                        0xFF4B3FA3,
+                                      ).withOpacity(0.25),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -386,16 +394,20 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                                   padding: const EdgeInsets.all(2.5),
                                   child: CircleAvatar(
                                     backgroundColor: Colors.white,
-                                    backgroundImage: profilePhotoUrl != null && profilePhotoUrl!.isNotEmpty
-                                        ? NetworkImage(profilePhotoUrl!)
-                                        : null,
-                                    child: profilePhotoUrl == null || profilePhotoUrl!.isEmpty
-                                        ? Icon(
-                                            Icons.person,
-                                            color: const Color(0xFF4B3FA3),
-                                            size: h * 0.035,
-                                          )
-                                        : null,
+                                    backgroundImage:
+                                        profilePhotoUrl != null &&
+                                                profilePhotoUrl!.isNotEmpty
+                                            ? NetworkImage(profilePhotoUrl!)
+                                            : null,
+                                    child:
+                                        profilePhotoUrl == null ||
+                                                profilePhotoUrl!.isEmpty
+                                            ? Icon(
+                                              Icons.person,
+                                              color: const Color(0xFF4B3FA3),
+                                              size: h * 0.035,
+                                            )
+                                            : null,
                                   ),
                                 ),
                               ),
@@ -407,22 +419,26 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF4B3FA3),
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.white, width: 1),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1,
+                                    ),
                                   ),
-                                  child: _isUploadingProfilePhoto
-                                      ? const SizedBox(
-                                          width: 10,
-                                          height: 10,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 1.8,
+                                  child:
+                                      _isUploadingProfilePhoto
+                                          ? const SizedBox(
+                                            width: 10,
+                                            height: 10,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 1.8,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                          : const Icon(
+                                            Icons.camera_alt,
+                                            size: 10,
                                             color: Colors.white,
                                           ),
-                                        )
-                                      : const Icon(
-                                          Icons.camera_alt,
-                                          size: 10,
-                                          color: Colors.white,
-                                        ),
                                 ),
                               ),
                             ],

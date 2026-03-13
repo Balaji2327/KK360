@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/excel_user_import_service.dart';
 import '../services/firebase_auth_service.dart';
 
 class AdminControlScreen extends StatefulWidget {
@@ -11,12 +12,14 @@ class AdminControlScreen extends StatefulWidget {
 
 class _AdminControlScreenState extends State<AdminControlScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
+  final ExcelUserImportService _excelImportService = ExcelUserImportService();
   bool profileLoading = FirebaseAuthService.cachedProfile == null;
   String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
   String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
   List<Map<String, String>> _admins = [];
   List<Map<String, String>> _filteredAdmins = [];
   bool _adminsLoading = true;
+  bool _isImportingAdmins = false;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -166,6 +169,28 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                   height: h * 0.05,
                   width: h * 0.05,
                   decoration: BoxDecoration(
+                    color: const Color(0xFF4B3FA3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: GestureDetector(
+                    onTap:
+                        _isImportingAdmins
+                            ? null
+                            : () => _importAdminsFromExcel(),
+                    child: Icon(
+                      _isImportingAdmins
+                          ? Icons.hourglass_top
+                          : Icons.upload_file,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                SizedBox(width: w * 0.025),
+                Container(
+                  height: h * 0.05,
+                  width: h * 0.05,
+                  decoration: BoxDecoration(
                     color: Colors.black87,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -274,6 +299,155 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _importAdminsFromExcel() async {
+    if (_isImportingAdmins) {
+      return;
+    }
+
+    setState(() => _isImportingAdmins = true);
+
+    try {
+      final sheet = await _excelImportService.pickAndReadSheet();
+      if (sheet == null) {
+        return;
+      }
+
+      if (sheet.rows.isEmpty) {
+        throw 'The selected Excel file has no admin rows.';
+      }
+
+      final successes = <String>[];
+      final failures = <String>[];
+
+      for (var index = 0; index < sheet.rows.length; index++) {
+        final row = sheet.rows[index];
+        final rowNumber = index + 2;
+
+        final adminId = _excelImportService.readValue(row, [
+          'admin_id',
+          'adminid',
+          'id',
+        ]);
+        final name = _excelImportService.readValue(row, ['name']);
+        final email = _excelImportService.readValue(row, ['email']);
+        final password = _excelImportService.readValue(row, ['password']);
+
+        if (adminId == null || name == null || email == null || password == null) {
+          failures.add(
+            'Row $rowNumber: admin_id, name, email, and password are required.',
+          );
+          continue;
+        }
+
+        if (password.length < 6) {
+          failures.add('Row $rowNumber ($adminId): password must be 6+ characters.');
+          continue;
+        }
+
+        try {
+          await _authService.createAdminAccount(
+            email: email,
+            password: password,
+            name: name,
+            adminId: adminId,
+            projectId: 'kk360-69504',
+          );
+          successes.add(adminId);
+        } catch (e) {
+          failures.add('Row $rowNumber ($adminId): $e');
+        }
+      }
+
+      await _loadAdmins();
+      if (!mounted) {
+        return;
+      }
+
+      _showImportResultDialog(
+        title: 'Admin Import Result',
+        successLabel: 'Admins added',
+        successes: successes,
+        failures: failures,
+        requiredColumns: 'admin_id, name, email, password',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to import admins: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingAdmins = false);
+      }
+    }
+  }
+
+  void _showImportResultDialog({
+    required String title,
+    required String successLabel,
+    required List<String> successes,
+    required List<String> failures,
+    required String requiredColumns,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+            title: Text(
+              title,
+              style: TextStyle(
+                color: isDark ? Colors.white : const Color(0xFF4B3FA3),
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$successLabel: ${successes.length}\nFailed rows: ${failures.length}',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Expected columns: $requiredColumns',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  if (failures.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      failures.join('\n'),
+                      style: TextStyle(
+                        color: isDark ? Colors.red.shade200 : Colors.red,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
     );
   }
 

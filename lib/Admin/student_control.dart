@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/excel_user_import_service.dart';
 import '../services/firebase_auth_service.dart';
 
 class StudentControlScreen extends StatefulWidget {
@@ -11,12 +12,14 @@ class StudentControlScreen extends StatefulWidget {
 
 class _StudentControlScreenState extends State<StudentControlScreen> {
   final FirebaseAuthService _authService = FirebaseAuthService();
+  final ExcelUserImportService _excelImportService = ExcelUserImportService();
   bool profileLoading = FirebaseAuthService.cachedProfile == null;
   String userName = FirebaseAuthService.cachedProfile?.name ?? 'User';
   String userEmail = FirebaseAuthService.cachedProfile?.email ?? '';
   List<Map<String, String>> _students = [];
   List<Map<String, String>> _filteredStudents = [];
   bool _studentsLoading = true;
+  bool _isImportingStudents = false;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -165,6 +168,28 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
                   height: h * 0.05,
                   width: h * 0.05,
                   decoration: BoxDecoration(
+                    color: const Color(0xFF4B3FA3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: GestureDetector(
+                    onTap:
+                        _isImportingStudents
+                            ? null
+                            : () => _importStudentsFromExcel(),
+                    child: Icon(
+                      _isImportingStudents
+                          ? Icons.hourglass_top
+                          : Icons.upload_file,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                SizedBox(width: w * 0.025),
+                Container(
+                  height: h * 0.05,
+                  width: h * 0.05,
+                  decoration: BoxDecoration(
                     color: Colors.black87,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -273,6 +298,159 @@ class _StudentControlScreenState extends State<StudentControlScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _importStudentsFromExcel() async {
+    if (_isImportingStudents) {
+      return;
+    }
+
+    setState(() => _isImportingStudents = true);
+
+    try {
+      final sheet = await _excelImportService.pickAndReadSheet();
+      if (sheet == null) {
+        return;
+      }
+
+      if (sheet.rows.isEmpty) {
+        throw 'The selected Excel file has no student rows.';
+      }
+
+      final successes = <String>[];
+      final failures = <String>[];
+
+      for (var index = 0; index < sheet.rows.length; index++) {
+        final row = sheet.rows[index];
+        final rowNumber = index + 2;
+
+        final studentId = _excelImportService.readValue(row, [
+          'student_id',
+          'studentid',
+          'id',
+        ]);
+        final email = _excelImportService.readValue(row, ['email']);
+        final password = _excelImportService.readValue(row, ['password']);
+        final name =
+            _excelImportService.readValue(row, ['name']) ??
+            (email != null && email.contains('@')
+                ? email.split('@').first.toUpperCase()
+                : null);
+
+        if (studentId == null || email == null || password == null) {
+          failures.add(
+            'Row $rowNumber: student_id, email, and password are required.',
+          );
+          continue;
+        }
+
+        if (password.length < 6) {
+          failures.add('Row $rowNumber ($studentId): password must be 6+ characters.');
+          continue;
+        }
+
+        try {
+          await _authService.createStudentAccount(
+            email: email,
+            password: password,
+            name: (name == null || name.isEmpty) ? studentId : name,
+            studentId: studentId,
+            projectId: 'kk360-69504',
+          );
+          successes.add(studentId);
+        } catch (e) {
+          failures.add('Row $rowNumber ($studentId): $e');
+        }
+      }
+
+      await _loadStudents();
+      if (!mounted) {
+        return;
+      }
+
+      _showImportResultDialog(
+        title: 'Student Import Result',
+        successLabel: 'Students added',
+        successes: successes,
+        failures: failures,
+        requiredColumns: 'student_id, email, password, name(optional)',
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to import students: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingStudents = false);
+      }
+    }
+  }
+
+  void _showImportResultDialog({
+    required String title,
+    required String successLabel,
+    required List<String> successes,
+    required List<String> failures,
+    required String requiredColumns,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+            title: Text(
+              title,
+              style: TextStyle(
+                color: isDark ? Colors.white : const Color(0xFF4B3FA3),
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$successLabel: ${successes.length}\nFailed rows: ${failures.length}',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Expected columns: $requiredColumns',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  if (failures.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      failures.join('\n'),
+                      style: TextStyle(
+                        color: isDark ? Colors.red.shade200 : Colors.red,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
     );
   }
 

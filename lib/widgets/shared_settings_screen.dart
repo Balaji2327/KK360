@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/push_notification_service.dart';
 import '../theme_manager.dart';
 import 'nav_helper.dart';
 
@@ -13,6 +14,66 @@ class SharedSettingsScreen extends StatefulWidget {
 
 class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
   bool _notificationsEnabled = true;
+  bool _loadingPreferences = true;
+  bool _savingNotificationPreference = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final enabled =
+          await PushNotificationService.instance.getPushNotificationsEnabled();
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = enabled;
+        _loadingPreferences = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadingPreferences = false;
+      });
+    }
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    if (_savingNotificationPreference) return;
+
+    setState(() {
+      _savingNotificationPreference = true;
+      _notificationsEnabled = value;
+    });
+
+    try {
+      await PushNotificationService.instance.setPushNotificationsEnabled(value);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Outside-app notifications ${value ? 'enabled' : 'disabled'}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = !value;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update notification setting: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _savingNotificationPreference = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,24 +151,20 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                     accentColor: accentColor,
                   ),
 
-                  _switchTile(
-                    icon: Icons.notifications_active_outlined,
-                    title: "Notifications",
-                    subtitle: "Receive updates and reminders",
-                    value: _notificationsEnabled,
-                    onChanged: (v) {
-                      setState(() => _notificationsEnabled = v);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Notifications ${v ? 'enabled' : 'disabled'}",
-                          ),
-                        ),
-                      );
-                    },
-                    isDark: isDark,
-                    accentColor: accentColor,
-                  ),
+                  _loadingPreferences
+                      ? _loadingTile(isDark: isDark)
+                      : _switchTile(
+                        icon: Icons.notifications_active_outlined,
+                        title: "Notifications",
+                        subtitle: "Receive outside-app push notifications",
+                        value: _notificationsEnabled,
+                        onChanged:
+                            _savingNotificationPreference
+                                ? null
+                                : _toggleNotifications,
+                        isDark: isDark,
+                        accentColor: accentColor,
+                      ),
 
                   SizedBox(height: h * 0.015),
 
@@ -266,7 +323,7 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
     required String title,
     required String subtitle,
     required bool value,
-    required ValueChanged<bool> onChanged,
+    required ValueChanged<bool>? onChanged,
     required bool isDark,
     required Color accentColor,
   }) {
@@ -346,6 +403,44 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
           color: Colors.grey,
         ),
         onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _loadingTile({required bool isDark}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Loading notification settings...',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/firebase_auth_service.dart';
-import '../services/notification_service.dart';
+import '../services/notification_helper.dart';
 import '../widgets/nav_helper.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -33,6 +33,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
   PlatformFile? _pickedFile;
 
   final FirebaseAuthService _auth = FirebaseAuthService();
+  final NotificationHelper _notificationHelper = NotificationHelper();
   List<ClassInfo> _myClasses = [];
   List<String> _selectedClassIds = [];
 
@@ -513,11 +514,13 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                         } else {
                           // CREATE MODE
                           // Create assignment for each selected class
-                          final notificationService = NotificationService();
+                          final senderId = _auth.getCurrentUser()?.uid ?? '';
                           final tutorProfile = await _auth.getUserProfile(
                             projectId: 'kk360-69504',
                           );
                           final tutorName = tutorProfile?.name ?? 'Tutor';
+                          final senderRole =
+                              widget.isTestCreator ? 'test_creator' : 'tutor';
 
                           for (String classId in _selectedClassIds) {
                             // Determine assigned students for THIS class
@@ -574,39 +577,21 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
                                   '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}';
                             }
 
-                            int successCount = 0;
-                            for (String studentId in studentsToNotify) {
-                              try {
-                                debugPrint(
-                                  '[Assignment] Creating notification for student: $studentId',
+                            final notificationAssignmentId =
+                                '${classId}_${DateTime.now().millisecondsSinceEpoch}';
+                            final successCount = await _notificationHelper
+                                .notifyAssignmentCreatedForClass(
+                                  classInfo: classInfo,
+                                  senderId: senderId,
+                                  senderName: tutorName,
+                                  senderRole: senderRole,
+                                  assignmentTitle: title,
+                                  assignmentId: notificationAssignmentId,
+                                  dueDate: dueDateStr,
+                                  targetUserIds: studentsToNotify,
                                 );
-                                await notificationService
-                                    .createAssignmentNotification(
-                                      recipientUserId: studentId,
-                                      tutorName: tutorName,
-                                      assignmentTitle: title,
-                                      classId: classId,
-                                      className: classInfo.name,
-                                      assignmentId:
-                                          '${classId}_${DateTime.now().millisecondsSinceEpoch}',
-                                      dueDate: dueDateStr,
-                                    );
-                                successCount++;
-                                debugPrint(
-                                  '[Assignment] Successfully created notification for student: $studentId',
-                                );
-                                // Small delay to ensure unique notification IDs
-                                await Future.delayed(
-                                  const Duration(milliseconds: 10),
-                                );
-                              } catch (e) {
-                                debugPrint(
-                                  '[Assignment] Failed to send notification to $studentId: $e',
-                                );
-                              }
-                            }
                             debugPrint(
-                              '[Assignment] Created $successCount/${studentsToNotify.length} notifications successfully',
+                              '[Assignment] Created $successCount notifications successfully',
                             );
                           }
                           if (mounted) {

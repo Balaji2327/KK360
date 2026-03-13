@@ -33,6 +33,7 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
   final NotificationService _notificationService = NotificationService();
   int _unreadCount = 0;
   Timer? _refreshTimer;
+  StreamSubscription<void>? _notificationChangesSubscription;
 
   @override
   void initState() {
@@ -49,11 +50,18 @@ class _NotificationBellButtonState extends State<NotificationBellButton> {
         }
       });
     }
+
+    _notificationChangesSubscription = NotificationService.changes.listen((_) {
+      if (mounted) {
+        _loadUnreadCount();
+      }
+    });
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _notificationChangesSubscription?.cancel();
     super.dispose();
   }
 

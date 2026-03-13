@@ -29,6 +29,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _loading = true;
   bool _markingAllAsRead = false;
 
+  void _setNotificationReadLocally(String notificationId) {
+    if (!mounted) return;
+    setState(() {
+      _notifications =
+          _notifications.map((notification) {
+            if (notification.id == notificationId && !notification.isRead) {
+              return notification.copyWith(isRead: true);
+            }
+            return notification;
+          }).toList();
+    });
+  }
+
+  void _setAllNotificationsReadLocally() {
+    if (!mounted) return;
+    setState(() {
+      _notifications =
+          _notifications
+              .map(
+                (notification) =>
+                    notification.isRead
+                        ? notification
+                        : notification.copyWith(isRead: true),
+              )
+              .toList();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +107,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     try {
       setState(() => _markingAllAsRead = true);
+      _setAllNotificationsReadLocally();
       await _notificationService.markAllAsRead(widget.userId);
       await _loadNotifications(); // Reload to update UI
 
@@ -103,6 +132,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _markAsRead(String notificationId) async {
     try {
+      _setNotificationReadLocally(notificationId);
       await _notificationService.markAsRead(notificationId);
       await _loadNotifications(); // Reload to update UI
     } catch (e) {
@@ -130,7 +160,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  void _onNotificationTap(NotificationModel notification) async {
+  Future<void> _onNotificationTap(NotificationModel notification) async {
     // Mark as read when tapped
     if (!notification.isRead) {
       await _markAsRead(notification.id);
@@ -171,10 +201,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               );
             }
 
-            Navigator.push(
+            await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => chatPage),
             );
+            if (mounted) {
+              await _loadNotifications();
+            }
           }
         }
         break;
@@ -182,7 +215,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         // Navigate to assignment page
         if (notification.classId != null && notification.className != null) {
           if (mounted) {
-            Navigator.push(
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder:
@@ -192,6 +225,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
               ),
             );
+            if (mounted) {
+              await _loadNotifications();
+            }
           }
         }
         break;
@@ -199,7 +235,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         // Navigate to test page
         if (notification.classId != null && notification.className != null) {
           if (mounted) {
-            Navigator.push(
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder:
@@ -209,6 +245,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
               ),
             );
+            if (mounted) {
+              await _loadNotifications();
+            }
           }
         }
         break;
@@ -216,7 +255,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         // Navigate to material page
         if (notification.classId != null && notification.className != null) {
           if (mounted) {
-            Navigator.push(
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder:
@@ -226,6 +265,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
               ),
             );
+            if (mounted) {
+              await _loadNotifications();
+            }
           }
         }
         break;

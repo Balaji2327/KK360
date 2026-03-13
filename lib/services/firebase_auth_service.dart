@@ -9,6 +9,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'push_notification_service.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -960,6 +961,9 @@ class FirebaseAuthService {
       if (user != null) {
         debugPrint(
           '[Auth] Signing out user ${user.uid} (cache preserved, profile cleared)',
+        );
+        await PushNotificationService.instance.unregisterCurrentDevice(
+          userId: user.uid,
         );
       }
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
@@ -9,8 +10,12 @@ import 'firebase_auth_service.dart';
 class NotificationService {
   static const String _notificationsBoxName = 'notifications';
   static const String _projectId = 'kk360-69504';
+  static final StreamController<void> _changesController =
+      StreamController<void>.broadcast();
 
   final FirebaseAuthService _authService = FirebaseAuthService();
+
+  static Stream<void> get changes => _changesController.stream;
 
   // Get the notifications box
   Future<Box> _notificationsBox() async {
@@ -126,6 +131,49 @@ class NotificationService {
           )
           .timeout(const Duration(seconds: 10));
     }
+  }
+
+  Future<void> _updateNotificationReadStateRemote(
+    NotificationModel notification,
+  ) async {
+    final idToken = await _getIdToken();
+    if (idToken == null) return;
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/users/${notification.userId}/notifications/${notification.id}',
+      {'updateMask.fieldPaths': 'isRead'},
+    );
+
+    final body = jsonEncode({
+      'fields': {
+        'isRead': {'booleanValue': notification.isRead},
+      },
+    });
+
+    await http.patch(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    ).timeout(const Duration(seconds: 10));
+  }
+
+  Future<void> _deleteNotificationRemote(NotificationModel notification) async {
+    final idToken = await _getIdToken();
+    if (idToken == null) return;
+
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/users/${notification.userId}/notifications/${notification.id}',
+    );
+
+    await http.delete(
+      url,
+      headers: {'Authorization': 'Bearer $idToken'},
+    ).timeout(const Duration(seconds: 10));
   }
 
   String? _stringField(Map<String, dynamic>? fields, String key) {
@@ -272,8 +320,9 @@ class NotificationService {
 
   // Notify about new notifications (could be used for real-time updates)
   void _notifyNewNotification() {
-    // This could be expanded to use streams or callbacks
-    // For now, we rely on periodic refresh
+    if (!_changesController.isClosed) {
+      _changesController.add(null);
+    }
   }
 
   // Debug method: List all notifications in the box
@@ -302,6 +351,7 @@ class NotificationService {
   // Create chat message notification
   Future<void> createChatNotification({
     required String recipientUserId,
+    String? senderId,
     required String senderName,
     required String senderRole,
     required String messageText,
@@ -321,7 +371,7 @@ class NotificationService {
       type: 'chat',
       classId: classId,
       className: className,
-      senderId: null, // We don't need sender ID for display
+      senderId: senderId,
       senderName: senderName,
       senderRole: senderRole,
       timestamp: DateTime.now(),
@@ -345,6 +395,8 @@ class NotificationService {
     required String className,
     required String assignmentId,
     String? dueDate,
+    String? senderId,
+    String senderRole = 'tutor',
   }) async {
     debugPrint(
       '[NotificationService] Creating assignment notification for user: $recipientUserId',
@@ -362,9 +414,9 @@ class NotificationService {
       type: 'assignment',
       classId: classId,
       className: className,
-      senderId: null,
+      senderId: senderId,
       senderName: tutorName,
-      senderRole: 'tutor',
+      senderRole: senderRole,
       timestamp: DateTime.now(),
       isRead: false,
       metadata: {
@@ -395,6 +447,8 @@ class NotificationService {
     required bool isReschedule,
     String? startDate,
     String? endDate,
+    String? senderId,
+    String senderRole = 'tutor',
   }) async {
     debugPrint(
       '[NotificationService] Creating test notification for user: $recipientUserId',
@@ -413,9 +467,9 @@ class NotificationService {
       type: 'test',
       classId: classId,
       className: className,
-      senderId: null,
+      senderId: senderId,
       senderName: tutorName,
-      senderRole: 'tutor',
+      senderRole: senderRole,
       timestamp: DateTime.now(),
       isRead: false,
       metadata: {
@@ -441,6 +495,8 @@ class NotificationService {
     required String className,
     required String materialId,
     required String unitName,
+    String? senderId,
+    String senderRole = 'tutor',
   }) async {
     debugPrint(
       '[NotificationService] Creating material notification for user: $recipientUserId',
@@ -456,9 +512,9 @@ class NotificationService {
       type: 'material',
       classId: classId,
       className: className,
-      senderId: null,
+      senderId: senderId,
       senderName: tutorName,
-      senderRole: 'tutor',
+      senderRole: senderRole,
       timestamp: DateTime.now(),
       isRead: false,
       metadata: {
@@ -564,6 +620,14 @@ class NotificationService {
           Map<String, dynamic>.from(data),
         ).copyWith(isRead: true);
         await box.put(notificationId, notification.toJson());
+        try {
+          await _updateNotificationReadStateRemote(notification);
+        } catch (e) {
+          debugPrint(
+            '[NotificationService] Remote mark-as-read failed: $e',
+          );
+        }
+        _notifyNewNotification();
         debugPrint(
           '[NotificationService] Marked notification as read: $notificationId',
         );
@@ -579,6 +643,7 @@ class NotificationService {
   Future<void> markAllAsRead(String userId) async {
     try {
       final box = await _notificationsBox();
+      var updatedAny = false;
 
       for (var key in box.keys) {
         final data = box.get(key);
@@ -590,7 +655,19 @@ class NotificationService {
             Map<String, dynamic>.from(data),
           ).copyWith(isRead: true);
           await box.put(key, notification.toJson());
+          updatedAny = true;
+          try {
+            await _updateNotificationReadStateRemote(notification);
+          } catch (e) {
+            debugPrint(
+              '[NotificationService] Remote mark-all-as-read failed for ${notification.id}: $e',
+            );
+          }
         }
+      }
+
+      if (updatedAny) {
+        _notifyNewNotification();
       }
 
       debugPrint(
@@ -607,7 +684,20 @@ class NotificationService {
   Future<void> deleteNotification(String notificationId) async {
     try {
       final box = await _notificationsBox();
+      final data = box.get(notificationId);
+      NotificationModel? notification;
+      if (data != null && data is Map) {
+        notification = NotificationModel.fromJson(Map<String, dynamic>.from(data));
+      }
       await box.delete(notificationId);
+      if (notification != null) {
+        try {
+          await _deleteNotificationRemote(notification);
+        } catch (e) {
+          debugPrint('[NotificationService] Remote delete failed: $e');
+        }
+      }
+      _notifyNewNotification();
       debugPrint('[NotificationService] Deleted notification: $notificationId');
     } catch (e) {
       debugPrint('[NotificationService] Error deleting notification: $e');
@@ -619,15 +709,31 @@ class NotificationService {
     try {
       final box = await _notificationsBox();
       final keysToDelete = <dynamic>[];
+      final notificationsToDelete = <NotificationModel>[];
 
       for (var key in box.keys) {
         final data = box.get(key);
         if (data != null && data is Map && data['userId'] == userId) {
           keysToDelete.add(key);
+          notificationsToDelete.add(
+            NotificationModel.fromJson(Map<String, dynamic>.from(data)),
+          );
         }
       }
 
       await box.deleteAll(keysToDelete);
+      for (final notification in notificationsToDelete) {
+        try {
+          await _deleteNotificationRemote(notification);
+        } catch (e) {
+          debugPrint(
+            '[NotificationService] Remote delete-all failed for ${notification.id}: $e',
+          );
+        }
+      }
+      if (keysToDelete.isNotEmpty) {
+        _notifyNewNotification();
+      }
       debugPrint(
         '[NotificationService] Deleted all notifications for user: $userId',
       );

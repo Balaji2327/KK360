@@ -336,70 +336,34 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: h * 0.07),
-
-                Text(
-                  "Hello, ${profileLoading ? 'Loading...' : userName}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                SizedBox(height: 5),
-
-                Text(
-                  profileLoading ? 'Loading...' : userEmail,
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-
-                SizedBox(height: 15),
-
-                // Row for user info and notification bell
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Container(
-                        height: h * 0.055,
-                        decoration: BoxDecoration(
-                          color:
-                              isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-                        child: TextField(
-                          controller: _searchController,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black,
-                            fontSize: 14,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search classes...',
-                            hintStyle: TextStyle(
-                              color:
-                                  isDark
-                                      ? Colors.white54
-                                      : Colors.grey.shade600,
-                              fontSize: 14,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color:
-                                  isDark
-                                      ? Colors.white54
-                                      : Colors.grey.shade600,
-                              size: 20,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 15,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Hello, ${profileLoading ? 'Loading...' : userName}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 5),
+                          Text(
+                            profileLoading ? '' : userEmail,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(width: 10),
                     NotificationBellButton(
                       userId: _authService.getCurrentUser()?.uid ?? '',
                       onPressed: () {
@@ -421,6 +385,36 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       refreshInterval: const Duration(seconds: 30),
                     ),
                   ],
+                ),
+                const SizedBox(height: 15),
+                Container(
+                  height: h * 0.055,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search classes...',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                  ),
                 ),
               ],
             ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_auth_service.dart';
-import '../services/notification_service.dart';
+import '../services/notification_helper.dart';
 import '../widgets/nav_helper.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -41,6 +41,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
   DateTime? _endDate;
 
   final FirebaseAuthService _auth = FirebaseAuthService();
+  final NotificationHelper _notificationHelper = NotificationHelper();
   List<ClassInfo> _myClasses = [];
 
   List<String> _selectedStudentIds = [];
@@ -389,9 +390,10 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
 
     try {
       // Get tutor info for notifications
-      final notificationService = NotificationService();
+      final senderId = _auth.getCurrentUser()?.uid ?? '';
       final tutorProfile = await _auth.getUserProfile(projectId: 'kk360-69504');
       final tutorName = tutorProfile?.name ?? 'Tutor';
+      final senderRole = widget.isTestCreator ? 'test_creator' : 'tutor';
 
       // Create test for each selected class
       for (String classId in _selectedClassIds) {
@@ -453,33 +455,22 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
               '${_endDate!.day}/${_endDate!.month}/${_endDate!.year} ${_endDate!.hour}:${_endDate!.minute.toString().padLeft(2, '0')}';
         }
 
-        int successCount = 0;
-        for (String studentId in studentsToNotify) {
-          try {
-            debugPrint('[Test] Creating notification for student: $studentId');
-            await notificationService.createTestNotification(
-              recipientUserId: studentId,
-              tutorName: tutorName,
+        final notificationTestId =
+            '${classId}_${DateTime.now().millisecondsSinceEpoch}';
+        final successCount = await _notificationHelper
+            .notifyTestScheduledForClass(
+              classInfo: classInfo,
+              senderId: senderId,
+              senderName: tutorName,
+              senderRole: senderRole,
               testTitle: title,
-              classId: classId,
-              className: classInfo.name,
-              testId: '${classId}_${DateTime.now().millisecondsSinceEpoch}',
-              isReschedule: false,
+              testId: notificationTestId,
               startDate: startDateStr,
               endDate: endDateStr,
+              targetUserIds: studentsToNotify,
             );
-            successCount++;
-            debugPrint(
-              '[Test] Successfully created notification for student: $studentId',
-            );
-            // Small delay to ensure unique notification IDs
-            await Future.delayed(const Duration(milliseconds: 10));
-          } catch (e) {
-            debugPrint('[Test] Failed to send notification to $studentId: $e');
-          }
-        }
         debugPrint(
-          '[Test] Created $successCount/${studentsToNotify.length} notifications successfully',
+          '[Test] Created $successCount notifications successfully',
         );
       }
 

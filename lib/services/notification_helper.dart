@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'firebase_auth_service.dart';
 import 'notification_service.dart';
 import 'models/notification_model.dart';
 
@@ -10,6 +11,27 @@ import 'models/notification_model.dart';
 /// - Chat Messages
 class NotificationHelper {
   final NotificationService _notificationService = NotificationService();
+
+  Future<List<String>> _resolveRecipientsForClassAction({
+    required ClassInfo classInfo,
+    required String senderId,
+    List<String>? targetUserIds,
+  }) async {
+    final recipients = <String>{classInfo.tutorId, ...classInfo.members}
+      ..remove('')
+      ..remove(senderId);
+
+    if (targetUserIds == null || targetUserIds.isEmpty) {
+      return recipients.toList();
+    }
+
+    final selectedIds = targetUserIds.toSet();
+    recipients.removeWhere(
+      (userId) => userId != classInfo.tutorId && !selectedIds.contains(userId),
+    );
+
+    return recipients.toList();
+  }
 
   /// Create and send assignment notification to all students in a class
   ///
@@ -68,6 +90,53 @@ class NotificationHelper {
     debugPrint(
       '[NotificationHelper] Assignment notification sent to $successCount/${studentIds.length} students',
     );
+    return successCount;
+  }
+
+  Future<int> notifyAssignmentCreatedForClass({
+    required ClassInfo classInfo,
+    required String senderId,
+    required String senderName,
+    required String senderRole,
+    required String assignmentTitle,
+    required String assignmentId,
+    String? dueDate,
+    List<String>? targetUserIds,
+  }) async {
+    final recipients = await _resolveRecipientsForClassAction(
+      classInfo: classInfo,
+      senderId: senderId,
+      targetUserIds: targetUserIds,
+    );
+
+    if (recipients.isEmpty) {
+      debugPrint('[NotificationHelper] No recipients for assignment');
+      return 0;
+    }
+
+    int successCount = 0;
+    for (final recipientId in recipients) {
+      try {
+        await _notificationService.createAssignmentNotification(
+          recipientUserId: recipientId,
+          tutorName: senderName,
+          classId: classInfo.id,
+          className: classInfo.name,
+          assignmentTitle: assignmentTitle,
+          assignmentId: assignmentId,
+          dueDate: dueDate,
+          senderId: senderId,
+          senderRole: senderRole,
+        );
+        successCount++;
+        await Future.delayed(const Duration(milliseconds: 10));
+      } catch (e) {
+        debugPrint(
+          '[NotificationHelper] Failed to notify assignment recipient $recipientId: $e',
+        );
+      }
+    }
+
     return successCount;
   }
 
@@ -136,6 +205,57 @@ class NotificationHelper {
     return successCount;
   }
 
+  Future<int> notifyTestScheduledForClass({
+    required ClassInfo classInfo,
+    required String senderId,
+    required String senderName,
+    required String senderRole,
+    required String testTitle,
+    required String testId,
+    String? startDate,
+    String? endDate,
+    bool isReschedule = false,
+    List<String>? targetUserIds,
+  }) async {
+    final recipients = await _resolveRecipientsForClassAction(
+      classInfo: classInfo,
+      senderId: senderId,
+      targetUserIds: targetUserIds,
+    );
+
+    if (recipients.isEmpty) {
+      debugPrint('[NotificationHelper] No recipients for test');
+      return 0;
+    }
+
+    int successCount = 0;
+    for (final recipientId in recipients) {
+      try {
+        await _notificationService.createTestNotification(
+          recipientUserId: recipientId,
+          tutorName: senderName,
+          classId: classInfo.id,
+          className: classInfo.name,
+          testTitle: testTitle,
+          testId: testId,
+          isReschedule: isReschedule,
+          startDate: startDate,
+          endDate: endDate,
+          senderId: senderId,
+          senderRole: senderRole,
+        );
+        successCount++;
+        await Future.delayed(const Duration(milliseconds: 10));
+      } catch (e) {
+        debugPrint(
+          '[NotificationHelper] Failed to notify test recipient $recipientId: $e',
+        );
+      }
+    }
+
+    return successCount;
+  }
+
   /// Create and send study material notification to all students in a class
   ///
   /// This is called automatically when a tutor uploads study materials.
@@ -192,6 +312,53 @@ class NotificationHelper {
     debugPrint(
       '[NotificationHelper] Material notification sent to $successCount/${studentIds.length} students',
     );
+    return successCount;
+  }
+
+  Future<int> notifyMaterialUploadedForClass({
+    required ClassInfo classInfo,
+    required String senderId,
+    required String senderName,
+    required String senderRole,
+    required String materialTitle,
+    required String materialId,
+    required String unitName,
+    List<String>? targetUserIds,
+  }) async {
+    final recipients = await _resolveRecipientsForClassAction(
+      classInfo: classInfo,
+      senderId: senderId,
+      targetUserIds: targetUserIds,
+    );
+
+    if (recipients.isEmpty) {
+      debugPrint('[NotificationHelper] No recipients for material');
+      return 0;
+    }
+
+    int successCount = 0;
+    for (final recipientId in recipients) {
+      try {
+        await _notificationService.createMaterialNotification(
+          recipientUserId: recipientId,
+          tutorName: senderName,
+          classId: classInfo.id,
+          className: classInfo.name,
+          materialTitle: materialTitle,
+          materialId: materialId,
+          unitName: unitName,
+          senderId: senderId,
+          senderRole: senderRole,
+        );
+        successCount++;
+        await Future.delayed(const Duration(milliseconds: 10));
+      } catch (e) {
+        debugPrint(
+          '[NotificationHelper] Failed to notify material recipient $recipientId: $e',
+        );
+      }
+    }
+
     return successCount;
   }
 

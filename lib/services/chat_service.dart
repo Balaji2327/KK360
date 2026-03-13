@@ -4,14 +4,10 @@ import 'models/message.dart';
 import 'models/chat_room.dart';
 import 'models/chat_permissions.dart';
 import 'notification_service.dart';
-import 'firebase_auth_service.dart';
 
 class ChatService {
   static const String _chatRoomsBoxName = 'chat_rooms';
   static const String _chatMessagesBoxName = 'chat_messages';
-  static const String _projectId = 'kk360-69504';
-
-  final FirebaseAuthService _authService = FirebaseAuthService();
 
   Future<void> _ensureBoxesOpen() async {
     if (!Hive.isBoxOpen(_chatRoomsBoxName)) {
@@ -173,7 +169,7 @@ class ChatService {
       );
 
       // Create notifications for all class members except the sender
-      _createChatNotifications(
+      await _createChatNotifications(
         chatRoom: chatRoom,
         senderId: userId,
         senderName: userName,
@@ -791,7 +787,7 @@ class ChatService {
   }
 
   // Create chat notifications for all class members
-  void _createChatNotifications({
+  Future<void> _createChatNotifications({
     required ChatRoom chatRoom,
     required String senderId,
     required String senderName,
@@ -808,8 +804,8 @@ class ChatService {
       final recipients = <String>{};
 
       // Add tutor if not the sender
-      if (chatRoom.tutorId != null && chatRoom.tutorId != senderId) {
-        recipients.add(chatRoom.tutorId!);
+      if (chatRoom.tutorId.isNotEmpty && chatRoom.tutorId != senderId) {
+        recipients.add(chatRoom.tutorId);
       }
 
       // Add students if not the sender
@@ -819,35 +815,12 @@ class ChatService {
         }
       }
 
-      try {
-        final admins = await _authService.getAllAdmins(projectId: _projectId);
-        for (final admin in admins) {
-          final adminId = admin['uid'];
-          if (adminId != null && adminId.isNotEmpty && adminId != senderId) {
-            recipients.add(adminId);
-          }
-        }
-
-        final testCreators = await _authService.getAllTestCreators(
-          projectId: _projectId,
-        );
-        for (final creator in testCreators) {
-          final creatorId = creator['uid'];
-          if (creatorId != null &&
-              creatorId.isNotEmpty &&
-              creatorId != senderId) {
-            recipients.add(creatorId);
-          }
-        }
-      } catch (e) {
-        debugPrint('[ChatService] Error loading admins/test creators: $e');
-      }
-
       // Create notification for each recipient
       for (var recipientId in recipients) {
         try {
           await notificationService.createChatNotification(
             recipientUserId: recipientId,
+            senderId: senderId,
             senderName: senderName,
             senderRole: senderRole,
             messageText: messageText,

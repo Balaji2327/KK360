@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/nav_helper.dart';
 import '../services/firebase_auth_service.dart';
-import '../services/notification_service.dart';
+import '../services/notification_helper.dart';
 import 'package:file_picker/file_picker.dart';
 
 class CreateMaterialScreen extends StatefulWidget {
@@ -21,6 +21,7 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final FirebaseAuthService _auth = FirebaseAuthService();
+  final NotificationHelper _notificationHelper = NotificationHelper();
 
   PlatformFile? _pickedFile;
   bool _uploading = false;
@@ -217,9 +218,10 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
     String? attachmentUrl;
     try {
       // Get tutor info for notifications
-      final notificationService = NotificationService();
+      final senderId = _auth.getCurrentUser()?.uid ?? '';
       final tutorProfile = await _auth.getUserProfile(projectId: 'kk360-69504');
       final tutorName = tutorProfile?.name ?? 'Tutor';
+      final senderRole = widget.isTestCreator ? 'test_creator' : 'tutor';
 
       if (_pickedFile != null && _pickedFile!.bytes != null) {
         attachmentUrl = await _auth.uploadFile(
@@ -283,35 +285,21 @@ class _CreateMaterialScreenState extends State<CreateMaterialScreen> {
           '[Material] Sending notifications to ${studentsToNotify.length} students',
         );
 
-        int successCount = 0;
-        for (String studentId in studentsToNotify) {
-          try {
-            debugPrint(
-              '[Material] Creating notification for student: $studentId',
-            );
-            await notificationService.createMaterialNotification(
-              recipientUserId: studentId,
-              tutorName: tutorName,
+        final notificationMaterialId =
+            '${unitId}_${DateTime.now().millisecondsSinceEpoch}';
+        final successCount = await _notificationHelper
+            .notifyMaterialUploadedForClass(
+              classInfo: cls,
+              senderId: senderId,
+              senderName: tutorName,
+              senderRole: senderRole,
               materialTitle: title,
-              classId: classId,
-              className: cls.name,
-              materialId: '${unitId}_${DateTime.now().millisecondsSinceEpoch}',
+              materialId: notificationMaterialId,
               unitName: widget.unit.title,
+              targetUserIds: studentsToNotify,
             );
-            successCount++;
-            debugPrint(
-              '[Material] Successfully created notification for student: $studentId',
-            );
-            // Small delay to ensure unique notification IDs
-            await Future.delayed(const Duration(milliseconds: 10));
-          } catch (e) {
-            debugPrint(
-              '[Material] Failed to send notification to $studentId: $e',
-            );
-          }
-        }
         debugPrint(
-          '[Material] Created $successCount/${studentsToNotify.length} notifications successfully',
+          '[Material] Created $successCount notifications successfully',
         );
       }
 

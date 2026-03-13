@@ -112,6 +112,10 @@ service cloud.firestore {
       allow create: if request.auth != null && (request.auth.uid == userId || isTutor() || isAdmin() || isTestCreator());
       allow update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
+
+    match /users/{userId}/deviceTokens/{tokenId} {
+      allow read, create, update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
     
     // Classes collection
     match /classes/{classId} {

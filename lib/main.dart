@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'app_navigation.dart';
 import 'firebase_options.dart';
 import 'nav_observer.dart';
 import 'theme_manager.dart';
 import 'Authentication/auth_gate.dart';
 import 'services/hive_service.dart';
+import 'services/push_notification_service.dart';
 
 import 'widgets/responsive_wrapper.dart'; // Add import
 
@@ -48,6 +50,13 @@ void main() async {
     debugPrint('❌ Firebase initialization error: $e');
   }
 
+  try {
+    await PushNotificationService.instance.initialize();
+    debugPrint('Push notification service initialized');
+  } catch (e) {
+    debugPrint('Push notification initialization error: $e');
+  }
+
   runApp(const KK360App());
 }
 
@@ -62,6 +71,7 @@ class KK360App extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'KK 360',
+          navigatorKey: appNavigatorKey,
           navigatorObservers: [routeObserver],
           themeMode: themeManager.themeMode,
           theme: ThemeData(

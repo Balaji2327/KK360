@@ -189,14 +189,7 @@ class _UnitDetailsPageState extends State<UnitDetailsPage> {
                                         height: 1.5,
                                       ),
                                     ),
-                                  SizedBox(height: h * 0.02),
-                                  Divider(
-                                    color:
-                                        isDark
-                                            ? Colors.white24
-                                            : Colors.grey.shade300,
-                                  ),
-                                  SizedBox(height: h * 0.01),
+                                  SizedBox(height: h * 0.008),
                                   Text(
                                     "${_materials.length} Materials",
                                     style: TextStyle(

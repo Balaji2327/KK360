@@ -119,7 +119,12 @@ class _StudentUnitDetailsPageState extends State<StudentUnitDetailsPage> {
                     : RefreshIndicator(
                       onRefresh: _loadMaterials,
                       child: ListView.builder(
-                        padding: EdgeInsets.all(w * 0.04),
+                        padding: EdgeInsets.fromLTRB(
+                          w * 0.04,
+                          h * 0.018,
+                          w * 0.04,
+                          w * 0.04,
+                        ),
                         itemCount: _materials.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) {
@@ -129,25 +134,24 @@ class _StudentUnitDetailsPageState extends State<StudentUnitDetailsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (widget.unit.description.isNotEmpty)
-                                    Text(
-                                      widget.unit.description,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color:
-                                            isDark
-                                                ? Colors.white70
-                                                : Colors.black87,
-                                        height: 1.5,
-                                      ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.unit.description,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color:
+                                                isDark
+                                                    ? Colors.white70
+                                                    : Colors.black87,
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                        SizedBox(height: h * 0.008),
+                                      ],
                                     ),
-                                  SizedBox(height: h * 0.02),
-                                  Divider(
-                                    color:
-                                        isDark
-                                            ? Colors.white24
-                                            : Colors.grey.shade300,
-                                  ),
-                                  SizedBox(height: h * 0.01),
                                   Text(
                                     "${_materials.length} Materials",
                                     style: TextStyle(

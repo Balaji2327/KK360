@@ -1,27 +1,19 @@
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:hive/hive.dart';
-import 'models/message.dart';
-import 'models/chat_room.dart';
+import 'package:http/http.dart' as http;
+
 import 'models/chat_permissions.dart';
+import 'models/chat_room.dart';
+import 'models/message.dart';
+import 'firebase_auth_service.dart';
 import 'notification_service.dart';
 
 class ChatService {
-  static const String _chatRoomsBoxName = 'chat_rooms';
-  static const String _chatMessagesBoxName = 'chat_messages';
+  static const String _projectId = 'kk360-69504';
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
-  Future<void> _ensureBoxesOpen() async {
-    if (!Hive.isBoxOpen(_chatRoomsBoxName)) {
-      await Hive.openBox(_chatRoomsBoxName);
-    }
-    if (!Hive.isBoxOpen(_chatMessagesBoxName)) {
-      await Hive.openBox(_chatMessagesBoxName);
-    }
-  }
-
-  Box<dynamic> _roomsBox() => Hive.box(_chatRoomsBoxName);
-  Box<dynamic> _messagesBox() => Hive.box(_chatMessagesBoxName);
-
-  // Get or create a chat room for a class (local only)
   Future<ChatRoom> getOrCreateChatRoom({
     required String classId,
     required String className,
@@ -31,74 +23,23 @@ class ChatService {
     required String idToken,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final roomsBox = _roomsBox();
-
-      // Check strictly by ID first if we can
-      final existingData = roomsBox.get(classId);
-
-      if (existingData != null && existingData is Map) {
-        // Room exists - update it with latest student list
-        final existingRoom = ChatRoom.fromJson(
-          Map<String, dynamic>.from(existingData),
-          classId,
-        );
-
-        // Update student IDs with current class members
-        final updatedRoom = ChatRoom(
-          id: existingRoom.id,
-          classId: classId, // Ensure classId is consistent
-          className: className, // Update name in case it changed
-          tutorId: existingRoom.tutorId,
-          tutorName: tutorName, // Update tutor name in case it changed
-          studentIds: studentIds, // Update with current student list
-          createdAt: existingRoom.createdAt,
+      final existing = await _fetchChatRoom(chatRoomId: classId, idToken: idToken);
+      if (existing != null) {
+        final updated = existing.copyWith(
+          classId: classId,
+          className: className,
+          tutorId: tutorId,
+          tutorName: tutorName,
+          studentIds: studentIds,
           updatedAt: DateTime.now(),
-          lastMessage: existingRoom.lastMessage,
-          lastMessageSenderId: existingRoom.lastMessageSenderId,
-          lastMessageTime: existingRoom.lastMessageTime,
-          isActive: existingRoom.isActive,
-          permissions: existingRoom.permissions,
         );
-
-        // Save the updated room
-        await roomsBox.put(classId, updatedRoom.toJson());
-        debugPrint(
-          '[ChatService] Updated chat room $classId with ${studentIds.length} students',
-        );
-        return updatedRoom;
+        await _writeChatRoom(updated, idToken);
+        return updated;
       }
 
-      return await _createChatRoom(
-        classId: classId,
-        className: className,
-        tutorId: tutorId,
-        tutorName: tutorName,
-        studentIds: studentIds,
-        idToken: idToken,
-      );
-    } catch (e) {
-      debugPrint('[ChatService] Error getting/creating chat room: $e');
-      rethrow;
-    }
-  }
-
-  // Private method to create a new chat room
-  Future<ChatRoom> _createChatRoom({
-    required String classId,
-    required String className,
-    required String tutorId,
-    required String tutorName,
-    required List<String> studentIds,
-    required String idToken,
-  }) async {
-    try {
-      await _ensureBoxesOpen();
       final now = DateTime.now();
-      final chatRoomId = classId;
-
       final chatRoom = ChatRoom(
-        id: chatRoomId,
+        id: classId,
         classId: classId,
         className: className,
         tutorId: tutorId,
@@ -111,43 +52,39 @@ class ChatService {
         lastMessageTime: now,
         isActive: true,
       );
-
-      await _roomsBox().put(chatRoomId, chatRoom.toJson());
+      await _writeChatRoom(chatRoom, idToken);
       return chatRoom;
     } catch (e) {
-      debugPrint('[ChatService] Error creating chat room: $e');
+      debugPrint('[ChatService] Error getting/creating chat room: $e');
       rethrow;
     }
   }
 
-  // Send a message - with role-based validation
   Future<Message> sendMessage({
     required String chatRoomId,
     required String userId,
     required String userName,
-    required String userRole, // 'student', 'tutor', 'admin'
+    required String userRole,
     required String messageText,
     required String classId,
     required String idToken,
+    String? userPhotoUrl,
   }) async {
     try {
-      await _ensureBoxesOpen();
-
       final chatRoom = await _getChatRoomById(chatRoomId, idToken);
-      _validateSendAccess(
-        userRole: userRole,
-        userId: userId,
-        chatRoom: chatRoom,
+      _validateSendAccess(userRole: userRole, userId: userId, chatRoom: chatRoom);
+      final senderPhotoUrl = await _resolveSenderPhotoUrl(
+        providedPhotoUrl: userPhotoUrl,
       );
 
       final messageId = DateTime.now().millisecondsSinceEpoch.toString();
       final now = DateTime.now();
-
       final message = Message(
         id: messageId,
         chatRoomId: chatRoomId,
         senderId: userId,
         senderName: userName,
+        senderPhotoUrl: senderPhotoUrl,
         senderRole: userRole,
         text: messageText,
         timestamp: now,
@@ -155,11 +92,7 @@ class ChatService {
         readBy: [userId],
       );
 
-      final messagesBox = _messagesBox();
-      final existing = (messagesBox.get(chatRoomId) as List?) ?? [];
-      final updated = [...existing.whereType<Map>(), message.toJson()];
-      await messagesBox.put(chatRoomId, updated);
-
+      await _writeMessage(message, idToken);
       await _updateChatRoomLastMessage(
         chatRoomId: chatRoomId,
         lastMessage: messageText,
@@ -168,7 +101,6 @@ class ChatService {
         idToken: idToken,
       );
 
-      // Create notifications for all class members except the sender
       await _createChatNotifications(
         chatRoom: chatRoom,
         senderId: userId,
@@ -187,7 +119,6 @@ class ChatService {
     }
   }
 
-  // Get messages for a chat room with role-based access
   Future<List<Message>> getMessages({
     required String chatRoomId,
     required String userId,
@@ -196,196 +127,131 @@ class ChatService {
     int limit = 50,
   }) async {
     try {
-      await _ensureBoxesOpen();
       final chatRoom = await _getChatRoomById(chatRoomId, idToken);
-      _validateReadAccess(
-        userRole: userRole,
-        userId: userId,
-        chatRoom: chatRoom,
-      );
+      _validateReadAccess(userRole: userRole, userId: userId, chatRoom: chatRoom);
 
-      final rawList = (_messagesBox().get(chatRoomId) as List?) ?? [];
-      final messages =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            final id = map['id']?.toString() ?? '';
-            return Message.fromJson(map, id);
-          }).toList();
+      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      final visible =
+          messages.where((message) {
+            if (message.hiddenForUserIds.contains(userId)) {
+              return false;
+            }
+            if (userRole == 'student') {
+              return message.senderRole == 'tutor' ||
+                  message.senderRole == 'admin' ||
+                  message.senderRole == 'test_creator' ||
+                  message.senderId == userId;
+            }
+            if (userRole == 'tutor') {
+              return message.senderRole == 'student' ||
+                  message.senderRole == 'admin' ||
+                  message.senderRole == 'test_creator' ||
+                  message.senderId == userId;
+            }
+            return true;
+          }).toList()
+            ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-      messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-      // Filter based on role
-      List<Message> filtered;
-      if (userRole == 'student') {
-        // Students see tutor messages + admin messages + test_creator messages + their own messages
-        filtered =
-            messages
-                .where(
-                  (m) =>
-                      m.senderRole == 'tutor' ||
-                      m.senderRole == 'admin' ||
-                      m.senderRole == 'test_creator' ||
-                      m.senderId == userId,
-                )
-                .toList();
-      } else if (userRole == 'tutor') {
-        // Tutors see messages from students + admin messages + test_creator messages + their own messages
-        filtered =
-            messages
-                .where(
-                  (m) =>
-                      m.senderRole == 'student' ||
-                      m.senderRole == 'admin' ||
-                      m.senderRole == 'test_creator' ||
-                      m.senderId == userId,
-                )
-                .toList();
-      } else {
-        // Admins and Test Creators see all messages
-        filtered = messages;
+      if (visible.length > limit) {
+        return visible.sublist(visible.length - limit);
       }
-
-      if (filtered.length > limit) {
-        return filtered.sublist(filtered.length - limit);
-      }
-
-      return filtered;
+      return visible;
     } catch (e) {
       debugPrint('[ChatService] Error fetching messages: $e');
       rethrow;
     }
   }
 
-  // Get chat rooms for a user based on role
   Future<List<ChatRoom>> getChatRoomsForUser({
     required String userId,
-    required String userRole, // 'student', 'tutor', 'admin'
+    required String userRole,
     required String idToken,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final roomsBox = _roomsBox();
-      final chatRooms = <ChatRoom>[];
-
-      for (final key in roomsBox.keys) {
-        final raw = roomsBox.get(key);
-        if (raw is! Map) continue;
-        final chatRoom = ChatRoom.fromJson(
-          Map<String, dynamic>.from(raw),
-          key.toString(),
-        );
-
-        bool hasAccess = false;
-        if (userRole == 'tutor' && chatRoom.tutorId == userId) {
-          hasAccess = true;
-        } else if (userRole == 'student' &&
-            chatRoom.studentIds.contains(userId)) {
-          hasAccess = true;
-        } else if (userRole == 'admin') {
-          hasAccess = true;
-        } else if (userRole == 'test_creator') {
-          hasAccess = true; // Test creator can access all chat rooms
+      final rooms = await _fetchChatRooms(idToken: idToken);
+      return rooms.where((chatRoom) {
+        if (userRole == 'admin' || userRole == 'test_creator') {
+          return true;
         }
-
-        if (hasAccess) {
-          chatRooms.add(chatRoom);
+        if (userRole == 'tutor') {
+          return chatRoom.tutorId == userId;
         }
-      }
-
-      return chatRooms;
+        if (userRole == 'student') {
+          return chatRoom.studentIds.contains(userId);
+        }
+        return false;
+      }).toList();
     } catch (e) {
       debugPrint('[ChatService] Error fetching chat rooms: $e');
       rethrow;
     }
   }
 
-  // Mark messages as read (local only)
   Future<void> markMessagesAsRead({
     required String chatRoomId,
     required String userId,
     required String idToken,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
-
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            final readBy = List<String>.from(map['readBy'] ?? []);
-            if (!readBy.contains(userId)) {
-              readBy.add(userId);
-            }
-            map['readBy'] = readBy;
-            map['isRead'] = readBy.isNotEmpty;
-            return map;
-          }).toList();
-
-      await messagesBox.put(chatRoomId, updated);
+      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      for (final message in messages) {
+        if (message.hiddenForUserIds.contains(userId) ||
+            message.readBy.contains(userId)) {
+          continue;
+        }
+        await _patchMessage(
+          chatRoomId: chatRoomId,
+          messageId: message.id,
+          fields: {
+            'readBy': [...message.readBy, userId],
+            'isRead': true,
+          },
+          idToken: idToken,
+        );
+      }
     } catch (e) {
       debugPrint('[ChatService] Error marking messages as read: $e');
     }
   }
 
-  // Edit a message (local only)
   Future<void> updateMessageText({
     required String chatRoomId,
     required String messageId,
     required String newText,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
-
-      bool updatedAny = false;
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            if (map['id']?.toString() == messageId) {
-              map['text'] = newText;
-              map['isEdited'] = true;
-              map['editedAt'] = DateTime.now().toIso8601String();
-              updatedAny = true;
-            }
-            return map;
-          }).toList();
-
-      if (updatedAny) {
-        await messagesBox.put(chatRoomId, updated);
-        await _refreshChatRoomLastMessage(chatRoomId: chatRoomId);
-      }
+      final idToken = await _currentIdToken();
+      if (idToken == null) throw 'Not authenticated';
+      await _patchMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        fields: {
+          'text': newText,
+          'isEdited': true,
+          'editedAt': DateTime.now(),
+        },
+        idToken: idToken,
+      );
+      await _refreshChatRoomLastMessage(chatRoomId: chatRoomId, idToken: idToken);
     } catch (e) {
       debugPrint('[ChatService] Error editing message: $e');
     }
   }
 
-  // Pin/unpin a message (local only)
   Future<void> togglePinMessage({
     required String chatRoomId,
     required String messageId,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
-
-      bool updatedAny = false;
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            if (map['id']?.toString() == messageId) {
-              final current = map['isPinned'] == true;
-              map['isPinned'] = !current;
-              updatedAny = true;
-            }
-            return map;
-          }).toList();
-
-      if (updatedAny) {
-        await messagesBox.put(chatRoomId, updated);
-      }
+      final idToken = await _currentIdToken();
+      if (idToken == null) throw 'Not authenticated';
+      final message = await _getMessage(chatRoomId: chatRoomId, messageId: messageId, idToken: idToken);
+      await _patchMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        fields: {'isPinned': !message.isPinned},
+        idToken: idToken,
+      );
     } catch (e) {
       debugPrint('[ChatService] Error pinning message: $e');
     }
@@ -398,35 +264,38 @@ class ChatService {
     required String pinnedBy,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+      final idToken = await _currentIdToken();
+      if (idToken == null) throw 'Not authenticated';
 
+      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
       final now = DateTime.now();
       final expiresAt = now.add(duration);
-      bool updatedAny = false;
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            if (map['isPinned'] == true) {
-              map['isPinned'] = false;
-              map['pinnedAt'] = null;
-              map['pinExpiresAt'] = null;
-              map['pinnedBy'] = null;
-            }
-            if (map['id']?.toString() == messageId) {
-              map['isPinned'] = true;
-              map['pinnedAt'] = now.toIso8601String();
-              map['pinExpiresAt'] = expiresAt.toIso8601String();
-              map['pinnedBy'] = pinnedBy;
-              updatedAny = true;
-            }
-            return map;
-          }).toList();
 
-      if (updatedAny) {
-        await messagesBox.put(chatRoomId, updated);
+      for (final message in messages.where((m) => m.isPinned && m.id != messageId)) {
+        await _patchMessage(
+          chatRoomId: chatRoomId,
+          messageId: message.id,
+          fields: {
+            'isPinned': false,
+            'pinnedAt': null,
+            'pinExpiresAt': null,
+            'pinnedBy': null,
+          },
+          idToken: idToken,
+        );
       }
+
+      await _patchMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        fields: {
+          'isPinned': true,
+          'pinnedAt': now,
+          'pinExpiresAt': expiresAt,
+          'pinnedBy': pinnedBy,
+        },
+        idToken: idToken,
+      );
     } catch (e) {
       debugPrint('[ChatService] Error setting pin message: $e');
     }
@@ -437,27 +306,19 @@ class ChatService {
     required String messageId,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
-
-      bool updatedAny = false;
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            if (map['id']?.toString() == messageId) {
-              map['isPinned'] = false;
-              map['pinnedAt'] = null;
-              map['pinExpiresAt'] = null;
-              map['pinnedBy'] = null;
-              updatedAny = true;
-            }
-            return map;
-          }).toList();
-
-      if (updatedAny) {
-        await messagesBox.put(chatRoomId, updated);
-      }
+      final idToken = await _currentIdToken();
+      if (idToken == null) throw 'Not authenticated';
+      await _patchMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        fields: {
+          'isPinned': false,
+          'pinnedAt': null,
+          'pinExpiresAt': null,
+          'pinnedBy': null,
+        },
+        idToken: idToken,
+      );
     } catch (e) {
       debugPrint('[ChatService] Error unpinning message: $e');
     }
@@ -465,36 +326,27 @@ class ChatService {
 
   Future<void> clearExpiredPins({required String chatRoomId}) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+      final idToken = await _currentIdToken();
+      if (idToken == null) throw 'Not authenticated';
+
+      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
       final now = DateTime.now();
-
-      bool updatedAny = false;
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            if (map['isPinned'] == true) {
-              final expiresRaw = map['pinExpiresAt'];
-              final expiresAt =
-                  expiresRaw is String
-                      ? DateTime.tryParse(expiresRaw)
-                      : expiresRaw is DateTime
-                      ? expiresRaw
-                      : null;
-              if (expiresAt != null && expiresAt.isBefore(now)) {
-                map['isPinned'] = false;
-                map['pinnedAt'] = null;
-                map['pinExpiresAt'] = null;
-                map['pinnedBy'] = null;
-                updatedAny = true;
-              }
-            }
-            return map;
-          }).toList();
-
-      if (updatedAny) {
-        await messagesBox.put(chatRoomId, updated);
+      for (final message in messages) {
+        if (message.isPinned &&
+            message.pinExpiresAt != null &&
+            message.pinExpiresAt!.isBefore(now)) {
+          await _patchMessage(
+            chatRoomId: chatRoomId,
+            messageId: message.id,
+            fields: {
+              'isPinned': false,
+              'pinnedAt': null,
+              'pinExpiresAt': null,
+              'pinnedBy': null,
+            },
+            idToken: idToken,
+          );
+        }
       }
     } catch (e) {
       debugPrint('[ChatService] Error clearing expired pins: $e');
@@ -507,107 +359,121 @@ class ChatService {
     required String emoji,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
-
-      bool updatedAny = false;
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            if (map['id']?.toString() == messageId) {
-              final reactionsRaw = map['reactions'];
-              final reactions =
-                  reactionsRaw is Map
-                      ? Map<String, int>.from(reactionsRaw as Map)
-                      : <String, int>{};
-              reactions[emoji] = (reactions[emoji] ?? 0) + 1;
-              map['reactions'] = reactions;
-              updatedAny = true;
-            }
-            return map;
-          }).toList();
-
-      if (updatedAny) {
-        await messagesBox.put(chatRoomId, updated);
-      }
+      final idToken = await _currentIdToken();
+      if (idToken == null) throw 'Not authenticated';
+      final message = await _getMessage(chatRoomId: chatRoomId, messageId: messageId, idToken: idToken);
+      final reactions = Map<String, int>.from(message.reactions);
+      reactions[emoji] = (reactions[emoji] ?? 0) + 1;
+      await _patchMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        fields: {'reactions': reactions},
+        idToken: idToken,
+      );
     } catch (e) {
       debugPrint('[ChatService] Error adding reaction: $e');
     }
   }
 
-  // Delete a message for this device only (local only)
   Future<void> deleteMessageForMe({
     required String chatRoomId,
     required String messageId,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final idToken = await _currentIdToken();
+      if (userId == null || idToken == null) throw 'Not authenticated';
 
-      final updated =
-          rawList
-              .whereType<Map>()
-              .where((raw) => raw['id']?.toString() != messageId)
-              .toList();
-
-      if (updated.length != rawList.length) {
-        await messagesBox.put(chatRoomId, updated);
-        await _refreshChatRoomLastMessage(chatRoomId: chatRoomId);
-      }
+      final message = await _getMessage(chatRoomId: chatRoomId, messageId: messageId, idToken: idToken);
+      final hiddenFor = {...message.hiddenForUserIds, userId}.toList();
+      await _patchMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        fields: {'hiddenForUserIds': hiddenFor},
+        idToken: idToken,
+      );
+      await _refreshChatRoomLastMessage(chatRoomId: chatRoomId, idToken: idToken);
     } catch (e) {
       debugPrint('[ChatService] Error deleting message for me: $e');
     }
   }
 
-  // Delete a message for everyone (local only)
   Future<void> deleteMessageForEveryone({
     required String chatRoomId,
     required String messageId,
   }) async {
     try {
-      await _ensureBoxesOpen();
-      final messagesBox = _messagesBox();
-      final rawList = (messagesBox.get(chatRoomId) as List?) ?? [];
-
-      bool updatedAny = false;
-      final updated =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            if (map['id']?.toString() == messageId) {
-              map['text'] = 'Message deleted';
-              map['isDeleted'] = true;
-              map['deletedAt'] = DateTime.now().toIso8601String();
-              map['isEdited'] = false;
-              map['editedAt'] = null;
-              map['isPinned'] = false;
-              map['pinnedAt'] = null;
-              map['pinExpiresAt'] = null;
-              map['pinnedBy'] = null;
-              updatedAny = true;
-            }
-            return map;
-          }).toList();
-
-      if (updatedAny) {
-        await messagesBox.put(chatRoomId, updated);
-        await _refreshChatRoomLastMessage(chatRoomId: chatRoomId);
-      }
+      final idToken = await _currentIdToken();
+      if (idToken == null) throw 'Not authenticated';
+      await _patchMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        fields: {
+          'text': 'Message deleted',
+          'isDeleted': true,
+          'deletedAt': DateTime.now(),
+          'isEdited': false,
+          'editedAt': null,
+          'isPinned': false,
+          'pinnedAt': null,
+          'pinExpiresAt': null,
+          'pinnedBy': null,
+        },
+        idToken: idToken,
+      );
+      await _refreshChatRoomLastMessage(chatRoomId: chatRoomId, idToken: idToken);
     } catch (e) {
       debugPrint('[ChatService] Error deleting message for everyone: $e');
     }
   }
 
-  // Private helper methods
+  Future<void> updateChatPermissions({
+    required String chatRoomId,
+    required ChatPermissions newPermissions,
+    required String userId,
+    required String userRole,
+    required String idToken,
+  }) async {
+    try {
+      final chatRoom = await _getChatRoomById(chatRoomId, idToken);
+      if (userRole == 'admin') {
+        // allowed
+      } else if (userRole == 'tutor' || userRole == 'test_creator') {
+        if (chatRoom.tutorId != userId) {
+          throw 'Only the class tutor or creator can update chat permissions';
+        }
+      } else {
+        throw 'You do not have permission to update chat permissions';
+      }
+
+      final updatedRoom = chatRoom.copyWith(
+        permissions: newPermissions.copyWith(
+          lastModified: DateTime.now(),
+          lastModifiedBy: userId,
+        ),
+        updatedAt: DateTime.now(),
+      );
+      await _writeChatRoom(updatedRoom, idToken);
+    } catch (e) {
+      debugPrint('[ChatService] Error updating chat permissions: $e');
+      rethrow;
+    }
+  }
+
+  Future<ChatPermissions> getChatPermissions({
+    required String chatRoomId,
+    required String idToken,
+  }) async {
+    final chatRoom = await _getChatRoomById(chatRoomId, idToken);
+    return chatRoom.permissions;
+  }
 
   Future<ChatRoom> _getChatRoomById(String chatRoomId, String idToken) async {
-    await _ensureBoxesOpen();
-    final raw = _roomsBox().get(chatRoomId);
-    if (raw is Map) {
-      return ChatRoom.fromJson(Map<String, dynamic>.from(raw), chatRoomId);
+    final chatRoom = await _fetchChatRoom(chatRoomId: chatRoomId, idToken: idToken);
+    if (chatRoom == null) {
+      throw 'Chat room not found: $chatRoomId';
     }
-    throw 'Chat room not found: $chatRoomId';
+    return chatRoom;
   }
 
   void _validateSendAccess({
@@ -615,28 +481,24 @@ class ChatService {
     required String userId,
     required ChatRoom chatRoom,
   }) {
-    if (userRole == 'admin') {
-      return;
-    }
-
+    if (userRole == 'admin') return;
     if (!chatRoom.permissions.canSendMessages(userRole)) {
       throw 'You do not have permission to send messages in this chat';
     }
-
     if (userRole == 'tutor') {
       if (userId != chatRoom.tutorId) {
         throw 'Tutors can only send messages to their own classes';
       }
-    } else if (userRole == 'test_creator') {
-      // Test creators can send messages in any class they can access
       return;
-    } else if (userRole == 'student') {
+    }
+    if (userRole == 'test_creator') return;
+    if (userRole == 'student') {
       if (!chatRoom.studentIds.contains(userId)) {
         throw 'You are not enrolled in this class and cannot send messages';
       }
-    } else {
-      throw 'Invalid user role: $userRole';
+      return;
     }
+    throw 'Invalid user role: $userRole';
   }
 
   void _validateReadAccess({
@@ -644,22 +506,20 @@ class ChatService {
     required String userId,
     required ChatRoom chatRoom,
   }) {
+    if (userRole == 'admin' || userRole == 'test_creator') return;
     if (userRole == 'tutor') {
       if (userId != chatRoom.tutorId) {
         throw 'Tutors can only read messages from their own classes';
       }
-    } else if (userRole == 'test_creator') {
-      // Test creators can read messages in any class
       return;
-    } else if (userRole == 'student') {
+    }
+    if (userRole == 'student') {
       if (!chatRoom.studentIds.contains(userId)) {
         throw 'You are not enrolled in this class and cannot read messages';
       }
-    } else if (userRole == 'admin') {
-      return; // Admins can read all messages
-    } else {
-      throw 'Invalid user role: $userRole';
+      return;
     }
+    throw 'Invalid user role: $userRole';
   }
 
   Future<void> _updateChatRoomLastMessage({
@@ -669,124 +529,52 @@ class ChatService {
     required DateTime lastMessageTime,
     required String idToken,
   }) async {
-    try {
-      await _ensureBoxesOpen();
-      final raw = _roomsBox().get(chatRoomId);
-      if (raw is! Map) return;
-
-      final map = Map<String, dynamic>.from(raw);
-      map['lastMessage'] = lastMessage;
-      map['lastMessageSenderId'] = lastMessageSenderId;
-      map['lastMessageTime'] = lastMessageTime.toIso8601String();
-      map['updatedAt'] = DateTime.now().toIso8601String();
-      await _roomsBox().put(chatRoomId, map);
-    } catch (e) {
-      debugPrint('[ChatService] Error updating last message: $e');
-    }
+    await _patchChatRoom(
+      chatRoomId: chatRoomId,
+      fields: {
+        'lastMessage': lastMessage,
+        'lastMessageSenderId': lastMessageSenderId,
+        'lastMessageTime': lastMessageTime,
+        'updatedAt': DateTime.now(),
+      },
+      idToken: idToken,
+    );
   }
 
-  Future<void> _refreshChatRoomLastMessage({required String chatRoomId}) async {
+  Future<void> _refreshChatRoomLastMessage({
+    required String chatRoomId,
+    required String idToken,
+  }) async {
     try {
-      await _ensureBoxesOpen();
-      final rawList = (_messagesBox().get(chatRoomId) as List?) ?? [];
+      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      final visibleMessages =
+          messages.where((message) => !message.isDeleted).toList()
+            ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-      if (rawList.isEmpty) {
+      if (visibleMessages.isEmpty) {
         await _updateChatRoomLastMessage(
           chatRoomId: chatRoomId,
           lastMessage: 'No messages yet',
           lastMessageSenderId: '',
           lastMessageTime: DateTime.now(),
-          idToken: '',
+          idToken: idToken,
         );
         return;
       }
 
-      final items =
-          rawList.whereType<Map>().map((raw) {
-            final map = Map<String, dynamic>.from(raw);
-            final tsRaw = map['timestamp'];
-            final ts =
-                tsRaw is String
-                    ? DateTime.tryParse(tsRaw)
-                    : tsRaw is DateTime
-                    ? tsRaw
-                    : null;
-            return MapEntry<DateTime, Map<String, dynamic>>(
-              ts ?? DateTime.fromMillisecondsSinceEpoch(0),
-              map,
-            );
-          }).toList();
-
-      items.sort((a, b) => a.key.compareTo(b.key));
-      final last = items.last;
+      final last = visibleMessages.last;
       await _updateChatRoomLastMessage(
         chatRoomId: chatRoomId,
-        lastMessage: last.value['text']?.toString() ?? '',
-        lastMessageSenderId: last.value['senderId']?.toString() ?? '',
-        lastMessageTime: last.key,
-        idToken: '',
+        lastMessage: last.text,
+        lastMessageSenderId: last.senderId,
+        lastMessageTime: last.timestamp,
+        idToken: idToken,
       );
     } catch (e) {
       debugPrint('[ChatService] Error refreshing last message: $e');
     }
   }
 
-  // Update chat permissions
-  Future<void> updateChatPermissions({
-    required String chatRoomId,
-    required ChatPermissions newPermissions,
-    required String userId,
-    required String userRole,
-    required String idToken,
-  }) async {
-    try {
-      await _ensureBoxesOpen();
-
-      final chatRoom = await _getChatRoomById(chatRoomId, idToken);
-
-      // Verify access
-      if (userRole == 'admin') {
-        // Admins can update any chat permissions
-      } else if (userRole == 'tutor' || userRole == 'test_creator') {
-        if (chatRoom.tutorId != userId) {
-          throw 'Only the class tutor or creator can update chat permissions';
-        }
-      } else {
-        throw 'You do not have permission to update chat permissions';
-      }
-
-      // Update permissions
-      final updatedRoom = chatRoom.copyWith(
-        permissions: newPermissions.copyWith(
-          lastModified: DateTime.now(),
-          lastModifiedBy: userId,
-        ),
-        updatedAt: DateTime.now(),
-      );
-
-      await _roomsBox().put(chatRoomId, updatedRoom.toJson());
-      debugPrint('[ChatService] Updated permissions for chat room $chatRoomId');
-    } catch (e) {
-      debugPrint('[ChatService] Error updating chat permissions: $e');
-      rethrow;
-    }
-  }
-
-  // Get chat permissions for a room
-  Future<ChatPermissions> getChatPermissions({
-    required String chatRoomId,
-    required String idToken,
-  }) async {
-    try {
-      final chatRoom = await _getChatRoomById(chatRoomId, idToken);
-      return chatRoom.permissions;
-    } catch (e) {
-      debugPrint('[ChatService] Error getting chat permissions: $e');
-      rethrow;
-    }
-  }
-
-  // Create chat notifications for all class members
   Future<void> _createChatNotifications({
     required ChatRoom chatRoom,
     required String senderId,
@@ -799,24 +587,18 @@ class ChatService {
   }) async {
     try {
       final notificationService = NotificationService();
-
-      // Get all recipients (tutor + students) except the sender
       final recipients = <String>{};
 
-      // Add tutor if not the sender
       if (chatRoom.tutorId.isNotEmpty && chatRoom.tutorId != senderId) {
         recipients.add(chatRoom.tutorId);
       }
-
-      // Add students if not the sender
-      for (var studentId in chatRoom.studentIds) {
+      for (final studentId in chatRoom.studentIds) {
         if (studentId != senderId) {
           recipients.add(studentId);
         }
       }
 
-      // Create notification for each recipient
-      for (var recipientId in recipients) {
+      for (final recipientId in recipients) {
         try {
           await notificationService.createChatNotification(
             recipientUserId: recipientId,
@@ -830,17 +612,406 @@ class ChatService {
             messageId: messageId,
           );
         } catch (e) {
-          debugPrint(
-            '[ChatService] Error creating notification for $recipientId: $e',
-          );
+          debugPrint('[ChatService] Error creating notification for $recipientId: $e');
         }
       }
-
-      debugPrint(
-        '[ChatService] Created ${recipients.length} chat notifications',
-      );
     } catch (e) {
       debugPrint('[ChatService] Error in _createChatNotifications: $e');
+    }
+  }
+
+  Future<String?> _currentIdToken() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    return user.getIdToken();
+  }
+
+  Future<List<ChatRoom>> _fetchChatRooms({required String idToken}) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/chat_rooms',
+      {'pageSize': '200'},
+    );
+
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+    );
+    if (response.statusCode != 200) {
+      throw 'Failed to fetch chat rooms: ${response.body}';
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final docs = (body['documents'] as List?) ?? [];
+    return docs
+        .whereType<Map<String, dynamic>>()
+        .map(_chatRoomFromFirestore)
+        .toList()
+      ..sort((a, b) {
+        final aTime = a.lastMessageTime ?? a.updatedAt;
+        final bTime = b.lastMessageTime ?? b.updatedAt;
+        return bTime.compareTo(aTime);
+      });
+  }
+
+  Future<ChatRoom?> _fetchChatRoom({
+    required String chatRoomId,
+    required String idToken,
+  }) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId',
+    );
+
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+    );
+    if (response.statusCode == 404) {
+      return null;
+    }
+    if (response.statusCode != 200) {
+      throw 'Failed to fetch chat room: ${response.body}';
+    }
+    return _chatRoomFromFirestore(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<List<Message>> _fetchMessages({
+    required String chatRoomId,
+    required String idToken,
+  }) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId/messages',
+      {'pageSize': '200'},
+    );
+
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+    );
+    if (response.statusCode == 404) {
+      return [];
+    }
+    if (response.statusCode != 200) {
+      throw 'Failed to fetch messages: ${response.body}';
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final docs = (body['documents'] as List?) ?? [];
+    final messages = docs
+        .whereType<Map<String, dynamic>>()
+        .map(_messageFromFirestore)
+        .toList();
+    messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    return messages;
+  }
+
+  Future<Message> _getMessage({
+    required String chatRoomId,
+    required String messageId,
+    required String idToken,
+  }) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId/messages/$messageId',
+    );
+
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+    );
+    if (response.statusCode != 200) {
+      throw 'Failed to fetch message: ${response.body}';
+    }
+    return _messageFromFirestore(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> _writeChatRoom(ChatRoom chatRoom, String idToken) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/${chatRoom.id}',
+    );
+
+    final response = await http.patch(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      body: jsonEncode({'fields': _chatRoomFields(chatRoom)}),
+    );
+    if (response.statusCode != 200) {
+      throw 'Failed to write chat room: ${response.body}';
+    }
+  }
+
+  Future<void> _patchChatRoom({
+    required String chatRoomId,
+    required Map<String, dynamic> fields,
+    required String idToken,
+  }) async {
+    final query = fields.keys.map((key) => 'updateMask.fieldPaths=$key').join('&');
+    final url = Uri.parse(
+      'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId?$query',
+    );
+
+    final response = await http.patch(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      body: jsonEncode({'fields': _toFirestoreFields(fields)}),
+    );
+    if (response.statusCode != 200) {
+      throw 'Failed to update chat room: ${response.body}';
+    }
+  }
+
+  Future<void> _writeMessage(Message message, String idToken) async {
+    final url = Uri.https(
+      'firestore.googleapis.com',
+      '/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/${message.chatRoomId}/messages/${message.id}',
+    );
+
+    final response = await http.patch(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      body: jsonEncode({'fields': _messageFields(message)}),
+    );
+    if (response.statusCode != 200) {
+      throw 'Failed to write message: ${response.body}';
+    }
+  }
+
+  Future<void> _patchMessage({
+    required String chatRoomId,
+    required String messageId,
+    required Map<String, dynamic> fields,
+    required String idToken,
+  }) async {
+    final query = fields.keys.map((key) => 'updateMask.fieldPaths=$key').join('&');
+    final url = Uri.parse(
+      'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId/messages/$messageId?$query',
+    );
+
+    final response = await http.patch(
+      url,
+      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      body: jsonEncode({'fields': _toFirestoreFields(fields)}),
+    );
+    if (response.statusCode != 200) {
+      throw 'Failed to update message: ${response.body}';
+    }
+  }
+
+  Map<String, dynamic> _chatRoomFields(ChatRoom chatRoom) {
+    return _toFirestoreFields({
+      'classId': chatRoom.classId,
+      'className': chatRoom.className,
+      'tutorId': chatRoom.tutorId,
+      'tutorName': chatRoom.tutorName,
+      'studentIds': chatRoom.studentIds,
+      'createdAt': chatRoom.createdAt,
+      'updatedAt': chatRoom.updatedAt,
+      'lastMessage': chatRoom.lastMessage,
+      'lastMessageSenderId': chatRoom.lastMessageSenderId,
+      'lastMessageTime': chatRoom.lastMessageTime,
+      'isActive': chatRoom.isActive,
+      'permissions': chatRoom.permissions.toJson(),
+    });
+  }
+
+  Map<String, dynamic> _messageFields(Message message) {
+    return _toFirestoreFields({
+      'chatRoomId': message.chatRoomId,
+      'senderId': message.senderId,
+      'senderName': message.senderName,
+      'senderPhotoUrl': message.senderPhotoUrl,
+      'senderRole': message.senderRole,
+      'text': message.text,
+      'timestamp': message.timestamp,
+      'isRead': message.isRead,
+      'readBy': message.readBy,
+      'isDeleted': message.isDeleted,
+      'isEdited': message.isEdited,
+      'isPinned': message.isPinned,
+      'editedAt': message.editedAt,
+      'deletedAt': message.deletedAt,
+      'pinnedAt': message.pinnedAt,
+      'pinExpiresAt': message.pinExpiresAt,
+      'pinnedBy': message.pinnedBy,
+      'reactions': message.reactions,
+      'hiddenForUserIds': message.hiddenForUserIds,
+    });
+  }
+
+  Map<String, dynamic> _toFirestoreFields(Map<String, dynamic> values) {
+    final fields = <String, dynamic>{};
+    values.forEach((key, value) {
+      if (value != null) {
+        fields[key] = _toFirestoreValue(value);
+      }
+    });
+    return fields;
+  }
+
+  Map<String, dynamic> _toFirestoreValue(dynamic value) {
+    if (value is String) return {'stringValue': value};
+    if (value is bool) return {'booleanValue': value};
+    if (value is int) return {'integerValue': value.toString()};
+    if (value is double) return {'doubleValue': value};
+    if (value is DateTime) return {'timestampValue': value.toUtc().toIso8601String()};
+    if (value is List) {
+      return {
+        'arrayValue': {
+          'values': value.map((item) => _toFirestoreValue(item)).toList(),
+        },
+      };
+    }
+    if (value is Map) {
+      final nested = <String, dynamic>{};
+      value.forEach((nestedKey, nestedValue) {
+        if (nestedValue != null) {
+          nested[nestedKey.toString()] = _toFirestoreValue(nestedValue);
+        }
+      });
+      return {
+        'mapValue': {'fields': nested},
+      };
+    }
+    return {'stringValue': value.toString()};
+  }
+
+  ChatRoom _chatRoomFromFirestore(Map<String, dynamic> doc) {
+    final fields = doc['fields'] as Map<String, dynamic>? ?? {};
+    final docId = (doc['name'] as String?)?.split('/').last ?? '';
+    final permissionsMap = _readMap(fields['permissions']) ?? {};
+    return ChatRoom(
+      id: docId,
+      classId: _readString(fields['classId']) ?? '',
+      className: _readString(fields['className']) ?? 'Unknown Class',
+      tutorId: _readString(fields['tutorId']) ?? '',
+      tutorName: _readString(fields['tutorName']) ?? 'Unknown Tutor',
+      studentIds: _readStringList(fields['studentIds']),
+      createdAt: _readTimestamp(fields['createdAt']) ?? DateTime.now(),
+      updatedAt: _readTimestamp(fields['updatedAt']) ?? DateTime.now(),
+      lastMessage: _readString(fields['lastMessage']) ?? 'No messages yet',
+      lastMessageSenderId: _readString(fields['lastMessageSenderId']) ?? '',
+      lastMessageTime: _readTimestamp(fields['lastMessageTime']),
+      isActive: _readBool(fields['isActive']) ?? true,
+      permissions: ChatPermissions.fromJson(permissionsMap),
+    );
+  }
+
+  Message _messageFromFirestore(Map<String, dynamic> doc) {
+    final fields = doc['fields'] as Map<String, dynamic>? ?? {};
+    final docId = (doc['name'] as String?)?.split('/').last ?? '';
+    final reactionsRaw = _readMap(fields['reactions']) ?? {};
+    final reactions = <String, int>{};
+    reactionsRaw.forEach((key, value) {
+      if (value is int) {
+        reactions[key] = value;
+      } else if (value is String) {
+        reactions[key] = int.tryParse(value) ?? 0;
+      }
+    });
+
+    return Message(
+      id: docId,
+      chatRoomId: _readString(fields['chatRoomId']) ?? '',
+      senderId: _readString(fields['senderId']) ?? '',
+      senderName: _readString(fields['senderName']) ?? 'Unknown',
+      senderPhotoUrl: _readString(fields['senderPhotoUrl']),
+      senderRole: _readString(fields['senderRole']) ?? 'student',
+      text: _readString(fields['text']) ?? '',
+      timestamp: _readTimestamp(fields['timestamp']) ?? DateTime.now(),
+      isRead: _readBool(fields['isRead']) ?? false,
+      readBy: _readStringList(fields['readBy']),
+      isDeleted: _readBool(fields['isDeleted']) ?? false,
+      isEdited: _readBool(fields['isEdited']) ?? false,
+      isPinned: _readBool(fields['isPinned']) ?? false,
+      editedAt: _readTimestamp(fields['editedAt']),
+      deletedAt: _readTimestamp(fields['deletedAt']),
+      pinnedAt: _readTimestamp(fields['pinnedAt']),
+      pinExpiresAt: _readTimestamp(fields['pinExpiresAt']),
+      pinnedBy: _readString(fields['pinnedBy']),
+      reactions: reactions,
+      hiddenForUserIds: _readStringList(fields['hiddenForUserIds']),
+    );
+  }
+
+  String? _readString(dynamic field) {
+    if (field is Map && field['stringValue'] != null) {
+      return field['stringValue'] as String;
+    }
+    return null;
+  }
+
+  bool? _readBool(dynamic field) {
+    if (field is Map && field['booleanValue'] != null) {
+      return field['booleanValue'] as bool;
+    }
+    return null;
+  }
+
+  DateTime? _readTimestamp(dynamic field) {
+    if (field is Map && field['timestampValue'] != null) {
+      return DateTime.tryParse(field['timestampValue'] as String);
+    }
+    return null;
+  }
+
+  List<String> _readStringList(dynamic field) {
+    if (field is! Map) return [];
+    final values = field['arrayValue']?['values'] as List?;
+    if (values == null) return [];
+    return values
+        .whereType<Map>()
+        .map((value) => value['stringValue']?.toString() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  Map<String, dynamic>? _readMap(dynamic field) {
+    if (field is! Map) return null;
+    final nested = field['mapValue']?['fields'] as Map?;
+    if (nested == null) return null;
+    final result = <String, dynamic>{};
+    nested.forEach((key, value) {
+      result[key.toString()] = _readFirestoreValue(value);
+    });
+    return result;
+  }
+
+  dynamic _readFirestoreValue(dynamic field) {
+    if (field is! Map) return null;
+    if (field.containsKey('stringValue')) return field['stringValue'];
+    if (field.containsKey('booleanValue')) return field['booleanValue'];
+    if (field.containsKey('integerValue')) {
+      return int.tryParse(field['integerValue'].toString());
+    }
+    if (field.containsKey('doubleValue')) return field['doubleValue'];
+    if (field.containsKey('timestampValue')) {
+      return DateTime.tryParse(field['timestampValue'] as String);
+    }
+    if (field.containsKey('arrayValue')) {
+      final values = field['arrayValue']?['values'] as List?;
+      if (values == null) return [];
+      return values.map(_readFirestoreValue).toList();
+    }
+    if (field.containsKey('mapValue')) return _readMap(field);
+    return null;
+  }
+
+  Future<String?> _resolveSenderPhotoUrl({String? providedPhotoUrl}) async {
+    if (providedPhotoUrl != null && providedPhotoUrl.trim().isNotEmpty) {
+      return providedPhotoUrl.trim();
+    }
+    try {
+      final profile = await _authService.getUserProfile(projectId: _projectId);
+      final photoUrl = profile?.photoUrl?.trim();
+      if (photoUrl == null || photoUrl.isEmpty) {
+        return null;
+      }
+      return photoUrl;
+    } catch (_) {
+      return null;
     }
   }
 }

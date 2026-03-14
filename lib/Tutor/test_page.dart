@@ -224,36 +224,44 @@ class _TestPageState extends State<TestPage> {
     const appColor = Color(0xFF4B3FA3);
     final className =
         _classNameMap[test.classId] ?? (widget.className ?? 'Unknown Class');
+    final isExpired =
+        test.endDate != null && DateTime.now().isAfter(test.endDate!);
+    final titleColor = isDark ? Colors.white : const Color(0xFF171A2C);
+    final bodyColor = isDark ? Colors.white70 : const Color(0xFF5E6278);
+    final borderColor =
+        isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE8E6F3);
 
     return Container(
       margin: EdgeInsets.only(bottom: h * 0.015),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade800 : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? const Color(0xFF17181F) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(isDark ? 0.28 : 0.08),
+            offset: const Offset(0, 14),
+            blurRadius: 28,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with gradient
           Container(
             width: w,
-            padding: EdgeInsets.all(w * 0.04),
-            decoration: const BoxDecoration(
+            padding: EdgeInsets.fromLTRB(w * 0.045, h * 0.022, w * 0.045, h * 0.018),
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
+                colors: isDark
+                    ? const [Color(0xFF282C43), Color(0xFF1C2030)]
+                    : const [Color(0xFFF5F0FF), Color(0xFFE7F1FF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
               ),
             ),
             child: Row(
@@ -261,14 +269,54 @@ class _TestPageState extends State<TestPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    test.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildHeaderPill(
+                            label: isExpired ? 'Expired' : 'Published',
+                            icon: isExpired
+                                ? Icons.warning_amber_rounded
+                                : Icons.verified_rounded,
+                            color: isExpired
+                                ? Colors.red.shade600
+                                : Colors.green.shade600,
+                            isDark: isDark,
+                          ),
+                          if (test.startDate != null)
+                            _buildHeaderPill(
+                              label: _formatDate(test.startDate!),
+                              icon: Icons.schedule_rounded,
+                              color: appColor,
+                              isDark: isDark,
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: h * 0.012),
+                      Text(
+                        test.title,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: titleColor,
+                          height: 1.15,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: h * 0.008),
+                      Text(
+                        className,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: bodyColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SizedBox(width: w * 0.02),
@@ -342,9 +390,9 @@ class _TestPageState extends State<TestPage> {
                           ),
                     );
                   },
-                  child: const Icon(
-                    Icons.delete,
-                    color: Colors.white70,
+                  child: Icon(
+                    Icons.delete_outline_rounded,
+                    color: titleColor,
                     size: 22,
                   ),
                 ),
@@ -352,126 +400,204 @@ class _TestPageState extends State<TestPage> {
             ),
           ),
 
-          // Content
           Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: h * 0.02,
-              horizontal: w * 0.04,
+            padding: EdgeInsets.fromLTRB(
+              w * 0.045,
+              h * 0.022,
+              w * 0.045,
+              h * 0.022,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Class Name Tag
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: appColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    className,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: appColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
                 if (test.description.isNotEmpty) ...[
-                  SizedBox(height: h * 0.012),
-                  Text(
-                    test.description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white70 : Colors.grey.shade700,
-                      height: 1.4,
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(w * 0.035),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF20222D)
+                          : const Color(0xFFF7F8FC),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    child: Text(
+                      test.description,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: bodyColor,
+                        height: 1.5,
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
 
-                SizedBox(height: h * 0.015),
-                Divider(
-                  height: 1,
-                  color: isDark ? Colors.white24 : Colors.grey.shade300,
-                ),
-                SizedBox(height: h * 0.015),
-
-                // Test details
-                Row(
+                SizedBox(height: h * 0.018),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 16,
+                    _buildMetricTile(
+                      icon: Icons.play_circle_outline_rounded,
+                      label: 'Start',
+                      value: test.startDate != null
+                          ? _formatDate(test.startDate!)
+                          : 'No start date',
                       color: appColor,
+                      isDark: isDark,
                     ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        test.startDate != null
-                            ? 'Start: ${_formatDate(test.startDate!)}'
-                            : 'No start date',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white70 : Colors.grey.shade800,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    _buildMetricTile(
+                      icon: Icons.timer_outlined,
+                      label: 'End',
+                      value: test.endDate != null
+                          ? _formatDate(test.endDate!)
+                          : 'No end date',
+                      color: isExpired
+                          ? Colors.red.shade600
+                          : Colors.blue.shade700,
+                      isDark: isDark,
+                    ),
+                    _buildMetricTile(
+                      icon: Icons.layers_outlined,
+                      label: 'Class',
+                      value: className,
+                      color: Colors.teal.shade600,
+                      isDark: isDark,
                     ),
                   ],
                 ),
-                if (test.endDate != null) ...[
-                  SizedBox(height: h * 0.008),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.access_time_outlined,
-                        size: 16,
-                        color: appColor,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'End: ${_formatDate(test.endDate!)}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color:
-                                isDark ? Colors.white70 : Colors.grey.shade800,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
 
                 SizedBox(height: h * 0.02),
 
-                // Action button
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      goPush(context, TestResultsScreen(test: test));
-                    },
-                    icon: const Icon(Icons.assessment, size: 18),
-                    label: const Text('View Results'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appColor,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: h * 0.012),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          appColor,
+                          Color.lerp(appColor, Colors.white, 0.16)!,
+                        ],
                       ),
-                      elevation: 0,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: appColor.withOpacity(0.24),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        goPush(context, TestResultsScreen(test: test));
+                      },
+                      icon: const Icon(Icons.assessment_rounded, size: 18),
+                      label: const Text('View Results'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: h * 0.014),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderPill({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? color.withOpacity(0.18) : Colors.white.withOpacity(0.84),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.8,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 118, maxWidth: 190),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF20222D) : const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8E6F3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white60 : const Color(0xFF70758A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.2,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF171A2C),
                   ),
                 ),
               ],

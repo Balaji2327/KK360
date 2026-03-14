@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import '../services/chat_service.dart';
+import '../services/firebase_auth_service.dart';
 import '../services/models/chat_room.dart';
 import '../services/models/message.dart';
 
@@ -28,6 +30,7 @@ class ClassChatTab extends StatefulWidget {
 
 class _ClassChatTabState extends State<ClassChatTab> {
   final ChatService _chatService = ChatService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   ChatRoom? _chatRoom;
@@ -36,6 +39,7 @@ class _ClassChatTabState extends State<ClassChatTab> {
   bool _sending = false;
   Message? _selectedMessage;
   OverlayEntry? _reactionEntry;
+  Timer? _refreshTimer;
   static const List<String> _quickReactions = [
     '👍',
     '❤️',
@@ -50,11 +54,18 @@ class _ClassChatTabState extends State<ClassChatTab> {
   void initState() {
     super.initState();
     _loadChatRoom();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted && !_sending) {
+        _loadChatRoom(showLoader: false);
+      }
+    });
   }
 
-  Future<void> _loadChatRoom() async {
+  Future<void> _loadChatRoom({bool showLoader = true}) async {
     try {
-      setState(() => _loading = true);
+      if (showLoader && mounted) {
+        setState(() => _loading = true);
+      }
 
       // Try to get existing chat room
       final chatRooms = await _chatService.getChatRoomsForUser(
@@ -81,11 +92,12 @@ class _ClassChatTabState extends State<ClassChatTab> {
           userRole: widget.userRole,
           idToken: widget.idToken,
         );
+        final hydratedMessages = await _applyLiveProfilePhotos(messages);
 
         if (mounted) {
           setState(() {
             _chatRoom = classRoom;
-            _messages = messages;
+            _messages = hydratedMessages;
             _loading = false;
           });
           _scrollToBottom();
@@ -192,6 +204,111 @@ class _ClassChatTabState extends State<ClassChatTab> {
       default:
         return Colors.grey;
     }
+  }
+
+  String _formatRoleLabel(String role) {
+    switch (role) {
+      case 'tutor':
+        return 'Tutor';
+      case 'student':
+        return 'Student';
+      case 'admin':
+        return 'Admin';
+      case 'test_creator':
+        return 'Test Creator';
+      default:
+        return 'User';
+    }
+  }
+
+  String _getSenderLabel(Message message) {
+    return '${_formatRoleLabel(message.senderRole)}: ${message.senderName}';
+  }
+
+  Future<List<Message>> _applyLiveProfilePhotos(List<Message> messages) async {
+    final missingSenderIds = messages
+        .where(
+          (message) =>
+              (message.senderPhotoUrl == null ||
+                  message.senderPhotoUrl!.trim().isEmpty) &&
+              message.senderId.isNotEmpty,
+        )
+        .map((message) => message.senderId)
+        .toSet()
+        .toList();
+
+    if (missingSenderIds.isEmpty) {
+      return messages;
+    }
+
+    try {
+      final profiles = await _authService.getUserProfiles(
+        projectId: 'kk360-69504',
+        userIds: missingSenderIds,
+      );
+      return messages.map((message) {
+        if (message.senderPhotoUrl != null &&
+            message.senderPhotoUrl!.trim().isNotEmpty) {
+          return message;
+        }
+        final livePhotoUrl = profiles[message.senderId]?.photoUrl?.trim();
+        if (livePhotoUrl == null || livePhotoUrl.isEmpty) {
+          return message;
+        }
+        return message.copyWith(senderPhotoUrl: livePhotoUrl);
+      }).toList();
+    } catch (_) {
+      return messages;
+    }
+  }
+
+  String _getInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  Widget _buildSenderHeader(Message message, double h) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: h * 0.012,
+          backgroundColor: _getRoleColor(message.senderRole).withOpacity(0.18),
+          backgroundImage:
+              message.senderPhotoUrl != null && message.senderPhotoUrl!.isNotEmpty
+                  ? NetworkImage(message.senderPhotoUrl!)
+                  : null,
+          child:
+              message.senderPhotoUrl == null || message.senderPhotoUrl!.isEmpty
+                  ? Text(
+                    _getInitials(message.senderName),
+                    style: TextStyle(
+                      fontSize: h * 0.0105,
+                      fontWeight: FontWeight.w700,
+                      color: _getRoleColor(message.senderRole),
+                    ),
+                  )
+                  : null,
+        ),
+        SizedBox(width: h * 0.007),
+        Flexible(
+          child: Text(
+            _getSenderLabel(message),
+            style: TextStyle(
+              fontSize: h * 0.013,
+              fontWeight: FontWeight.w600,
+              color: _getRoleColor(message.senderRole),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   bool get _hasSelection => _selectedMessage != null;
@@ -816,17 +933,7 @@ class _ClassChatTabState extends State<ClassChatTab> {
                                             ? CrossAxisAlignment.end
                                             : CrossAxisAlignment.start,
                                         children: [
-                                          if (!isCurrentUser)
-                                            Text(
-                                              message.senderName,
-                                              style: TextStyle(
-                                                fontSize: h * 0.013,
-                                                fontWeight: FontWeight.w600,
-                                                color: _getRoleColor(
-                                                  message.senderRole,
-                                                ),
-                                              ),
-                                            ),
+                                          _buildSenderHeader(message, h),
                                           SizedBox(height: h * 0.004),
                                           Container(
                                             constraints: BoxConstraints(
@@ -1021,6 +1128,7 @@ class _ClassChatTabState extends State<ClassChatTab> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

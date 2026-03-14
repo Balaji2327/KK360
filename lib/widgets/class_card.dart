@@ -25,6 +25,31 @@ class ClassCard extends StatelessWidget {
     this.onClassDeleted,
   });
 
+  Future<int> _loadStudentCount() async {
+    if (classInfo.members.isEmpty) {
+      return 0;
+    }
+
+    try {
+      final authService = FirebaseAuthService();
+      final profiles = await authService.getUserProfiles(
+        projectId: 'kk360-69504',
+        userIds: classInfo.members.toSet().toList(),
+      );
+
+      int count = 0;
+      for (final memberId in classInfo.members) {
+        final role = profiles[memberId]?.role;
+        if (role == 'student') {
+          count++;
+        }
+      }
+      return count;
+    } catch (_) {
+      return classInfo.members.where((memberId) => memberId != classInfo.tutorId).length;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -188,9 +213,21 @@ class ClassCard extends StatelessWidget {
                   size: 16,
                 ),
                 SizedBox(width: 6),
-                Text(
-                  '${classInfo.members.length} student${classInfo.members.length != 1 ? 's' : ''}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                FutureBuilder<int>(
+                  future: _loadStudentCount(),
+                  builder: (context, snapshot) {
+                    final studentCount = snapshot.data ??
+                        classInfo.members
+                            .where((memberId) => memberId != classInfo.tutorId)
+                            .length;
+                    return Text(
+                      '$studentCount student${studentCount != 1 ? 's' : ''}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    );
+                  },
                 ),
                 SizedBox(width: 16),
                 Icon(

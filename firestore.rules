@@ -116,6 +116,72 @@ service cloud.firestore {
     match /users/{userId}/deviceTokens/{tokenId} {
       allow read, create, update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
+
+    match /chat_rooms/{chatRoomId} {
+      allow read: if request.auth != null && (
+        isAdmin() ||
+        isTestCreator() ||
+        (resource.data.classId is string && canAccessClassContent(resource.data.classId))
+      );
+
+      allow create: if request.auth != null && (
+        isAdmin() ||
+        (
+          request.resource.data.classId is string &&
+          canAccessClassContent(request.resource.data.classId)
+        ) ||
+        isTestCreator()
+      );
+
+      allow update: if request.auth != null && (
+        isAdmin() ||
+        isTestCreator() ||
+        (
+          resource.data.classId is string &&
+          isClassTutor(resource.data.classId)
+        ) ||
+        (
+          resource.data.classId is string &&
+          canAccessClassContent(resource.data.classId) &&
+          request.resource.data.classId == resource.data.classId &&
+          request.resource.data.className == resource.data.className &&
+          request.resource.data.tutorId == resource.data.tutorId &&
+          request.resource.data.tutorName == resource.data.tutorName &&
+          request.resource.data.studentIds == resource.data.studentIds &&
+          request.resource.data.permissions == resource.data.permissions &&
+          request.resource.data.isActive == resource.data.isActive
+        )
+      );
+
+      allow delete: if request.auth != null && (
+        isAdmin() ||
+        (
+          resource.data.classId is string &&
+          isClassTutor(resource.data.classId)
+        ) ||
+        isTestCreator()
+      );
+    }
+
+    match /chat_rooms/{chatRoomId}/messages/{messageId} {
+      allow read: if request.auth != null && (
+        isAdmin() ||
+        isTestCreator() ||
+        (
+          get(/databases/$(database)/documents/chat_rooms/$(chatRoomId)).data.classId is string &&
+          canAccessClassContent(get(/databases/$(database)/documents/chat_rooms/$(chatRoomId)).data.classId)
+        )
+      );
+
+      allow create, update, delete: if request.auth != null && (
+        isAdmin() ||
+        isTestCreator() ||
+        (
+          get(/databases/$(database)/documents/chat_rooms/$(chatRoomId)).data.classId is string &&
+          canAccessClassContent(get(/databases/$(database)/documents/chat_rooms/$(chatRoomId)).data.classId)
+        )
+      );
+    }
     
     // Classes collection
     match /classes/{classId} {

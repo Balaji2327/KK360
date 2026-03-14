@@ -295,36 +295,45 @@ class _AssignmentPageState extends State<AssignmentPage> {
     final className =
         _classNameMap[assignment.classId] ??
         (widget.className ?? 'Unknown Class');
+    final isExpired =
+        assignment.endDate != null &&
+        DateTime.now().isAfter(assignment.endDate!);
+    final titleColor = isDark ? Colors.white : const Color(0xFF171A2C);
+    final bodyColor = isDark ? Colors.white70 : const Color(0xFF5E6278);
+    final borderColor =
+        isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE8E6F3);
 
     return Container(
       margin: EdgeInsets.only(bottom: h * 0.015),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade800 : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? const Color(0xFF17181F) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(isDark ? 0.28 : 0.08),
+            offset: const Offset(0, 14),
+            blurRadius: 28,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with gradient
           Container(
             width: w,
-            padding: EdgeInsets.all(w * 0.04),
-            decoration: const BoxDecoration(
+            padding: EdgeInsets.fromLTRB(w * 0.045, h * 0.022, w * 0.045, h * 0.018),
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF4B3FA3), Color(0xFF6B5FB8)],
+                colors: isDark
+                    ? const [Color(0xFF282C43), Color(0xFF1C2030)]
+                    : const [Color(0xFFF5F0FF), Color(0xFFE7F1FF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
               ),
             ),
             child: Row(
@@ -332,23 +341,63 @@ class _AssignmentPageState extends State<AssignmentPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    assignment.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildHeaderPill(
+                            label: isExpired ? 'Expired' : 'Live',
+                            icon: isExpired
+                                ? Icons.warning_amber_rounded
+                                : Icons.task_alt_rounded,
+                            color: isExpired
+                                ? Colors.red.shade600
+                                : Colors.green.shade600,
+                            isDark: isDark,
+                          ),
+                          if (assignment.points.isNotEmpty)
+                            _buildHeaderPill(
+                              label: '${assignment.points} pts',
+                              icon: Icons.workspace_premium_rounded,
+                              color: Colors.amber.shade700,
+                              isDark: isDark,
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: h * 0.012),
+                      Text(
+                        assignment.title,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: titleColor,
+                          height: 1.15,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: h * 0.008),
+                      Text(
+                        className,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: bodyColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SizedBox(width: w * 0.02),
                 PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  icon: const Icon(
-                    Icons.more_vert,
-                    color: Colors.white,
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: titleColor,
                     size: 24,
                   ),
                   color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
@@ -413,88 +462,70 @@ class _AssignmentPageState extends State<AssignmentPage> {
             ),
           ),
 
-          // Content
           Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: h * 0.02,
-              horizontal: w * 0.04,
+            padding: EdgeInsets.fromLTRB(
+              w * 0.045,
+              h * 0.022,
+              w * 0.045,
+              h * 0.022,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Class Name Tag
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: appColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    className,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: appColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
                 if (assignment.description.isNotEmpty) ...[
-                  SizedBox(height: h * 0.012),
-                  Text(
-                    assignment.description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white70 : Colors.grey.shade700,
-                      height: 1.4,
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(w * 0.035),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF20222D)
+                          : const Color(0xFFF7F8FC),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    child: Text(
+                      assignment.description,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: bodyColor,
+                        height: 1.5,
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
 
-                SizedBox(height: h * 0.015),
-                Divider(
-                  height: 1,
-                  color: isDark ? Colors.white24 : Colors.grey.shade300,
-                ),
-                SizedBox(height: h * 0.015),
-
-                // Assignment details
-                Row(
+                SizedBox(height: h * 0.018),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
-                    if (assignment.points.isNotEmpty) ...[
-                      Icon(Icons.verified_outlined, size: 18, color: appColor),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${assignment.points} pts',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white70 : Colors.grey.shade800,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                    ],
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 16,
+                    _buildMetricTile(
+                      icon: Icons.event_available_rounded,
+                      label: assignment.endDate != null ? 'Deadline' : 'Posted',
+                      value: assignment.endDate != null
+                          ? _formatDate(assignment.endDate!)
+                          : _formatDate(assignment.createdAt ?? DateTime.now()),
+                      color:
+                          isExpired ? Colors.red.shade600 : Colors.blue.shade700,
+                      isDark: isDark,
+                    ),
+                    _buildMetricTile(
+                      icon: Icons.layers_outlined,
+                      label: 'Class',
+                      value: className,
                       color: appColor,
+                      isDark: isDark,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      assignment.endDate != null
-                          ? 'Due ${_formatDate(assignment.endDate!)}'
-                          : 'Posted ${_formatDate(assignment.createdAt ?? DateTime.now())}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white70 : Colors.grey.shade800,
+                    if (assignment.attachmentUrl != null &&
+                        assignment.attachmentUrl!.isNotEmpty)
+                      _buildMetricTile(
+                        icon: Icons.attach_file_rounded,
+                        label: 'Asset',
+                        value: 'Attachment',
+                        color: Colors.teal.shade600,
+                        isDark: isDark,
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -507,14 +538,118 @@ class _AssignmentPageState extends State<AssignmentPage> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
+    if (date.isAfter(now)) {
+      final difference = date.difference(now);
+      if (difference.inDays > 0) {
+        return 'in ${difference.inDays} day${difference.inDays == 1 ? '' : 's'}';
+      } else if (difference.inHours > 0) {
+        return 'in ${difference.inHours} hour${difference.inHours == 1 ? '' : 's'}';
+      } else {
+        return 'soon';
+      }
+    }
+
     final difference = now.difference(date);
     if (difference.inDays > 0) {
-      return '${difference.inDays} days ago';
+      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours ago';
+      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
     } else {
       return 'Just now';
     }
+  }
+
+  Widget _buildHeaderPill({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? color.withOpacity(0.18) : Colors.white.withOpacity(0.84),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 118, maxWidth: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF20222D) : const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8E6F3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white60 : const Color(0xFF70758A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.2,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF171A2C),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleAssignmentAction(AssignmentInfo assignment, String action) {

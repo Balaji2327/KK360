@@ -63,34 +63,54 @@ class AssignmentCard extends StatelessWidget {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? const Color(0xFF17181F) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8E6F3),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(isDark ? 0.28 : 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
-          Padding(
-            padding: const EdgeInsets.all(16),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? const [Color(0xFF262A40), Color(0xFF1A1E2E)]
+                    : const [Color(0xFFF5F0FF), Color(0xFFE9F2FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(22),
+                topRight: Radius.circular(22),
+              ),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: appColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [appColor, Color.lerp(appColor, Colors.white, 0.2)!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(
-                    Icons.assignment_outlined,
-                    color: appColor,
+                  child: const Icon(
+                    Icons.assignment_rounded,
+                    color: Colors.white,
                     size: 24,
                   ),
                 ),
@@ -99,14 +119,44 @@ class AssignmentCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? statusColor.withOpacity(0.18)
+                              : Colors.white.withOpacity(0.84),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: statusColor.withOpacity(0.18)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(statusIcon, size: 13, color: statusColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              statusText,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: statusColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       Text(
                         assignment.title,
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF171A2C),
+                          height: 1.15,
                         ),
-                        maxLines: 2,
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
@@ -116,8 +166,8 @@ class AssignmentCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             color:
-                                isDark ? Colors.white54 : Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
+                                isDark ? Colors.white60 : const Color(0xFF5E6278),
+                            fontWeight: FontWeight.w700,
                           ),
                         )
                       else if (assignment.course.isNotEmpty)
@@ -126,64 +176,39 @@ class AssignmentCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             color:
-                                isDark ? Colors.white54 : Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
+                                isDark ? Colors.white60 : const Color(0xFF5E6278),
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(statusIcon, size: 12, color: statusColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-
-          // Divider
-          Divider(
-            height: 1,
-            color: isDark ? Colors.white10 : Colors.grey.shade100,
-          ),
-
-          // Body Section
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (assignment.description.isNotEmpty) ...[
-                  Text(
-                    assignment.description,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.white70 : Colors.grey.shade700,
-                      height: 1.5,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF20222D) : const Color(0xFFF7F8FC),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                    child: Text(
+                      assignment.description,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: isDark ? Colors.white70 : const Color(0xFF5E6278),
+                        height: 1.5,
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -380,8 +405,8 @@ class AssignmentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: isDark ? color.withOpacity(0.18) : color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

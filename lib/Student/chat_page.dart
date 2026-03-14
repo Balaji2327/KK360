@@ -28,6 +28,7 @@ class _StudentChatPageState extends State<StudentChatPage> {
 
   String _userId = '';
   String _userName = '';
+  String? _userPhotoUrl;
   String _idToken = '';
   ChatRoom? _chatRoom;
   List<Message> _messages = [];
@@ -39,6 +40,7 @@ class _StudentChatPageState extends State<StudentChatPage> {
   final Map<String, GlobalKey> _messageKeys = {};
   String? _highlightedMessageId;
   Timer? _highlightTimer;
+  Timer? _refreshTimer;
   static const List<String> _quickReactions = [
     '👍',
     '❤️',
@@ -53,11 +55,18 @@ class _StudentChatPageState extends State<StudentChatPage> {
   void initState() {
     super.initState();
     _loadChatData();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted && !_sending) {
+        _loadChatData(showLoader: false);
+      }
+    });
   }
 
-  Future<void> _loadChatData() async {
+  Future<void> _loadChatData({bool showLoader = true}) async {
     try {
-      setState(() => _loading = true);
+      if (showLoader && mounted) {
+        setState(() => _loading = true);
+      }
 
       final user = _authService.getCurrentUser();
       final token = await user?.getIdToken() ?? '';
@@ -67,6 +76,7 @@ class _StudentChatPageState extends State<StudentChatPage> {
 
       _userId = user?.uid ?? '';
       _userName = profile?.name ?? 'User';
+      _userPhotoUrl = profile?.photoUrl;
       _idToken = token;
 
       if (_userId.isEmpty) {
@@ -81,13 +91,18 @@ class _StudentChatPageState extends State<StudentChatPage> {
         (c) => c.id == widget.classId,
         orElse: () => throw Exception('Class not found for student'),
       );
+      final tutorProfiles = await _authService.getUserProfiles(
+        projectId: 'kk360-69504',
+        userIds: [classInfo.tutorId],
+      );
+      final tutorName = tutorProfiles[classInfo.tutorId]?.name ?? 'Tutor';
 
       // Ensure the chat room exists with current class data
       final chatRoom = await _chatService.getOrCreateChatRoom(
         classId: widget.classId,
-        className: widget.className,
+        className: classInfo.name,
         tutorId: classInfo.tutorId,
-        tutorName: 'Tutor',
+        tutorName: tutorName,
         studentIds: classInfo.members,
         idToken: _idToken,
       );
@@ -101,11 +116,12 @@ class _StudentChatPageState extends State<StudentChatPage> {
         userRole: 'student',
         idToken: _idToken,
       );
+      final hydratedMessages = await _applyLiveProfilePhotos(messages);
 
       if (mounted) {
         setState(() {
           _chatRoom = chatRoom;
-          _messages = messages;
+          _messages = hydratedMessages;
           _loading = false;
         });
         _scrollToBottom();
@@ -148,6 +164,7 @@ class _StudentChatPageState extends State<StudentChatPage> {
         messageText: _messageController.text.trim(),
         classId: widget.classId,
         idToken: _idToken,
+        userPhotoUrl: _userPhotoUrl,
       );
 
       _messageController.clear();
@@ -203,6 +220,115 @@ class _StudentChatPageState extends State<StudentChatPage> {
       default:
         return Colors.grey;
     }
+  }
+
+  String _formatRoleLabel(String role) {
+    switch (role) {
+      case 'tutor':
+        return 'Tutor';
+      case 'student':
+        return 'Student';
+      case 'admin':
+        return 'Admin';
+      case 'test_creator':
+        return 'Test Creator';
+      default:
+        return 'User';
+    }
+  }
+
+  String _getSenderLabel(Message message) {
+    return '${_formatRoleLabel(message.senderRole)}: ${message.senderName}';
+  }
+
+  Future<List<Message>> _applyLiveProfilePhotos(List<Message> messages) async {
+    final missingSenderIds = messages
+        .where(
+          (message) =>
+              (message.senderPhotoUrl == null ||
+                  message.senderPhotoUrl!.trim().isEmpty) &&
+              message.senderId.isNotEmpty,
+        )
+        .map((message) => message.senderId)
+        .toSet()
+        .toList();
+
+    if (missingSenderIds.isEmpty) {
+      return messages;
+    }
+
+    try {
+      final profiles = await _authService.getUserProfiles(
+        projectId: 'kk360-69504',
+        userIds: missingSenderIds,
+      );
+      return messages.map((message) {
+        if (message.senderPhotoUrl != null &&
+            message.senderPhotoUrl!.trim().isNotEmpty) {
+          return message;
+        }
+        final livePhotoUrl = profiles[message.senderId]?.photoUrl?.trim();
+        if (livePhotoUrl == null || livePhotoUrl.isEmpty) {
+          return message;
+        }
+        return message.copyWith(senderPhotoUrl: livePhotoUrl);
+      }).toList();
+    } catch (_) {
+      return messages;
+    }
+  }
+
+  String _getInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  Widget _buildSenderHeader(Message message, double h) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: h * 0.004),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: h * 0.012,
+            backgroundColor: _getRoleColor(message.senderRole).withOpacity(0.18),
+            backgroundImage:
+                message.senderPhotoUrl != null &&
+                        message.senderPhotoUrl!.isNotEmpty
+                    ? NetworkImage(message.senderPhotoUrl!)
+                    : null,
+            child:
+                message.senderPhotoUrl == null || message.senderPhotoUrl!.isEmpty
+                    ? Text(
+                      _getInitials(message.senderName),
+                      style: TextStyle(
+                        fontSize: h * 0.0105,
+                        fontWeight: FontWeight.w700,
+                        color: _getRoleColor(message.senderRole),
+                      ),
+                    )
+                    : null,
+          ),
+          SizedBox(width: h * 0.007),
+          Flexible(
+            child: Text(
+              _getSenderLabel(message),
+              style: TextStyle(
+                fontSize: h * 0.013,
+                fontWeight: FontWeight.w600,
+                color: _getRoleColor(message.senderRole),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   bool get _hasSelection => _selectedMessageIds.isNotEmpty;
@@ -1029,20 +1155,7 @@ class _StudentChatPageState extends State<StudentChatPage> {
                                       ? CrossAxisAlignment.end
                                       : CrossAxisAlignment.start,
                               children: [
-                                if (!isCurrentUser)
-                                  Padding(
-                                    padding: EdgeInsets.only(bottom: h * 0.004),
-                                    child: Text(
-                                      message.senderName,
-                                      style: TextStyle(
-                                        fontSize: h * 0.013,
-                                        fontWeight: FontWeight.w600,
-                                        color: _getRoleColor(
-                                          message.senderRole,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                _buildSenderHeader(message, h),
                                 AnimatedContainer(
                                   key: _getMessageKey(message.id),
                                   constraints: BoxConstraints(
@@ -1291,6 +1404,7 @@ class _StudentChatPageState extends State<StudentChatPage> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _highlightTimer?.cancel();
     _hideReactionBar();
     _messageController.dispose();

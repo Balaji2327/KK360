@@ -3,6 +3,7 @@ class Message {
   final String chatRoomId;
   final String senderId;
   final String senderName;
+  final String? senderPhotoUrl;
   final String senderRole; // 'student', 'tutor', 'admin'
   final String text;
   final DateTime timestamp;
@@ -17,12 +18,14 @@ class Message {
   final DateTime? pinExpiresAt;
   final String? pinnedBy;
   final Map<String, int> reactions;
+  final List<String> hiddenForUserIds;
 
   Message({
     required this.id,
     required this.chatRoomId,
     required this.senderId,
     required this.senderName,
+    this.senderPhotoUrl,
     required this.senderRole,
     required this.text,
     required this.timestamp,
@@ -37,6 +40,7 @@ class Message {
     this.pinExpiresAt,
     this.pinnedBy,
     this.reactions = const {},
+    this.hiddenForUserIds = const [],
   });
 
   // Convert Message to JSON for Firestore
@@ -46,6 +50,7 @@ class Message {
       'chatRoomId': chatRoomId,
       'senderId': senderId,
       'senderName': senderName,
+      'senderPhotoUrl': senderPhotoUrl,
       'senderRole': senderRole,
       'text': text,
       'timestamp': timestamp.toIso8601String(),
@@ -60,6 +65,7 @@ class Message {
       'pinExpiresAt': pinExpiresAt?.toIso8601String(),
       'pinnedBy': pinnedBy,
       'reactions': reactions,
+      'hiddenForUserIds': hiddenForUserIds,
     };
   }
 
@@ -70,6 +76,7 @@ class Message {
       chatRoomId: json['chatRoomId'] ?? '',
       senderId: json['senderId'] ?? '',
       senderName: json['senderName'] ?? 'Unknown',
+      senderPhotoUrl: json['senderPhotoUrl'] as String?,
       senderRole: json['senderRole'] ?? 'student',
       text: json['text'] ?? '',
       timestamp:
@@ -104,6 +111,7 @@ class Message {
           (json['reactions'] is Map)
             ? Map<String, int>.from(json['reactions'] as Map)
             : const {},
+        hiddenForUserIds: List<String>.from(json['hiddenForUserIds'] ?? []),
     );
   }
 
@@ -113,6 +121,7 @@ class Message {
     String? chatRoomId,
     String? senderId,
     String? senderName,
+    String? senderPhotoUrl,
     String? senderRole,
     String? text,
     DateTime? timestamp,
@@ -127,12 +136,14 @@ class Message {
     DateTime? pinExpiresAt,
     String? pinnedBy,
     Map<String, int>? reactions,
+    List<String>? hiddenForUserIds,
   }) {
     return Message(
       id: id ?? this.id,
       chatRoomId: chatRoomId ?? this.chatRoomId,
       senderId: senderId ?? this.senderId,
       senderName: senderName ?? this.senderName,
+      senderPhotoUrl: senderPhotoUrl ?? this.senderPhotoUrl,
       senderRole: senderRole ?? this.senderRole,
       text: text ?? this.text,
       timestamp: timestamp ?? this.timestamp,
@@ -147,6 +158,7 @@ class Message {
       pinExpiresAt: pinExpiresAt ?? this.pinExpiresAt,
       pinnedBy: pinnedBy ?? this.pinnedBy,
       reactions: reactions ?? this.reactions,
+      hiddenForUserIds: hiddenForUserIds ?? this.hiddenForUserIds,
     );
   }
 }

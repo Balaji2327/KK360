@@ -1,30 +1,32 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/nav_helper.dart';
+import 'nav_helper.dart';
 
-class ToDoListScreen extends StatefulWidget {
-  const ToDoListScreen({super.key});
-
-  @override
-  State<ToDoListScreen> createState() => _ToDoListScreenState();
-}
-
-class Task {
+class TodoTask {
   String title;
   bool isDone;
 
-  Task({required this.title, this.isDone = false});
+  TodoTask({required this.title, this.isDone = false});
 
   Map<String, dynamic> toJson() => {'title': title, 'isDone': isDone};
 
-  factory Task.fromJson(Map<String, dynamic> json) {
-    return Task(title: json['title'], isDone: json['isDone']);
+  factory TodoTask.fromJson(Map<String, dynamic> json) {
+    return TodoTask(title: json['title'], isDone: json['isDone']);
   }
 }
 
-class _ToDoListScreenState extends State<ToDoListScreen> {
-  List<Task> _tasks = [];
+class SharedToDoListScreen extends StatefulWidget {
+  final String storageKey;
+
+  const SharedToDoListScreen({super.key, required this.storageKey});
+
+  @override
+  State<SharedToDoListScreen> createState() => _SharedToDoListScreenState();
+}
+
+class _SharedToDoListScreenState extends State<SharedToDoListScreen> {
+  List<TodoTask> _tasks = [];
   final TextEditingController _taskController = TextEditingController();
   bool _isLoading = true;
 
@@ -42,11 +44,11 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
 
   Future<void> _loadTasks() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? tasksString = prefs.getString('student_todo_list');
+    final String? tasksString = prefs.getString(widget.storageKey);
     if (tasksString != null) {
       final List<dynamic> decoded = jsonDecode(tasksString);
       setState(() {
-        _tasks = decoded.map((e) => Task.fromJson(e)).toList();
+        _tasks = decoded.map((e) => TodoTask.fromJson(e)).toList();
         _isLoading = false;
       });
     } else {
@@ -57,7 +59,7 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
   Future<void> _saveTasks() async {
     final prefs = await SharedPreferences.getInstance();
     final String encoded = jsonEncode(_tasks.map((e) => e.toJson()).toList());
-    await prefs.setString('student_todo_list', encoded);
+    await prefs.setString(widget.storageKey, encoded);
   }
 
   void _addTask() {
@@ -65,7 +67,7 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
     if (text.isEmpty) return;
 
     setState(() {
-      _tasks.add(Task(title: text));
+      _tasks.add(TodoTask(title: text));
       _taskController.clear();
     });
     _saveTasks();
@@ -88,46 +90,54 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
   void _showAddDialog() {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Add New Task'),
-            content: TextField(
-              controller: _taskController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Enter task details',
-                border: OutlineInputBorder(),
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Add New Task',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
+          content: TextField(
+            controller: _taskController,
+            autofocus: true,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            decoration: InputDecoration(
+              hintText: 'Enter task details',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white54 : Colors.grey,
               ),
-              onSubmitted: (_) {
+              border: const OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white24 : Colors.grey,
+                ),
+              ),
+            ),
+            onSubmitted: (_) {
+              _addTask();
+              Navigator.pop(ctx);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
                 _addTask();
                 Navigator.pop(ctx);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4B3FA3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Add'),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF4B3FA3),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  _addTask();
-                  Navigator.pop(ctx);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4B3FA3),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Add'),
-              ),
-            ],
-          ),
+          ],
+        );
+      },
     );
   }
 
@@ -139,52 +149,46 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
-      // Using index 4 to keep "More" active or maybe 4 is appropriate since it is under 'More'
       body: Column(
         children: [
-          // ---------------- CUSTOM PURPLE HEADER ----------------
+          // ── LEFT-ALIGNED HEADER (Enlarged & Tight Gap) ──────────────────
           Container(
             width: w,
-            height: h * 0.15,
-            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            decoration: const BoxDecoration(
-              color: Color(0xFF4B3FA3),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+            height: MediaQuery.of(context).padding.top + 70,
+            decoration: const BoxDecoration(color: Color(0xFF4B3FA3)),
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top,
+                left: w * 0.02, // Tight side padding
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: h * 0.085), // Top spacing
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => goBack(context),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8), // Tight padding for icon
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 26,
                     ),
-                    SizedBox(width: w * 0.04),
-                    const Text(
-                      "To Do List",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    onPressed: () => goBack(context),
+                  ),
+                  const SizedBox(width: 4), // Small gap between icon and text
+                  const Text(
+                    "To Do List",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
 
-          // ---------------- TASK LIST ----------------
+          // ── TASK LIST CONTENT ──────────────────────────────────────────────
           Expanded(
             child:
                 _isLoading
@@ -200,7 +204,7 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
                             color:
                                 isDark ? Colors.white24 : Colors.grey.shade400,
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
                             "No tasks yet!",
                             style: TextStyle(
@@ -240,16 +244,13 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
                             ],
                           ),
                           child: ListTile(
-                            leading: Transform.scale(
-                              scale: 1.2,
-                              child: Checkbox(
-                                activeColor: const Color(0xFF4B3FA3),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                value: task.isDone,
-                                onChanged: (_) => _toggleTask(index),
+                            leading: Checkbox(
+                              activeColor: const Color(0xFF4B3FA3),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
                               ),
+                              value: task.isDone,
+                              onChanged: (_) => _toggleTask(index),
                             ),
                             title: Text(
                               task.title,
@@ -284,30 +285,12 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
           ),
         ],
       ),
-
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: h * 0.02, right: w * 0.04),
-        child: GestureDetector(
-          onTap: _showAddDialog,
-          child: Container(
-            height: h * 0.065,
-            width: h * 0.065,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDFF7E8),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.15),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.add, size: 30, color: Colors.black),
-          ),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddDialog,
+        backgroundColor: const Color(0xFFDFF7E8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add, size: 30, color: Colors.black),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 }

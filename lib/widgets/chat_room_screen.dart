@@ -188,16 +188,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<List<Message>> _applyLiveProfilePhotos(List<Message> messages) async {
-    final missingSenderIds = messages
-        .where(
-          (message) =>
-              (message.senderPhotoUrl == null ||
-                  message.senderPhotoUrl!.trim().isEmpty) &&
-              message.senderId.isNotEmpty,
-        )
-        .map((message) => message.senderId)
-        .toSet()
-        .toList();
+    final missingSenderIds =
+        messages
+            .where(
+              (message) =>
+                  (message.senderPhotoUrl == null ||
+                      message.senderPhotoUrl!.trim().isEmpty) &&
+                  message.senderId.isNotEmpty,
+            )
+            .map((message) => message.senderId)
+            .toSet()
+            .toList();
 
     if (missingSenderIds.isEmpty) {
       return messages;
@@ -225,11 +226,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   String _getInitials(String name) {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList();
+    final parts =
+        name
+            .trim()
+            .split(RegExp(r'\s+'))
+            .where((part) => part.isNotEmpty)
+            .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
@@ -243,7 +245,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           radius: h * 0.012,
           backgroundColor: _getRoleColor(message.senderRole).withOpacity(0.18),
           backgroundImage:
-              message.senderPhotoUrl != null && message.senderPhotoUrl!.isNotEmpty
+              message.senderPhotoUrl != null &&
+                      message.senderPhotoUrl!.isNotEmpty
                   ? NetworkImage(message.senderPhotoUrl!)
                   : null,
           child:
@@ -297,10 +300,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final size = MediaQuery.of(context).size;
     const barHeight = 44.0;
     const barWidth = 300.0;
-    final dx = (globalPosition.dx - barWidth / 2)
-        .clamp(12.0, size.width - barWidth - 12.0);
-    final dy = (globalPosition.dy - barHeight - 12)
-        .clamp(12.0, size.height - barHeight - 12.0);
+    final dx = (globalPosition.dx - barWidth / 2).clamp(
+      12.0,
+      size.width - barWidth - 12.0,
+    );
+    final dy = (globalPosition.dy - barHeight - 12).clamp(
+      12.0,
+      size.height - barHeight - 12.0,
+    );
 
     _reactionEntry = OverlayEntry(
       builder: (context) {
@@ -348,9 +355,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             _hideReactionBar();
                           },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: Text(
                               emoji,
                               style: const TextStyle(fontSize: 18),
@@ -385,12 +390,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     return null;
   }
 
-  Widget _buildPinnedBanner(
-    Message message,
-    double w,
-    double h,
-    bool isDark,
-  ) {
+  Widget _buildPinnedBanner(Message message, double w, double h, bool isDark) {
     final textColor = isDark ? Colors.white : Colors.black;
     return Container(
       margin: EdgeInsets.fromLTRB(w * 0.04, w * 0.04, w * 0.04, 0),
@@ -433,11 +433,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   Widget _buildReactionsRow(Message message, bool isCurrentUser) {
     if (message.reactions.isEmpty) return const SizedBox.shrink();
-    final entries = message.reactions.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final entries =
+        message.reactions.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
     return Align(
-      alignment:
-          isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: Wrap(
@@ -514,25 +514,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   RadioListTile<int>(
                     value: 1,
                     groupValue: selectedDays,
-                    onChanged: (value) => setStateDialog(
-                      () => selectedDays = value ?? 7,
-                    ),
+                    onChanged:
+                        (value) =>
+                            setStateDialog(() => selectedDays = value ?? 7),
                     title: const Text('24 hours'),
                   ),
                   RadioListTile<int>(
                     value: 7,
                     groupValue: selectedDays,
-                    onChanged: (value) => setStateDialog(
-                      () => selectedDays = value ?? 7,
-                    ),
+                    onChanged:
+                        (value) =>
+                            setStateDialog(() => selectedDays = value ?? 7),
                     title: const Text('7 days'),
                   ),
                   RadioListTile<int>(
                     value: 30,
                     groupValue: selectedDays,
-                    onChanged: (value) => setStateDialog(
-                      () => selectedDays = value ?? 7,
-                    ),
+                    onChanged:
+                        (value) =>
+                            setStateDialog(() => selectedDays = value ?? 7),
                     title: const Text('30 days'),
                   ),
                 ],
@@ -624,8 +624,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () =>
-                  Navigator.pop(context, controller.text.trim()),
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
               child: const Text('Save'),
             ),
           ],
@@ -697,6 +696,44 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _clearSelection();
   }
 
+  Widget _buildChatHeader(double w) {
+    return Container(
+      width: w,
+      height: MediaQuery.of(context).padding.top + 70,
+      decoration: const BoxDecoration(color: Color(0xFF4B3FA3)),
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top,
+          left: w * 0.02,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            IconButton(
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(8),
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                widget.chatRoom.className,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
@@ -706,45 +743,33 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF4B3FA3),
-        automaticallyImplyLeading: !_hasSelection,
-        leading:
-            _hasSelection
-                ? IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: _clearSelection,
-                )
-                : null,
-        title:
-            _hasSelection
-                ? const Text(
-                  '1 selected',
-                  style: TextStyle(color: Colors.white),
-                )
-                : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.chatRoom.className,
+      body: Column(
+        children: [
+          _buildChatHeader(w),
+          if (_hasSelection)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: w * 0.04,
+                vertical: h * 0.015,
+              ),
+              color: const Color(0xFF4B3FA3),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: _clearSelection,
+                  ),
+                  Expanded(
+                    child: Text(
+                      '1 selected',
                       style: TextStyle(
-                        fontSize: h * 0.02,
-                        fontWeight: FontWeight.bold,
+                        fontSize: h * 0.018,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
-                    Text(
-                      'with ${widget.chatRoom.tutorName}',
-                      style: TextStyle(
-                        fontSize: h * 0.014,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
-        actions:
-            _hasSelection
-                ? [
+                  ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.white),
                     onPressed: _confirmDeleteSelectedMessage,
@@ -758,10 +783,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         return <PopupMenuEntry<String>>[];
                       }
                       final items = <PopupMenuEntry<String>>[
-                        const PopupMenuItem(
-                          value: 'copy',
-                          child: Text('Copy'),
-                        ),
+                        const PopupMenuItem(value: 'copy', child: Text('Copy')),
                         const PopupMenuItem(
                           value: 'react',
                           child: Text('React'),
@@ -772,10 +794,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             child: Text('Unpin'),
                           )
                         else
-                        const PopupMenuItem(
-                          value: 'pin',
-                          child: Text('Pin'),
-                        ),
+                          const PopupMenuItem(value: 'pin', child: Text('Pin')),
                       ];
                       if (message.senderId == widget.userId &&
                           !message.isDeleted) {
@@ -789,12 +808,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       return items;
                     },
                   ),
-                ]
-                : null,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
+                ],
+              ),
+            ),
           // Messages List
           Expanded(
             child:
@@ -830,242 +846,303 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             itemCount: _messages.length,
                             itemBuilder: (context, index) {
                               final message = _messages[index];
-                        final isCurrentUser = message.senderId == widget.userId;
-                        final isSelected = _selectedMessage?.id == message.id;
-                        final isDeleted = message.isDeleted;
-                        final deletedColor =
-                            isDark
-                                ? Colors.grey.shade300
-                                : Colors.grey.shade700;
-                        final selectedColor =
-                            isDark
-                                ? const Color(0xFF2E3A2F)
-                                : const Color(0xFFE8F5E9);
-                        final bubbleColor =
-                            isSelected
-                                ? selectedColor
-                                : isDeleted
-                                ? (isDark
-                                    ? Colors.grey.shade700
-                                    : Colors.grey.shade300)
-                                : (isCurrentUser
-                                    ? const Color(0xFF4B3FA3)
-                                    : (isDark
-                                        ? Colors.grey[800]
-                                        : Colors.grey[200]));
-                        final textColor =
-                            isDeleted
-                                ? deletedColor
-                                : (isCurrentUser
-                                    ? Colors.white
-                                    : (isDark ? Colors.white : Colors.black));
+                              final isCurrentUser =
+                                  message.senderId == widget.userId;
+                              final isSelected =
+                                  _selectedMessage?.id == message.id;
+                              final isDeleted = message.isDeleted;
+                              final deletedColor =
+                                  isDark
+                                      ? Colors.grey.shade300
+                                      : Colors.grey.shade700;
+                              final selectedColor =
+                                  isDark
+                                      ? const Color(0xFF2E3A2F)
+                                      : const Color(0xFFE8F5E9);
+                              final bubbleColor =
+                                  isSelected
+                                      ? selectedColor
+                                      : isDeleted
+                                      ? (isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey.shade300)
+                                      : (isCurrentUser
+                                          ? const Color(0xFF4B3FA3)
+                                          : (isDark
+                                              ? Colors.grey[800]
+                                              : Colors.grey[200]));
+                              final textColor =
+                                  isDeleted
+                                      ? deletedColor
+                                      : (isCurrentUser
+                                          ? Colors.white
+                                          : (isDark
+                                              ? Colors.white
+                                              : Colors.black));
 
-                        return GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onLongPress: () => _onMessageLongPress(message),
-                          onTap: _hasSelection ? _clearSelection : null,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: h * 0.01),
-                            child: Column(
-                              crossAxisAlignment:
-                                  isCurrentUser
-                                      ? CrossAxisAlignment.end
-                                      : CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      isCurrentUser
-                                          ? MainAxisAlignment.end
-                                          : MainAxisAlignment.start,
-                                  children: [
-                                    if (!isCurrentUser)
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            _buildSenderHeader(message, h),
-                                            SizedBox(height: h * 0.004),
-                                            Container(
-                                              constraints: BoxConstraints(
-                                                maxWidth: w * 0.7,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: bubbleColor,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              padding: EdgeInsets.all(w * 0.03),
+                              return GestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onLongPress: () => _onMessageLongPress(message),
+                                onTap: _hasSelection ? _clearSelection : null,
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: h * 0.01,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        isCurrentUser
+                                            ? CrossAxisAlignment.end
+                                            : CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            isCurrentUser
+                                                ? MainAxisAlignment.end
+                                                : MainAxisAlignment.start,
+                                        children: [
+                                          if (!isCurrentUser)
+                                            Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
-                                                    children: [
-                                                      if (message.isPinned)
-                                                        Padding(
-                                                          padding: EdgeInsets.only(
-                                                            right: w * 0.01,
-                                                            top: h * 0.002,
-                                                          ),
-                                                          child: Icon(
-                                                            Icons.push_pin,
-                                                            size: h * 0.016,
-                                                            color: textColor,
-                                                          ),
-                                                        ),
-                                                      Flexible(
-                                                        child: Text(
-                                                          message.text,
-                                                          style: TextStyle(
-                                                            fontSize: h * 0.016,
-                                                            color: textColor,
-                                                            fontStyle:
-                                                                isDeleted
-                                                                    ? FontStyle
-                                                                        .italic
-                                                                    : FontStyle
-                                                                        .normal,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
+                                                  _buildSenderHeader(
+                                                    message,
+                                                    h,
                                                   ),
-                                                  if (message.isEdited &&
-                                                      !message.isDeleted)
-                                                    Padding(
-                                                      padding: EdgeInsets.only(
-                                                        top: h * 0.004,
-                                                      ),
-                                                      child: Text(
-                                                        'Edited',
-                                                        style: TextStyle(
-                                                          fontSize: h * 0.012,
-                                                          color: textColor
-                                                              .withOpacity(0.7),
-                                                        ),
-                                                      ),
+                                                  SizedBox(height: h * 0.004),
+                                                  Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: w * 0.7,
                                                     ),
+                                                    decoration: BoxDecoration(
+                                                      color: bubbleColor,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                    padding: EdgeInsets.all(
+                                                      w * 0.03,
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            if (message
+                                                                .isPinned)
+                                                              Padding(
+                                                                padding:
+                                                                    EdgeInsets.only(
+                                                                      right:
+                                                                          w *
+                                                                          0.01,
+                                                                      top:
+                                                                          h *
+                                                                          0.002,
+                                                                    ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .push_pin,
+                                                                  size:
+                                                                      h * 0.016,
+                                                                  color:
+                                                                      textColor,
+                                                                ),
+                                                              ),
+                                                            Flexible(
+                                                              child: Text(
+                                                                message.text,
+                                                                style: TextStyle(
+                                                                  fontSize:
+                                                                      h * 0.016,
+                                                                  color:
+                                                                      textColor,
+                                                                  fontStyle:
+                                                                      isDeleted
+                                                                          ? FontStyle
+                                                                              .italic
+                                                                          : FontStyle
+                                                                              .normal,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        if (message.isEdited &&
+                                                            !message.isDeleted)
+                                                          Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                  top:
+                                                                      h * 0.004,
+                                                                ),
+                                                            child: Text(
+                                                              'Edited',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    h * 0.012,
+                                                                color: textColor
+                                                                    .withOpacity(
+                                                                      0.7,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: h * 0.004),
+                                                  Text(
+                                                    _formatTime(
+                                                      message.timestamp,
+                                                    ),
+                                                    style: TextStyle(
+                                                      fontSize: h * 0.012,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                  _buildReactionsRow(
+                                                    message,
+                                                    isCurrentUser,
+                                                  ),
                                                 ],
                                               ),
-                                            ),
-                                            SizedBox(height: h * 0.004),
-                                            Text(
-                                              _formatTime(message.timestamp),
-                                              style: TextStyle(
-                                                fontSize: h * 0.012,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                            _buildReactionsRow(
-                                              message,
-                                              isCurrentUser,
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end,
-                                          children: [
-                                            _buildSenderHeader(message, h),
-                                            SizedBox(height: h * 0.004),
-                                            Container(
-                                              constraints: BoxConstraints(
-                                                maxWidth: w * 0.7,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: bubbleColor,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              padding: EdgeInsets.all(w * 0.03),
+                                            )
+                                          else
+                                            Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
+                                                    CrossAxisAlignment.end,
                                                 children: [
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
-                                                    children: [
-                                                      if (message.isPinned)
-                                                        Padding(
-                                                          padding: EdgeInsets.only(
-                                                            right: w * 0.01,
-                                                            top: h * 0.002,
-                                                          ),
-                                                          child: Icon(
-                                                            Icons.push_pin,
-                                                            size: h * 0.016,
-                                                            color: textColor,
-                                                          ),
-                                                        ),
-                                                      Flexible(
-                                                        child: Text(
-                                                          message.text,
-                                                          style: TextStyle(
-                                                            fontSize: 16,
-                                                            color: textColor,
-                                                            fontStyle:
-                                                                isDeleted
-                                                                    ? FontStyle
-                                                                        .italic
-                                                                    : FontStyle
-                                                                        .normal,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
+                                                  _buildSenderHeader(
+                                                    message,
+                                                    h,
                                                   ),
-                                                  if (message.isEdited &&
-                                                      !message.isDeleted)
-                                                    Padding(
-                                                      padding: EdgeInsets.only(
-                                                        top: h * 0.004,
-                                                      ),
-                                                      child: Text(
-                                                        'Edited',
-                                                        style: TextStyle(
-                                                          fontSize: h * 0.012,
-                                                          color: textColor
-                                                              .withOpacity(0.7),
-                                                        ),
-                                                      ),
+                                                  SizedBox(height: h * 0.004),
+                                                  Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: w * 0.7,
                                                     ),
+                                                    decoration: BoxDecoration(
+                                                      color: bubbleColor,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                    padding: EdgeInsets.all(
+                                                      w * 0.03,
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            if (message
+                                                                .isPinned)
+                                                              Padding(
+                                                                padding:
+                                                                    EdgeInsets.only(
+                                                                      right:
+                                                                          w *
+                                                                          0.01,
+                                                                      top:
+                                                                          h *
+                                                                          0.002,
+                                                                    ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .push_pin,
+                                                                  size:
+                                                                      h * 0.016,
+                                                                  color:
+                                                                      textColor,
+                                                                ),
+                                                              ),
+                                                            Flexible(
+                                                              child: Text(
+                                                                message.text,
+                                                                style: TextStyle(
+                                                                  fontSize: 16,
+                                                                  color:
+                                                                      textColor,
+                                                                  fontStyle:
+                                                                      isDeleted
+                                                                          ? FontStyle
+                                                                              .italic
+                                                                          : FontStyle
+                                                                              .normal,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        if (message.isEdited &&
+                                                            !message.isDeleted)
+                                                          Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                  top:
+                                                                      h * 0.004,
+                                                                ),
+                                                            child: Text(
+                                                              'Edited',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    h * 0.012,
+                                                                color: textColor
+                                                                    .withOpacity(
+                                                                      0.7,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: h * 0.004),
+                                                  Text(
+                                                    _formatTime(
+                                                      message.timestamp,
+                                                    ),
+                                                    style: TextStyle(
+                                                      fontSize: h * 0.012,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                  _buildReactionsRow(
+                                                    message,
+                                                    isCurrentUser,
+                                                  ),
                                                 ],
                                               ),
                                             ),
-                                            SizedBox(height: h * 0.004),
-                                            Text(
-                                              _formatTime(message.timestamp),
-                                              style: TextStyle(
-                                                fontSize: h * 0.012,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                            _buildReactionsRow(
-                                              message,
-                                              isCurrentUser,
-                                            ),
-                                          ],
-                                        ),
+                                        ],
                                       ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
+                              );
                             },
                           ),
                         ),

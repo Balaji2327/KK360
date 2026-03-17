@@ -3,8 +3,6 @@ import '../services/push_notification_service.dart';
 import '../theme_manager.dart';
 import 'nav_helper.dart';
 
-/// A single settings screen shared across all roles:
-/// Student, Tutor, Admin, Test Creator.
 class SharedSettingsScreen extends StatefulWidget {
   const SharedSettingsScreen({super.key});
 
@@ -50,14 +48,15 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
 
     try {
       await PushNotificationService.instance.setPushNotificationsEnabled(value);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Outside-app notifications ${value ? 'enabled' : 'disabled'}',
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Outside-app notifications ${value ? 'enabled' : 'disabled'}',
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -87,48 +86,46 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
-          // ── HEADER ──────────────────────────────────────────────────────
+          // ── CUSTOM HEADER (Matches To Do List Spacing) ──────────────────
           Container(
             width: w,
-            height: h * 0.15,
-            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            decoration: const BoxDecoration(
-              color: Color(0xFF4B3FA3),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+            height: MediaQuery.of(context).padding.top + 70,
+            decoration: const BoxDecoration(color: Color(0xFF4B3FA3)),
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top,
+                left: w * 0.02, // Minimal side padding
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: h * 0.085),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => goBack(context),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(
+                      8,
+                    ), // Removes the large empty hit area
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 26,
                     ),
-                    SizedBox(width: w * 0.04),
-                    const Text(
-                      "Settings",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    onPressed: () => goBack(context),
+                  ),
+                  const SizedBox(width: 4), // The exact gap you requested
+                  const Text(
+                    "Settings",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
 
-          // ── SETTINGS LIST ────────────────────────────────────────────────
+          // ── SETTINGS CONTENT ──────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
@@ -138,9 +135,7 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Section: Preferences ─────────────────────────────────
                   _sectionTitle("Preferences", isDark),
-
                   _switchTile(
                     icon: Icons.dark_mode_outlined,
                     title: "Dark Mode",
@@ -150,7 +145,6 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                     isDark: isDark,
                     accentColor: accentColor,
                   ),
-
                   _loadingPreferences
                       ? _loadingTile(isDark: isDark)
                       : _switchTile(
@@ -165,12 +159,9 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                         isDark: isDark,
                         accentColor: accentColor,
                       ),
-
                   SizedBox(height: h * 0.015),
 
-                  // ── Section: Account ─────────────────────────────────────
                   _sectionTitle("Account", isDark),
-
                   _linkTile(
                     icon: Icons.language,
                     title: "Language",
@@ -184,7 +175,6 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                           ),
                         ),
                   ),
-
                   _linkTile(
                     icon: Icons.privacy_tip_outlined,
                     title: "Privacy Policy",
@@ -197,89 +187,23 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
                           ),
                         ),
                   ),
-
                   SizedBox(height: h * 0.015),
 
-                  // ── Section: Support ─────────────────────────────────────
                   _sectionTitle("Support", isDark),
-
                   _linkTile(
                     icon: Icons.help_outline,
                     title: "Help & Support",
                     isDark: isDark,
                     accentColor: accentColor,
-                    onTap:
-                        () => showDialog(
-                          context: context,
-                          builder:
-                              (ctx) => AlertDialog(
-                                backgroundColor:
-                                    isDark
-                                        ? const Color(0xFF2C2C2C)
-                                        : Colors.white,
-                                title: Text(
-                                  'Help & Support',
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white : Colors.black,
-                                  ),
-                                ),
-                                content: Text(
-                                  'For support, please contact your administrator or tutor.',
-                                  style: TextStyle(
-                                    color:
-                                        isDark
-                                            ? Colors.white70
-                                            : Colors.black87,
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              ),
-                        ),
+                    onTap: () => _showSupportDialog(context, isDark),
                   ),
-
                   _linkTile(
                     icon: Icons.info_outline,
                     title: "About App",
                     subtitle: "KK360 Learning Platform",
                     isDark: isDark,
                     accentColor: accentColor,
-                    onTap:
-                        () => showDialog(
-                          context: context,
-                          builder:
-                              (ctx) => AlertDialog(
-                                backgroundColor:
-                                    isDark
-                                        ? const Color(0xFF2C2C2C)
-                                        : Colors.white,
-                                title: Text(
-                                  'About App',
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white : Colors.black,
-                                  ),
-                                ),
-                                content: Text(
-                                  'KK360 Learning Platform\nVersion 1.0.0',
-                                  style: TextStyle(
-                                    color:
-                                        isDark
-                                            ? Colors.white70
-                                            : Colors.black87,
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              ),
-                        ),
+                    onTap: () => _showAboutDialog(context, isDark),
                   ),
 
                   SizedBox(height: h * 0.03),
@@ -302,7 +226,54 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
     );
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // --- Helpers remain the same ---
+  void _showSupportDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+            title: Text(
+              'Help & Support',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            ),
+            content: Text(
+              'For support, please contact your administrator or tutor.',
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+            title: Text(
+              'About App',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            ),
+            content: Text(
+              'KK360 Learning Platform\nVersion 1.0.0',
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+    );
+  }
 
   Widget _sectionTitle(String title, bool isDark) {
     return Padding(
@@ -334,7 +305,7 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -375,7 +346,7 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -414,31 +385,18 @@ class _SharedSettingsScreenState extends State<SharedSettingsScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Row(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 12),
           Text(
-            'Loading notification settings...',
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black,
-              fontWeight: FontWeight.w500,
-            ),
+            'Loading settings...',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
           ),
         ],
       ),

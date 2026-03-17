@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/tutor_login.dart';
 
 import '../widgets/nav_helper.dart';
 import '../widgets/shared_settings_screen.dart';
+import '../widgets/todo_list_screen.dart';
 
 class TutorMoreFeaturesScreen extends StatefulWidget {
   const TutorMoreFeaturesScreen({super.key});
@@ -550,7 +550,12 @@ class _TutorMoreFeaturesScreenState extends State<TutorMoreFeaturesScreen> {
                   // featureTile(w, h, Icons.check_circle, "Attendance"),
                   GestureDetector(
                     onTap: () {
-                      goPush(context, const TutorToDoListScreen());
+                      goPush(
+                        context,
+                        const SharedToDoListScreen(
+                          storageKey: 'tutor_todo_list',
+                        ),
+                      );
                     },
                     child: featureTile(w, h, Icons.list_alt, "To Do List"),
                   ),

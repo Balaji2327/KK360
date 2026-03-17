@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/admin_login.dart';
 import '../widgets/nav_helper.dart';
 import '../widgets/shared_settings_screen.dart';
+import '../widgets/todo_list_screen.dart';
 
 class AdminMoreFeaturesScreen extends StatefulWidget {
   const AdminMoreFeaturesScreen({super.key});
@@ -551,7 +551,12 @@ class _AdminMoreFeaturesScreenState extends State<AdminMoreFeaturesScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      goPush(context, const AdminToDoListScreen());
+                      goPush(
+                        context,
+                        const SharedToDoListScreen(
+                          storageKey: 'admin_todo_list',
+                        ),
+                      );
                     },
                     child: featureTile(w, h, Icons.list_alt, "To Do List"),
                   ),

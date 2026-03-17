@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../Tutor/todo_list.dart';
 import '../services/firebase_auth_service.dart';
 import '../Authentication/tutor_login.dart';
 
 import '../widgets/nav_helper.dart';
 import '../widgets/shared_settings_screen.dart';
+import '../widgets/todo_list_screen.dart';
 
 class TestCreatorMoreFeaturesScreen extends StatefulWidget {
   const TestCreatorMoreFeaturesScreen({super.key});
@@ -455,7 +455,12 @@ class _TestCreatorMoreFeaturesScreenState
                   // Using shared Tutor ToDo List
                   GestureDetector(
                     onTap: () {
-                      goPush(context, const TutorToDoListScreen());
+                      goPush(
+                        context,
+                        const SharedToDoListScreen(
+                          storageKey: 'tutor_todo_list',
+                        ),
+                      );
                     },
                     child: featureTile(w, h, Icons.list_alt, "To Do List"),
                   ),

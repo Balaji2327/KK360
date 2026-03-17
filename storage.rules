@@ -11,6 +11,16 @@ service firebase.storage {
       allow read, write: if request.auth != null;
     }
 
+    // Voice notes for class chat.
+    match /chat_audio/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Generic chat attachments like mp3, mp4, pdf, docs, and other files.
+    match /chat_files/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
     // User profile photos: each user can access only their own folder.
     match /profile/profile_pictures/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -23,7 +24,10 @@ class ChatService {
     required String idToken,
   }) async {
     try {
-      final existing = await _fetchChatRoom(chatRoomId: classId, idToken: idToken);
+      final existing = await _fetchChatRoom(
+        chatRoomId: classId,
+        idToken: idToken,
+      );
       if (existing != null) {
         final updated = existing.copyWith(
           classId: classId,
@@ -69,10 +73,19 @@ class ChatService {
     required String classId,
     required String idToken,
     String? userPhotoUrl,
+    String? audioUrl,
+    int? audioDurationSeconds,
+    String? attachmentUrl,
+    String? attachmentName,
+    int? attachmentSizeBytes,
   }) async {
     try {
       final chatRoom = await _getChatRoomById(chatRoomId, idToken);
-      _validateSendAccess(userRole: userRole, userId: userId, chatRoom: chatRoom);
+      _validateSendAccess(
+        userRole: userRole,
+        userId: userId,
+        chatRoom: chatRoom,
+      );
       final senderPhotoUrl = await _resolveSenderPhotoUrl(
         providedPhotoUrl: userPhotoUrl,
       );
@@ -90,12 +103,24 @@ class ChatService {
         timestamp: now,
         isRead: false,
         readBy: [userId],
+        audioUrl: audioUrl,
+        audioDurationSeconds: audioDurationSeconds,
+        attachmentUrl: attachmentUrl,
+        attachmentName: attachmentName,
+        attachmentSizeBytes: attachmentSizeBytes,
+      );
+
+      final previewText = _buildMessagePreview(
+        messageText: messageText,
+        audioUrl: audioUrl,
+        attachmentUrl: attachmentUrl,
+        attachmentName: attachmentName,
       );
 
       await _writeMessage(message, idToken);
       await _updateChatRoomLastMessage(
         chatRoomId: chatRoomId,
-        lastMessage: messageText,
+        lastMessage: previewText,
         lastMessageSenderId: userId,
         lastMessageTime: now,
         idToken: idToken,
@@ -106,7 +131,7 @@ class ChatService {
         senderId: userId,
         senderName: userName,
         senderRole: userRole,
-        messageText: messageText,
+        messageText: previewText,
         messageId: messageId,
         classId: classId,
         className: chatRoom.className,
@@ -119,6 +144,59 @@ class ChatService {
     }
   }
 
+  Future<Message> sendAudioMessage({
+    required String chatRoomId,
+    required String userId,
+    required String userName,
+    required String userRole,
+    required String audioUrl,
+    required String classId,
+    required String idToken,
+    String? userPhotoUrl,
+    int? audioDurationSeconds,
+  }) {
+    return sendMessage(
+      chatRoomId: chatRoomId,
+      userId: userId,
+      userName: userName,
+      userRole: userRole,
+      messageText: 'Voice message',
+      classId: classId,
+      idToken: idToken,
+      userPhotoUrl: userPhotoUrl,
+      audioUrl: audioUrl,
+      audioDurationSeconds: audioDurationSeconds,
+    );
+  }
+
+  Future<Message> sendAttachmentMessage({
+    required String chatRoomId,
+    required String userId,
+    required String userName,
+    required String userRole,
+    required String attachmentUrl,
+    required String attachmentName,
+    required String classId,
+    required String idToken,
+    String? userPhotoUrl,
+    String messageText = '',
+    int? attachmentSizeBytes,
+  }) {
+    return sendMessage(
+      chatRoomId: chatRoomId,
+      userId: userId,
+      userName: userName,
+      userRole: userRole,
+      messageText: messageText,
+      classId: classId,
+      idToken: idToken,
+      userPhotoUrl: userPhotoUrl,
+      attachmentUrl: attachmentUrl,
+      attachmentName: attachmentName,
+      attachmentSizeBytes: attachmentSizeBytes,
+    );
+  }
+
   Future<List<Message>> getMessages({
     required String chatRoomId,
     required String userId,
@@ -128,28 +206,35 @@ class ChatService {
   }) async {
     try {
       final chatRoom = await _getChatRoomById(chatRoomId, idToken);
-      _validateReadAccess(userRole: userRole, userId: userId, chatRoom: chatRoom);
+      _validateReadAccess(
+        userRole: userRole,
+        userId: userId,
+        chatRoom: chatRoom,
+      );
 
-      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      final messages = await _fetchMessages(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
       final visible =
           messages.where((message) {
-            if (message.hiddenForUserIds.contains(userId)) {
-              return false;
-            }
-            if (userRole == 'student') {
-              return message.senderRole == 'tutor' ||
-                  message.senderRole == 'admin' ||
-                  message.senderRole == 'test_creator' ||
-                  message.senderId == userId;
-            }
-            if (userRole == 'tutor') {
-              return message.senderRole == 'student' ||
-                  message.senderRole == 'admin' ||
-                  message.senderRole == 'test_creator' ||
-                  message.senderId == userId;
-            }
-            return true;
-          }).toList()
+              if (message.hiddenForUserIds.contains(userId)) {
+                return false;
+              }
+              if (userRole == 'student') {
+                return message.senderRole == 'tutor' ||
+                    message.senderRole == 'admin' ||
+                    message.senderRole == 'test_creator' ||
+                    message.senderId == userId;
+              }
+              if (userRole == 'tutor') {
+                return message.senderRole == 'student' ||
+                    message.senderRole == 'admin' ||
+                    message.senderRole == 'test_creator' ||
+                    message.senderId == userId;
+              }
+              return true;
+            }).toList()
             ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
       if (visible.length > limit) {
@@ -193,7 +278,10 @@ class ChatService {
     required String idToken,
   }) async {
     try {
-      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      final messages = await _fetchMessages(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
       for (final message in messages) {
         if (message.hiddenForUserIds.contains(userId) ||
             message.readBy.contains(userId)) {
@@ -225,14 +313,13 @@ class ChatService {
       await _patchMessage(
         chatRoomId: chatRoomId,
         messageId: messageId,
-        fields: {
-          'text': newText,
-          'isEdited': true,
-          'editedAt': DateTime.now(),
-        },
+        fields: {'text': newText, 'isEdited': true, 'editedAt': DateTime.now()},
         idToken: idToken,
       );
-      await _refreshChatRoomLastMessage(chatRoomId: chatRoomId, idToken: idToken);
+      await _refreshChatRoomLastMessage(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
     } catch (e) {
       debugPrint('[ChatService] Error editing message: $e');
     }
@@ -245,7 +332,11 @@ class ChatService {
     try {
       final idToken = await _currentIdToken();
       if (idToken == null) throw 'Not authenticated';
-      final message = await _getMessage(chatRoomId: chatRoomId, messageId: messageId, idToken: idToken);
+      final message = await _getMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        idToken: idToken,
+      );
       await _patchMessage(
         chatRoomId: chatRoomId,
         messageId: messageId,
@@ -267,11 +358,16 @@ class ChatService {
       final idToken = await _currentIdToken();
       if (idToken == null) throw 'Not authenticated';
 
-      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      final messages = await _fetchMessages(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
       final now = DateTime.now();
       final expiresAt = now.add(duration);
 
-      for (final message in messages.where((m) => m.isPinned && m.id != messageId)) {
+      for (final message in messages.where(
+        (m) => m.isPinned && m.id != messageId,
+      )) {
         await _patchMessage(
           chatRoomId: chatRoomId,
           messageId: message.id,
@@ -329,7 +425,10 @@ class ChatService {
       final idToken = await _currentIdToken();
       if (idToken == null) throw 'Not authenticated';
 
-      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      final messages = await _fetchMessages(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
       final now = DateTime.now();
       for (final message in messages) {
         if (message.isPinned &&
@@ -361,7 +460,11 @@ class ChatService {
     try {
       final idToken = await _currentIdToken();
       if (idToken == null) throw 'Not authenticated';
-      final message = await _getMessage(chatRoomId: chatRoomId, messageId: messageId, idToken: idToken);
+      final message = await _getMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        idToken: idToken,
+      );
       final reactions = Map<String, int>.from(message.reactions);
       reactions[emoji] = (reactions[emoji] ?? 0) + 1;
       await _patchMessage(
@@ -384,7 +487,11 @@ class ChatService {
       final idToken = await _currentIdToken();
       if (userId == null || idToken == null) throw 'Not authenticated';
 
-      final message = await _getMessage(chatRoomId: chatRoomId, messageId: messageId, idToken: idToken);
+      final message = await _getMessage(
+        chatRoomId: chatRoomId,
+        messageId: messageId,
+        idToken: idToken,
+      );
       final hiddenFor = {...message.hiddenForUserIds, userId}.toList();
       await _patchMessage(
         chatRoomId: chatRoomId,
@@ -392,7 +499,10 @@ class ChatService {
         fields: {'hiddenForUserIds': hiddenFor},
         idToken: idToken,
       );
-      await _refreshChatRoomLastMessage(chatRoomId: chatRoomId, idToken: idToken);
+      await _refreshChatRoomLastMessage(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
     } catch (e) {
       debugPrint('[ChatService] Error deleting message for me: $e');
     }
@@ -405,25 +515,38 @@ class ChatService {
     try {
       final idToken = await _currentIdToken();
       if (idToken == null) throw 'Not authenticated';
-      await _patchMessage(
+      final message = await _getMessage(
         chatRoomId: chatRoomId,
         messageId: messageId,
-        fields: {
-          'text': 'Message deleted',
-          'isDeleted': true,
-          'deletedAt': DateTime.now(),
-          'isEdited': false,
-          'editedAt': null,
-          'isPinned': false,
-          'pinnedAt': null,
-          'pinExpiresAt': null,
-          'pinnedBy': null,
-        },
         idToken: idToken,
       );
-      await _refreshChatRoomLastMessage(chatRoomId: chatRoomId, idToken: idToken);
+      final resolvedMessageId =
+          message.id.trim().isNotEmpty ? message.id : messageId;
+      await _deleteMessage(
+        chatRoomId: chatRoomId,
+        messageId: resolvedMessageId,
+        idToken: idToken,
+      );
+      await _deleteStorageFileByUrl(message.audioUrl);
+      await _deleteStorageFileByUrl(message.attachmentUrl);
+      await _refreshChatRoomLastMessage(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
     } catch (e) {
       debugPrint('[ChatService] Error deleting message for everyone: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _deleteStorageFileByUrl(String? url) async {
+    final trimmedUrl = url?.trim();
+    if (trimmedUrl == null || trimmedUrl.isEmpty) return;
+    try {
+      final ref = FirebaseStorage.instance.refFromURL(trimmedUrl);
+      await ref.delete();
+    } catch (e) {
+      debugPrint('[ChatService] Failed to delete storage file: $e');
     }
   }
 
@@ -469,7 +592,10 @@ class ChatService {
   }
 
   Future<ChatRoom> _getChatRoomById(String chatRoomId, String idToken) async {
-    final chatRoom = await _fetchChatRoom(chatRoomId: chatRoomId, idToken: idToken);
+    final chatRoom = await _fetchChatRoom(
+      chatRoomId: chatRoomId,
+      idToken: idToken,
+    );
     if (chatRoom == null) {
       throw 'Chat room not found: $chatRoomId';
     }
@@ -546,7 +672,10 @@ class ChatService {
     required String idToken,
   }) async {
     try {
-      final messages = await _fetchMessages(chatRoomId: chatRoomId, idToken: idToken);
+      final messages = await _fetchMessages(
+        chatRoomId: chatRoomId,
+        idToken: idToken,
+      );
       final visibleMessages =
           messages.where((message) => !message.isDeleted).toList()
             ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -612,7 +741,9 @@ class ChatService {
             messageId: messageId,
           );
         } catch (e) {
-          debugPrint('[ChatService] Error creating notification for $recipientId: $e');
+          debugPrint(
+            '[ChatService] Error creating notification for $recipientId: $e',
+          );
         }
       }
     } catch (e) {
@@ -635,7 +766,10 @@ class ChatService {
 
     final response = await http.get(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Accept': 'application/json',
+      },
     );
     if (response.statusCode != 200) {
       throw 'Failed to fetch chat rooms: ${response.body}';
@@ -665,7 +799,10 @@ class ChatService {
 
     final response = await http.get(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Accept': 'application/json',
+      },
     );
     if (response.statusCode == 404) {
       return null;
@@ -673,7 +810,9 @@ class ChatService {
     if (response.statusCode != 200) {
       throw 'Failed to fetch chat room: ${response.body}';
     }
-    return _chatRoomFromFirestore(jsonDecode(response.body) as Map<String, dynamic>);
+    return _chatRoomFromFirestore(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   Future<List<Message>> _fetchMessages({
@@ -688,7 +827,10 @@ class ChatService {
 
     final response = await http.get(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Accept': 'application/json',
+      },
     );
     if (response.statusCode == 404) {
       return [];
@@ -699,10 +841,11 @@ class ChatService {
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final docs = (body['documents'] as List?) ?? [];
-    final messages = docs
-        .whereType<Map<String, dynamic>>()
-        .map(_messageFromFirestore)
-        .toList();
+    final messages =
+        docs
+            .whereType<Map<String, dynamic>>()
+            .map(_messageFromFirestore)
+            .toList();
     messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     return messages;
   }
@@ -719,12 +862,17 @@ class ChatService {
 
     final response = await http.get(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Accept': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Accept': 'application/json',
+      },
     );
     if (response.statusCode != 200) {
       throw 'Failed to fetch message: ${response.body}';
     }
-    return _messageFromFirestore(jsonDecode(response.body) as Map<String, dynamic>);
+    return _messageFromFirestore(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   Future<void> _writeChatRoom(ChatRoom chatRoom, String idToken) async {
@@ -735,7 +883,10 @@ class ChatService {
 
     final response = await http.patch(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'fields': _chatRoomFields(chatRoom)}),
     );
     if (response.statusCode != 200) {
@@ -748,14 +899,19 @@ class ChatService {
     required Map<String, dynamic> fields,
     required String idToken,
   }) async {
-    final query = fields.keys.map((key) => 'updateMask.fieldPaths=$key').join('&');
+    final query = fields.keys
+        .map((key) => 'updateMask.fieldPaths=$key')
+        .join('&');
     final url = Uri.parse(
       'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId?$query',
     );
 
     final response = await http.patch(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'fields': _toFirestoreFields(fields)}),
     );
     if (response.statusCode != 200) {
@@ -771,7 +927,10 @@ class ChatService {
 
     final response = await http.patch(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'fields': _messageFields(message)}),
     );
     if (response.statusCode != 200) {
@@ -785,18 +944,44 @@ class ChatService {
     required Map<String, dynamic> fields,
     required String idToken,
   }) async {
-    final query = fields.keys.map((key) => 'updateMask.fieldPaths=$key').join('&');
+    final query = fields.keys
+        .map((key) => 'updateMask.fieldPaths=$key')
+        .join('&');
     final url = Uri.parse(
       'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId/messages/$messageId?$query',
     );
 
     final response = await http.patch(
       url,
-      headers: {'Authorization': 'Bearer $idToken', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'fields': _toFirestoreFields(fields)}),
     );
     if (response.statusCode != 200) {
       throw 'Failed to update message: ${response.body}';
+    }
+  }
+
+  Future<void> _deleteMessage({
+    required String chatRoomId,
+    required String messageId,
+    required String idToken,
+  }) async {
+    final url = Uri.parse(
+      'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents/chat_rooms/$chatRoomId/messages/$messageId',
+    );
+
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw 'Failed to delete message: ${response.body}';
     }
   }
 
@@ -838,7 +1023,31 @@ class ChatService {
       'pinnedBy': message.pinnedBy,
       'reactions': message.reactions,
       'hiddenForUserIds': message.hiddenForUserIds,
+      'audioUrl': message.audioUrl,
+      'audioDurationSeconds': message.audioDurationSeconds,
+      'attachmentUrl': message.attachmentUrl,
+      'attachmentName': message.attachmentName,
+      'attachmentSizeBytes': message.attachmentSizeBytes,
     });
+  }
+
+  String _buildMessagePreview({
+    required String messageText,
+    String? audioUrl,
+    String? attachmentUrl,
+    String? attachmentName,
+  }) {
+    if (attachmentUrl != null && attachmentUrl.trim().isNotEmpty) {
+      final trimmedName = attachmentName?.trim();
+      if (trimmedName != null && trimmedName.isNotEmpty) {
+        return 'Attachment: $trimmedName';
+      }
+      return 'Attachment';
+    }
+    if (audioUrl != null && audioUrl.trim().isNotEmpty) {
+      return 'Voice message';
+    }
+    return messageText;
   }
 
   Map<String, dynamic> _toFirestoreFields(Map<String, dynamic> values) {
@@ -856,7 +1065,8 @@ class ChatService {
     if (value is bool) return {'booleanValue': value};
     if (value is int) return {'integerValue': value.toString()};
     if (value is double) return {'doubleValue': value};
-    if (value is DateTime) return {'timestampValue': value.toUtc().toIso8601String()};
+    if (value is DateTime)
+      return {'timestampValue': value.toUtc().toIso8601String()};
     if (value is List) {
       return {
         'arrayValue': {
@@ -933,12 +1143,28 @@ class ChatService {
       pinnedBy: _readString(fields['pinnedBy']),
       reactions: reactions,
       hiddenForUserIds: _readStringList(fields['hiddenForUserIds']),
+      audioUrl: _readString(fields['audioUrl']),
+      audioDurationSeconds: _readInt(fields['audioDurationSeconds']),
+      attachmentUrl: _readString(fields['attachmentUrl']),
+      attachmentName: _readString(fields['attachmentName']),
+      attachmentSizeBytes: _readInt(fields['attachmentSizeBytes']),
     );
   }
 
   String? _readString(dynamic field) {
     if (field is Map && field['stringValue'] != null) {
       return field['stringValue'] as String;
+    }
+    return null;
+  }
+
+  int? _readInt(dynamic field) {
+    if (field is! Map) return null;
+    if (field['integerValue'] != null) {
+      return int.tryParse(field['integerValue'].toString());
+    }
+    if (field['doubleValue'] != null) {
+      return (field['doubleValue'] as num).round();
     }
     return null;
   }

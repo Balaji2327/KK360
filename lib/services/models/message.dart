@@ -19,6 +19,11 @@ class Message {
   final String? pinnedBy;
   final Map<String, int> reactions;
   final List<String> hiddenForUserIds;
+  final String? audioUrl;
+  final int? audioDurationSeconds;
+  final String? attachmentUrl;
+  final String? attachmentName;
+  final int? attachmentSizeBytes;
 
   Message({
     required this.id,
@@ -41,7 +46,16 @@ class Message {
     this.pinnedBy,
     this.reactions = const {},
     this.hiddenForUserIds = const [],
+    this.audioUrl,
+    this.audioDurationSeconds,
+    this.attachmentUrl,
+    this.attachmentName,
+    this.attachmentSizeBytes,
   });
+
+  bool get hasAudio => audioUrl != null && audioUrl!.trim().isNotEmpty;
+  bool get hasAttachment =>
+      attachmentUrl != null && attachmentUrl!.trim().isNotEmpty;
 
   // Convert Message to JSON for Firestore
   Map<String, dynamic> toJson() {
@@ -66,6 +80,11 @@ class Message {
       'pinnedBy': pinnedBy,
       'reactions': reactions,
       'hiddenForUserIds': hiddenForUserIds,
+      'audioUrl': audioUrl,
+      'audioDurationSeconds': audioDurationSeconds,
+      'attachmentUrl': attachmentUrl,
+      'attachmentName': attachmentName,
+      'attachmentSizeBytes': attachmentSizeBytes,
     };
   }
 
@@ -98,20 +117,31 @@ class Message {
           json['deletedAt'] is String
               ? DateTime.tryParse(json['deletedAt'] as String)
               : null,
-        pinnedAt:
+      pinnedAt:
           json['pinnedAt'] is String
-            ? DateTime.tryParse(json['pinnedAt'] as String)
-            : null,
-        pinExpiresAt:
+              ? DateTime.tryParse(json['pinnedAt'] as String)
+              : null,
+      pinExpiresAt:
           json['pinExpiresAt'] is String
-            ? DateTime.tryParse(json['pinExpiresAt'] as String)
-            : null,
-        pinnedBy: json['pinnedBy']?.toString(),
-        reactions:
+              ? DateTime.tryParse(json['pinExpiresAt'] as String)
+              : null,
+      pinnedBy: json['pinnedBy']?.toString(),
+      reactions:
           (json['reactions'] is Map)
-            ? Map<String, int>.from(json['reactions'] as Map)
-            : const {},
-        hiddenForUserIds: List<String>.from(json['hiddenForUserIds'] ?? []),
+              ? Map<String, int>.from(json['reactions'] as Map)
+              : const {},
+      hiddenForUserIds: List<String>.from(json['hiddenForUserIds'] ?? []),
+      audioUrl: json['audioUrl'] as String?,
+      audioDurationSeconds:
+          json['audioDurationSeconds'] is int
+              ? json['audioDurationSeconds'] as int
+              : int.tryParse('${json['audioDurationSeconds'] ?? ''}'),
+      attachmentUrl: json['attachmentUrl'] as String?,
+      attachmentName: json['attachmentName'] as String?,
+      attachmentSizeBytes:
+          json['attachmentSizeBytes'] is int
+              ? json['attachmentSizeBytes'] as int
+              : int.tryParse('${json['attachmentSizeBytes'] ?? ''}'),
     );
   }
 
@@ -137,6 +167,11 @@ class Message {
     String? pinnedBy,
     Map<String, int>? reactions,
     List<String>? hiddenForUserIds,
+    String? audioUrl,
+    int? audioDurationSeconds,
+    String? attachmentUrl,
+    String? attachmentName,
+    int? attachmentSizeBytes,
   }) {
     return Message(
       id: id ?? this.id,
@@ -159,6 +194,11 @@ class Message {
       pinnedBy: pinnedBy ?? this.pinnedBy,
       reactions: reactions ?? this.reactions,
       hiddenForUserIds: hiddenForUserIds ?? this.hiddenForUserIds,
+      audioUrl: audioUrl ?? this.audioUrl,
+      audioDurationSeconds: audioDurationSeconds ?? this.audioDurationSeconds,
+      attachmentUrl: attachmentUrl ?? this.attachmentUrl,
+      attachmentName: attachmentName ?? this.attachmentName,
+      attachmentSizeBytes: attachmentSizeBytes ?? this.attachmentSizeBytes,
     );
   }
 }

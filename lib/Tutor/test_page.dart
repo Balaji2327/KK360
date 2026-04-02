@@ -231,6 +231,18 @@ class _TestPageState extends State<TestPage> {
     final borderColor =
         isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE8E6F3);
 
+    final startText =
+        test.startDate != null ? _formatDate(test.startDate!) : 'Not set';
+    final endText =
+        test.endDate != null ? _formatDate(test.endDate!) : 'Not set';
+    final durationText =
+        test.durationMinutes != null
+            ? '${test.durationMinutes! ~/ 60 > 0 ? '${test.durationMinutes! ~/ 60} hr ' : ''}${test.durationMinutes! % 60 == 0 ? '' : '${test.durationMinutes! % 60} min'}'
+            : 'N/A';
+    final questionText = '${test.questions.length} Q';
+    final marksText = test.totalMarks != null ? '${test.totalMarks} M' : 'N/A';
+    final assignedText = '${test.assignedTo.length}';
+
     return Container(
       margin: EdgeInsets.only(bottom: h * 0.015),
       decoration: BoxDecoration(
@@ -250,12 +262,18 @@ class _TestPageState extends State<TestPage> {
         children: [
           Container(
             width: w,
-            padding: EdgeInsets.fromLTRB(w * 0.045, h * 0.022, w * 0.045, h * 0.018),
+            padding: EdgeInsets.fromLTRB(
+              w * 0.045,
+              h * 0.022,
+              w * 0.04,
+              h * 0.018,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: isDark
-                    ? const [Color(0xFF282C43), Color(0xFF1C2030)]
-                    : const [Color(0xFFF5F0FF), Color(0xFFE7F1FF)],
+                colors:
+                    isDark
+                        ? const [Color(0xFF282C43), Color(0xFF1C2030)]
+                        : const [Color(0xFFF5F0FF), Color(0xFFE7F1FF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -265,205 +283,295 @@ class _TestPageState extends State<TestPage> {
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2D3148) : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color:
+                          isDark
+                              ? Colors.white.withOpacity(0.08)
+                              : const Color(0xFFE3E6F6),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.person,
+                    size: 30,
+                    color: isDark ? Colors.white : const Color(0xFF171A2C),
+                  ),
+                ),
+                SizedBox(width: w * 0.035),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildHeaderPill(
-                            label: isExpired ? 'Expired' : 'Published',
-                            icon: isExpired
-                                ? Icons.warning_amber_rounded
-                                : Icons.verified_rounded,
-                            color: isExpired
-                                ? Colors.red.shade600
-                                : Colors.green.shade600,
-                            isDark: isDark,
-                          ),
-                          if (test.startDate != null)
-                            _buildHeaderPill(
-                              label: _formatDate(test.startDate!),
-                              icon: Icons.schedule_rounded,
-                              color: appColor,
-                              isDark: isDark,
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: h * 0.012),
-                      Text(
-                        test.title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: titleColor,
-                          height: 1.15,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: h * 0.008),
                       Text(
                         className,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
+                          color: titleColor,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        isExpired ? 'Expired' : 'Published',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
                           color: bodyColor,
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      test.title,
+                      textAlign: TextAlign.right,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 18.5,
+                        fontWeight: FontWeight.w800,
+                        color: titleColor,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      test.course.isNotEmpty ? test.course : 'General',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: bodyColor,
+                      ),
+                    ),
+                  ],
+                ),
                 SizedBox(width: w * 0.02),
-                GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder:
-                          (ctx) => AlertDialog(
-                            backgroundColor:
-                                isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                            title: Text(
-                              'Delete Test',
-                              style: TextStyle(
-                                color: isDark ? Colors.white : Colors.black,
-                              ),
-                            ),
-                            content: Text(
-                              'Are you sure you want to delete "${test.title}"? This cannot be undone.',
-                              style: TextStyle(
-                                color: isDark ? Colors.white70 : Colors.black87,
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: Text(
-                                  'Cancel',
-                                  style: TextStyle(
-                                    color:
-                                        isDark ? Colors.white70 : Colors.grey,
-                                  ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert_rounded, color: titleColor),
+                  onSelected: (value) async {
+                    if (value == 'delete') {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (ctx) => AlertDialog(
+                              backgroundColor:
+                                  isDark
+                                      ? const Color(0xFF2C2C2C)
+                                      : Colors.white,
+                              title: Text(
+                                'Delete Test',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black,
                                 ),
                               ),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  Navigator.pop(ctx);
-                                  try {
-                                    await _authService.deleteTest(
-                                      projectId: 'kk360-69504',
-                                      testId: test.id,
-                                    );
-                                    _loadTests();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Test deleted successfully',
-                                        ),
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    if (mounted) {
+                              content: Text(
+                                'Are you sure you want to delete "${test.title}"? This cannot be undone.',
+                                style: TextStyle(
+                                  color:
+                                      isDark ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      color:
+                                          isDark ? Colors.white70 : Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    Navigator.pop(ctx);
+                                    try {
+                                      await _authService.deleteTest(
+                                        projectId: 'kk360-69504',
+                                        testId: test.id,
+                                      );
+                                      _loadTests();
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Failed to delete: $e'),
-                                          backgroundColor: Colors.red,
+                                        const SnackBar(
+                                          content: Text(
+                                            'Test deleted successfully',
+                                          ),
                                         ),
                                       );
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Failed to delete: $e',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
                                     }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Delete'),
                                 ),
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
-                    );
+                              ],
+                            ),
+                      );
+                    }
                   },
-                  child: Icon(
-                    Icons.delete_outline_rounded,
-                    color: titleColor,
-                    size: 22,
-                  ),
+                  itemBuilder:
+                      (ctx) => const [
+                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      ],
                 ),
               ],
             ),
           ),
 
+          Container(height: 1, color: borderColor),
+
           Padding(
             padding: EdgeInsets.fromLTRB(
               w * 0.045,
-              h * 0.022,
+              h * 0.02,
               w * 0.045,
-              h * 0.022,
+              h * 0.018,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (test.description.isNotEmpty) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(w * 0.035),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF20222D)
-                          : const Color(0xFFF7F8FC),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Text(
-                      test.description,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        color: bodyColor,
-                        height: 1.5,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color:
+                              isDark ? const Color(0xFF20222D) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF6C6BCF),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildSummaryCell(
+                              Icons.schedule_rounded,
+                              durationText,
+                              true,
+                              titleColor,
+                            ),
+                            _buildSummaryCell(
+                              Icons.help_outline_rounded,
+                              questionText,
+                              true,
+                              titleColor,
+                            ),
+                            _buildSummaryCell(
+                              Icons.check_circle_rounded,
+                              marksText,
+                              false,
+                              titleColor,
+                            ),
+                          ],
+                        ),
                       ),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
+
+                SizedBox(height: h * 0.014),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color:
+                              isDark ? const Color(0xFF20222D) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF6C6BCF),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildSummaryCell(
+                              Icons.groups_rounded,
+                              assignedText,
+                              true,
+                              titleColor,
+                            ),
+                            _buildSummaryCell(
+                              Icons.check_circle_outline_rounded,
+                              isExpired ? '0' : '0',
+                              true,
+                              titleColor,
+                            ),
+                            _buildSummaryCell(
+                              Icons.do_not_disturb_alt_rounded,
+                              isExpired ? '1' : '0',
+                              true,
+                              titleColor,
+                            ),
+                            _buildSummaryCell(
+                              Icons.schedule_rounded,
+                              isExpired ? '1' : '0',
+                              false,
+                              titleColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
                 SizedBox(height: h * 0.018),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
+
+                Row(
                   children: [
-                    _buildMetricTile(
-                      icon: Icons.play_circle_outline_rounded,
-                      label: 'Start',
-                      value: test.startDate != null
-                          ? _formatDate(test.startDate!)
-                          : 'No start date',
-                      color: appColor,
-                      isDark: isDark,
+                    Expanded(
+                      child: _buildTwoLineText(
+                        'Start Time',
+                        startText,
+                        bodyColor,
+                        titleColor,
+                      ),
                     ),
-                    _buildMetricTile(
-                      icon: Icons.timer_outlined,
-                      label: 'End',
-                      value: test.endDate != null
-                          ? _formatDate(test.endDate!)
-                          : 'No end date',
-                      color: isExpired
-                          ? Colors.red.shade600
-                          : Colors.blue.shade700,
-                      isDark: isDark,
-                    ),
-                    _buildMetricTile(
-                      icon: Icons.layers_outlined,
-                      label: 'Class',
-                      value: className,
-                      color: Colors.teal.shade600,
-                      isDark: isDark,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _buildTwoLineText(
+                        'End Time',
+                        endText,
+                        bodyColor,
+                        titleColor,
+                      ),
                     ),
                   ],
                 ),
@@ -515,6 +623,75 @@ class _TestPageState extends State<TestPage> {
     );
   }
 
+  Widget _buildSummaryCell(
+    IconData icon,
+    String value,
+    bool showDivider,
+    Color textColor,
+  ) {
+    return Expanded(
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 18, color: const Color(0xFF171A2C)),
+                const SizedBox(width: 8),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showDivider)
+            Container(
+              width: 1,
+              height: 28,
+              color: const Color(0xFF6C6BCF).withOpacity(0.22),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTwoLineText(
+    String label,
+    String value,
+    Color labelColor,
+    Color valueColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: labelColor,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 15.5,
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeaderPill({
     required String label,
     required IconData icon,
@@ -524,7 +701,8 @@ class _TestPageState extends State<TestPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? color.withOpacity(0.18) : Colors.white.withOpacity(0.84),
+        color:
+            isDark ? color.withOpacity(0.18) : Colors.white.withOpacity(0.84),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color.withOpacity(0.18)),
       ),
@@ -560,7 +738,8 @@ class _TestPageState extends State<TestPage> {
         color: isDark ? const Color(0xFF20222D) : const Color(0xFFF7F8FC),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8E6F3),
+          color:
+              isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8E6F3),
         ),
       ),
       child: Row(

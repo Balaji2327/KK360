@@ -16,11 +16,62 @@ import '../widgets/notifications_screen.dart';
 
 const String kPushPreferenceKey = 'push_notifications_enabled';
 const String kLastPushUserIdKey = 'push_notifications_last_user_id';
+const String kPushChannelId = 'kk360_notifications';
+const String kPushChannelName = 'KK360 Notifications';
+const String kPushChannelDescription =
+    'Assignments, tests, materials, and class chat updates.';
+
+final FlutterLocalNotificationsPlugin _backgroundLocalNotifications =
+    FlutterLocalNotificationsPlugin();
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  const initSettings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    iOS: DarwinInitializationSettings(),
+  );
+
+  await _backgroundLocalNotifications.initialize(initSettings);
+
+  const channel = AndroidNotificationChannel(
+    kPushChannelId,
+    kPushChannelName,
+    description: kPushChannelDescription,
+    importance: Importance.high,
+  );
+
+  await _backgroundLocalNotifications
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
+      ?.createNotificationChannel(channel);
+
+  final notification = message.notification;
+  final title =
+      notification?.title ??
+      (message.data['title']?.toString() ?? 'KK360 Notification');
+  final body =
+      notification?.body ?? (message.data['message']?.toString() ?? '');
+
+  if (body.isEmpty) return;
+
+  await _backgroundLocalNotifications.show(
+    message.hashCode,
+    title,
+    body,
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        kPushChannelId,
+        kPushChannelName,
+        channelDescription: kPushChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(),
+    ),
+    payload: jsonEncode(message.data),
   );
 }
 
@@ -30,10 +81,9 @@ class PushNotificationService {
   static final PushNotificationService instance = PushNotificationService._();
 
   static const String _projectId = 'kk360-69504';
-  static const String _channelId = 'kk360_notifications';
-  static const String _channelName = 'KK360 Notifications';
-  static const String _channelDescription =
-      'Assignments, tests, materials, and class chat updates.';
+  static const String _channelId = kPushChannelId;
+  static const String _channelName = kPushChannelName;
+  static const String _channelDescription = kPushChannelDescription;
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
@@ -336,10 +386,7 @@ class PushNotificationService {
     );
 
     try {
-      await http.delete(
-        url,
-        headers: {'Authorization': 'Bearer $idToken'},
-      );
+      await http.delete(url, headers: {'Authorization': 'Bearer $idToken'});
     } catch (e) {
       debugPrint('[PushNotificationService] Failed to delete token: $e');
     }
@@ -392,7 +439,8 @@ class PushNotificationService {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder:
-              (context) => NotificationsScreen(userId: user.uid, userRole: role),
+              (context) =>
+                  NotificationsScreen(userId: user.uid, userRole: role),
         ),
       );
     });

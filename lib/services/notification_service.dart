@@ -120,7 +120,7 @@ class NotificationService {
         '/v1/projects/$_projectId/databases/(default)/documents/users/${notification.userId}/notifications/${notification.id}',
       );
 
-      await http
+      final updateResp = await http
           .patch(
             docUrl,
             headers: {
@@ -130,6 +130,16 @@ class NotificationService {
             body: body,
           )
           .timeout(const Duration(seconds: 10));
+
+      if (updateResp.statusCode < 200 || updateResp.statusCode >= 300) {
+        throw 'Failed to upsert notification ${notification.id} (status ${updateResp.statusCode}): ${updateResp.body}';
+      }
+
+      return;
+    }
+
+    if (resp.statusCode < 200 || resp.statusCode >= 300) {
+      throw 'Failed to create notification ${notification.id} (status ${resp.statusCode}): ${resp.body}';
     }
   }
 
@@ -151,14 +161,16 @@ class NotificationService {
       },
     });
 
-    await http.patch(
-      url,
-      headers: {
-        'Authorization': 'Bearer $idToken',
-        'Content-Type': 'application/json',
-      },
-      body: body,
-    ).timeout(const Duration(seconds: 10));
+    await http
+        .patch(
+          url,
+          headers: {
+            'Authorization': 'Bearer $idToken',
+            'Content-Type': 'application/json',
+          },
+          body: body,
+        )
+        .timeout(const Duration(seconds: 10));
   }
 
   Future<void> _deleteNotificationRemote(NotificationModel notification) async {
@@ -170,10 +182,9 @@ class NotificationService {
       '/v1/projects/$_projectId/databases/(default)/documents/users/${notification.userId}/notifications/${notification.id}',
     );
 
-    await http.delete(
-      url,
-      headers: {'Authorization': 'Bearer $idToken'},
-    ).timeout(const Duration(seconds: 10));
+    await http
+        .delete(url, headers: {'Authorization': 'Bearer $idToken'})
+        .timeout(const Duration(seconds: 10));
   }
 
   String? _stringField(Map<String, dynamic>? fields, String key) {
@@ -623,9 +634,7 @@ class NotificationService {
         try {
           await _updateNotificationReadStateRemote(notification);
         } catch (e) {
-          debugPrint(
-            '[NotificationService] Remote mark-as-read failed: $e',
-          );
+          debugPrint('[NotificationService] Remote mark-as-read failed: $e');
         }
         _notifyNewNotification();
         debugPrint(
@@ -687,7 +696,9 @@ class NotificationService {
       final data = box.get(notificationId);
       NotificationModel? notification;
       if (data != null && data is Map) {
-        notification = NotificationModel.fromJson(Map<String, dynamic>.from(data));
+        notification = NotificationModel.fromJson(
+          Map<String, dynamic>.from(data),
+        );
       }
       await box.delete(notificationId);
       if (notification != null) {

@@ -31,6 +31,10 @@ class _QuestionEditor {
 
 class _CreateTestScreenState extends State<CreateTestScreen> {
   final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _unitController = TextEditingController();
+  final TextEditingController _durationMinutesController =
+      TextEditingController();
+  final TextEditingController _totalMarksController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _questionCountController =
       TextEditingController();
@@ -59,6 +63,9 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
   @override
   void dispose() {
     _titleController.dispose();
+    _unitController.dispose();
+    _durationMinutesController.dispose();
+    _totalMarksController.dispose();
     _descriptionController.dispose();
     _questionCountController.dispose();
     for (var q in _questions) q.dispose();
@@ -362,6 +369,33 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
       return;
     }
 
+    final durationMinutes =
+        _durationMinutesController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_durationMinutesController.text.trim());
+    final totalMarks =
+        _totalMarksController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_totalMarksController.text.trim());
+
+    if (_durationMinutesController.text.trim().isNotEmpty &&
+        (durationMinutes == null || durationMinutes <= 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid duration in minutes'),
+        ),
+      );
+      return;
+    }
+
+    if (_totalMarksController.text.trim().isNotEmpty &&
+        (totalMarks == null || totalMarks <= 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid total marks value')),
+      );
+      return;
+    }
+
     // Validate questions
     final validQuestions = <Question>[];
     for (int i = 0; i < _questions.length; i++) {
@@ -424,6 +458,9 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
           title: title,
           classId: classId,
           course: _selectedCourse,
+          unitName: _unitController.text.trim(),
+          durationMinutes: durationMinutes,
+          totalMarks: totalMarks,
           description: _descriptionController.text.trim(),
           startDate: _startDate,
           endDate: _endDate,
@@ -469,9 +506,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
               endDate: endDateStr,
               targetUserIds: studentsToNotify,
             );
-        debugPrint(
-          '[Test] Created $successCount notifications successfully',
-        );
+        debugPrint('[Test] Created $successCount notifications successfully');
       }
 
       if (mounted) {
@@ -748,6 +783,102 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Unit / Topic
+                  Text(
+                    "Unit / Topic",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  TextField(
+                    controller: _unitController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: "e.g. Unit 3",
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Duration (minutes)",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            TextField(
+                              controller: _durationMinutesController,
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: "e.g. 60",
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Total Marks",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            TextField(
+                              controller: _totalMarksController,
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: "e.g. 25",
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white54 : Colors.grey,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: 20),
 

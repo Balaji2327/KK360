@@ -2176,6 +2176,9 @@ class FirebaseAuthService {
     required String title,
     required String classId,
     String? course,
+    String? unitName,
+    int? durationMinutes,
+    int? totalMarks,
     String? description,
     DateTime? startDate,
     DateTime? endDate,
@@ -2204,6 +2207,11 @@ class FirebaseAuthService {
     };
     if (course != null && course.isNotEmpty)
       fields['course'] = {'stringValue': course};
+    if (unitName != null && unitName.isNotEmpty)
+      fields['unitName'] = {'stringValue': unitName};
+    if (durationMinutes != null)
+      fields['durationMinutes'] = {'integerValue': durationMinutes};
+    if (totalMarks != null) fields['totalMarks'] = {'integerValue': totalMarks};
     if (description != null && description.isNotEmpty)
       fields['description'] = {'stringValue': description};
     if (startDate != null)
@@ -2307,12 +2315,23 @@ class FirebaseAuthService {
       final title = fields['title']?['stringValue'] as String? ?? '';
       final classId = fields['classId']?['stringValue'] as String? ?? '';
       final course = fields['course']?['stringValue'] as String? ?? '';
+      final unitName = fields['unitName']?['stringValue'] as String? ?? '';
       final description =
           fields['description']?['stringValue'] as String? ?? '';
       final startDateStr = fields['startDate']?['timestampValue'] as String?;
       final endDateStr = fields['endDate']?['timestampValue'] as String?;
       final createdAt = fields['createdAt']?['timestampValue'] as String?;
       final createdBy = fields['createdBy']?['stringValue'] as String? ?? '';
+      final durationMinutes =
+          fields['durationMinutes']?['integerValue'] != null
+              ? int.tryParse(
+                fields['durationMinutes']!['integerValue'].toString(),
+              )
+              : null;
+      final totalMarks =
+          fields['totalMarks']?['integerValue'] != null
+              ? int.tryParse(fields['totalMarks']!['integerValue'].toString())
+              : null;
 
       final questionsList = <Question>[];
       final questionsVal =
@@ -2347,11 +2366,22 @@ class FirebaseAuthService {
         }
       }
 
+      final assignedTo = <String>[];
+      final assignedToVal =
+          fields['assignedTo']?['arrayValue']?['values'] as List<dynamic>?;
+      if (assignedToVal != null) {
+        for (final entry in assignedToVal) {
+          final uid = entry['stringValue'] as String?;
+          if (uid != null && uid.isNotEmpty) assignedTo.add(uid);
+        }
+      }
+
       out.add(
         TestInfo(
           id: name?.split('/').last ?? '',
           title: title,
           course: course,
+          unitName: unitName,
           description: description,
           startDate:
               startDateStr != null ? DateTime.tryParse(startDateStr) : null,
@@ -2360,6 +2390,9 @@ class FirebaseAuthService {
           classId: classId,
           questions: questionsList,
           createdBy: createdBy,
+          assignedTo: assignedTo,
+          durationMinutes: durationMinutes,
+          totalMarks: totalMarks,
         ),
       );
     }
@@ -5483,6 +5516,7 @@ class TestInfo {
   final String id;
   final String title;
   final String course;
+  final String unitName;
   final String description;
   final String classId;
   final DateTime? startDate;
@@ -5491,11 +5525,14 @@ class TestInfo {
   final List<Question> questions;
   final String createdBy;
   final List<String> assignedTo;
+  final int? durationMinutes;
+  final int? totalMarks;
 
   TestInfo({
     required this.id,
     required this.title,
     required this.course,
+    this.unitName = '',
     required this.description,
     required this.classId,
     this.startDate,
@@ -5504,6 +5541,8 @@ class TestInfo {
     this.questions = const [],
     this.createdBy = '',
     this.assignedTo = const [],
+    this.durationMinutes,
+    this.totalMarks,
   });
 }
 
